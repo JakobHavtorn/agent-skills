@@ -34,73 +34,103 @@ Sprint goals for the next cycle are really a synthesis of three things that don'
 | Cycle selection | Current cycle = outgoing; next after it = upcoming | Override if user names the cycle explicitly |
 | Output | Draft in conversation, not written to Notion | User must explicitly ask to write it in |
 
-## Step 1 — Gather all data in parallel
+## Step 1 — Detection flow
 
-Fire all three data sources at once. They have no dependencies on each other:
+Check that all three MCP integrations are available. If any is missing, fail immediately and report the failure — all three sources are required, no degradation.
 
-### 1a. Notion — Sprint Planning database
+Attempt one lightweight call per source:
 
-- Sprint Planning page: `https://www.notion.so/cortihome/Sprint-Planning-20dbef65b3ab800c85dbd99368164e20`
-- Data source: `collection://20dbef65-b3ab-8076-8351-000b245ea82b` ("Team Speech Rec - Sprint Planning")
-- Query (via `notion-query-data-sources`, SQL mode): `SELECT * FROM "collection://20dbef65-b3ab-8076-8351-000b245ea82b" ORDER BY "date:Dates:start" DESC LIMIT 6`
-- From the results, identify:
-  - The **outgoing cycle** entry (Dates range contains today, or most recently ended). Read its `Goals` property — that's what the team intended.
-  - The **upcoming cycle** entry (starts right after outgoing). Check its `Goals` property — someone may have already sketched a draft. Treat existing content as a draft to verify and refresh, not overwrite.
-  - Note the upcoming cycle's page URL — that's where the draft is destined if the user later asks to write it in.
-  - 1-2 **older completed** cycle entries — their `Goals` property is your **style reference**. Match the exact formatting (numbered bold titles, one-line factual bodies, blank bodies where nothing concrete existed). Mirror the leanest, most recently-edited example, not your own instinct for detail level.
+| Source | Test call | Pass condition |
+|---|---|---|
+| Notion | `notion-fetch` with `id: "self"` | Returns workspace info without error |
+| Linear | `linear_list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "current")` | Returns a cycle object without error |
+| Slack | `slack_search_channels` with `query: "speech-recognition"` | Returns results without error |
 
-### 1b. Linear — Cycle and ticket status
+If any call fails, stop and return the failure template (see Output — failure).
 
-Query Linear directly for cycle and ticket data — no dependency on Notion for the cycle name:
+## Step 2 — Gather all data in parallel
 
-- Get the current cycle: `list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "current")` — returns the cycle name, number, start/end dates.
-- Get the previous cycle: `list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "previous")` — this is the outgoing cycle whose tickets you need.
-- Get the next cycle: `list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "next")` — this is the upcoming cycle you're drafting goals for. Note its name for matching against the Notion Sprint Planning entry.
-- List the outgoing cycle's issues:
-  ```
-  list_issues(team: "Speech Recognition", cycle: "<previous cycle name>", limit: 250,
-    fields: ["title","status","statusType","priority","assignee","project","labels","url","completedAt"])
-  ```
-- Optionally, list issues already scoped to the upcoming cycle — some tickets may already be pulled in, which tells you what's already planned vs. what's aspirational:
-  ```
-  list_issues(team: "Speech Recognition", cycle: "<next cycle name>", limit: 250,
-    fields: ["title","status","statusType","priority","assignee","project","labels","url","completedAt"])
-  ```
-- Group the outgoing cycle's issues by `project` — that grouping maps back to the goal-level themes on the Sprint Planning page (e.g. "LLM-based text-entity tagging on streamed ASR transcripts" → the entity tagger goal, "Model Patching POC: Domain Vocabulary Expansion" → the vocab endpoint goal). For each theme, note what's Done, what's still In Progress/In Review/In QA, and what's untouched (Todo).
-- If the user named the cycle explicitly (e.g. "draft goals for Juno"), query that cycle by name instead of using current/previous/next.
+Fire all three data sources at once. They have no dependencies on each other. If any source returns no data or errors, fail completely and report.
 
-### 1c. Slack — Last two weeks of discussion
+### 2a. Notion — Sprint Planning database
+
+Query the Sprint Planning data source. See `references/notion-data-source.md` for the data source URL, query, and how to interpret results.
+
+- Query: `SELECT * FROM "collection://20dbef65-b3ab-8076-8351-000b245ea82b" ORDER BY "date:Dates:start" DESC LIMIT 6`
+- From results, identify: outgoing cycle (Goals = what team intended), upcoming cycle (check if Goals already has a draft), 1-2 older cycles (Goals = style reference).
+- Note upcoming cycle's page URL — that's where the draft is destined if the user later asks to write it in.
+
+**Gate:** If the query returns zero rows, fail — report "Notion Sprint Planning database returned no cycle entries."
+
+### 2b. Linear — Cycle and ticket status
+
+Query Linear directly — no dependency on Notion for the cycle name:
+
+- Get cycles: `list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "previous")`, `"current"`, and `"next"` — fire all three in parallel.
+- List outgoing cycle's issues: `list_issues(team: "Speech Recognition", cycle: "<previous cycle name>", limit: 250, fields: ["title","status","statusType","priority","assignee","project","labels","url","completedAt"])`
+- Optionally list upcoming cycle's issues (same call, cycle = next cycle name) — tickets already scoped tell you what's planned vs. aspirational.
+- Group outgoing cycle's issues by `project` — that grouping maps to goal-level themes on the Sprint Planning page. For each theme, note what's Done, In Progress/In Review/In QA, and Todo.
+- If the user named the cycle explicitly (e.g. "draft goals for Juno"), query that cycle by name instead of using previous/current/next.
+
+**Gate:** If `list_cycles` returns no cycles or `list_issues` returns zero issues, fail — report "Linear returned no cycle or issue data for the outgoing cycle."
+
+### 2c. Slack — Last two weeks of discussion
+
+See `references/channels.md` for channel descriptions, reading strategy, and subagent instructions.
 
 Compute the `oldest` timestamp via shell: `date -d '14 days ago' +%s` (Linux) or `date -v-14d +%s` (macOS).
 
-Four channels, each for a different reason:
+Fire all four `slack_read_channel` calls in parallel. For large responses, hand off to subagents — one per channel, run in parallel. Extract: active topics, explicit next-cycle goals/decisions, customer escalations, open questions.
 
-- **`C08SF3A0B4L`** (#team-speech-recognition, public) — main engineering channel. Look hard for any message already stating cycle goals or priorities — someone on the team sometimes posts this proactively, and if so it's your strongest signal.
-- **`C08S4B4H5DL`** (internal SR team channel) — secondary discussion, PR/API-council threads, naming debates, escalations.
-- **`C0BSN5L3FR8`** (#feed-speech-recognition-deploys) — automated deploy notifications. Cross-check against Linear ticket statuses to confirm what actually reached prod.
-- **`C0AMEADK2UX`** (#feed-speech-rec-feedback) — customer-feedback intake. Mostly noise unless there's a recent process change or escalation.
+**Gate:** If all four channels return zero messages, fail — report "Slack returned no messages in any of the four SR channels for the last 14 days."
 
-Fire all four `slack_read_channel` calls in parallel. Channels can exceed the single-response token budget — when that happens the result is saved to a file. Don't read that file directly with the Read tool (lines too long); hand it off to a subagent with instructions to slice it in ~80,000-character spans via Python and report back a factual summary. Running one subagent per channel in parallel is fastest.
-
-Ask each subagent (or yourself, if the result fits in context) to extract:
-1. Active engineering topics/projects being discussed
-2. Any explicit statement of goals, priorities, decisions, or things being pushed to next cycle
-3. Customer-driven issues or escalations
-4. Open questions or unresolved disagreements as of the most recent messages
-
-## Step 2 — Draft the goals
+## Step 3 — Draft the goals
 
 Synthesize all gathered data into a numbered list. For each goal:
 
 1. **Bold title** — short, action-oriented (e.g. "Ship word-level timestamps to prod", "Decide on decoder keyterm biasing (GPU-PB) approach", "Initiate the vocabulary endpoint").
 2. Optionally, one or two factual sentences: concrete ticket IDs (plain text, e.g. `SR-2864`, not hyperlinked — that's the house style on this page), what's shipped vs. pending, and a target date if one was actually stated somewhere (don't invent one). Leave this blank if you don't have anything concrete — a title-only goal is normal and expected when work is just starting.
 
-What to leave out, because the team consistently edits it out when it appears: recommendations ("worth flagging", "your call on whether..."), hedging about whether something belongs on the list, meta-commentary about sequencing or dependencies between goals, and any framing of an item as a "decision point" rather than just stating what the decision is and what it's waiting on (compare "TBD — waiting on NVIDIA vs. building in-house" to "this needs a decision from the team on whether to partner with NVIDIA"). Say only what is currently true. If Slack surfaced an explicit next-cycle goal that Notion/Linear don't yet reflect, include it as a normal numbered goal — don't caveat it as new or uncertain, and don't second-guess whether it belongs.
+What to leave out, because the team consistently edits it out when it appears: recommendations ("worth flagging", "your call on whether..."), hedging about whether something belongs on the list, meta-commentary about sequencing or dependencies between goals, and any framing of an item as a "decision point" rather than just stating what the decision is and what it's waiting on. Say only what is currently true. If Slack surfaced an explicit next-cycle goal that Notion/Linear don't yet reflect, include it as a normal numbered goal — don't caveat it as new or uncertain, and don't second-guess whether it belongs.
 
 Carry forward goals from the outgoing cycle whose underlying Linear tickets aren't Done yet, phrased as what's still needed to finish them. Add new goals surfaced from Slack discussion (especially anything explicitly framed as a next-cycle goal). Leave out anything that's fully Done in Linear and wasn't otherwise flagged as ongoing.
 
 Cross-reference the outgoing cycle's Notion `Goals` text (what the team intended) against the Linear ticket states (what actually happened). Where they diverge — something planned but never started, or something shipped that wasn't originally a stated goal — surface it.
 
-## Step 3 — Return the draft
+## Step 4 — Return the draft
 
-Post the numbered list in the conversation for review. Don't write it to the Notion page's `Goals` property unless the user explicitly asks — they'll typically want to edit it (usually by tightening it further) before it's final. If they do ask you to write it in, use `notion-update-page` on the upcoming cycle's page, replacing the `Goals` property with the agreed text (use `<br>` between numbered items, matching the existing property's formatting).
+### Output — success
+
+```
+1. **Outgoing cycle**: <cycle name>
+2. **Upcoming cycle**: <cycle name>
+3. **Draft sprint goals**:
+
+   <numbered list — bold title per goal, optionally 1-2 factual sentences>
+
+4. **Sources consulted**:
+   - Notion: <N> cycle entries fetched, outgoing Goals reviewed, <N> older entries used as style reference
+   - Linear: <N> issues in outgoing cycle, grouped into <N> project themes; <N> issues already scoped to upcoming cycle
+   - Slack: 4 channels read over 14 days; <summary of key signals found>
+5. **Next steps**:
+   - Review and edit the draft above
+   - Ask me to write it to the Notion page when you're happy with it
+   - Or tell me what to change
+```
+
+### Output — failure
+
+```
+1. **Status**: failed
+2. **Step failed**: <step number and name>
+3. **Error**: <what went wrong — which source failed and why>
+4. **What was gathered**: <brief summary of any data retrieved before the failure>
+5. **Next steps**: <action to resolve — e.g. "Check that the Notion MCP integration is connected and the workspace is accessible">
+```
+
+Do not write to Notion unless the user explicitly asks. If they do, use `notion-update-page` on the upcoming cycle's page, replacing the `Goals` property with the agreed text (use `<br>` between numbered items, matching the existing property's formatting).
+
+## Reference Files
+
+- `references/notion-data-source.md` — Notion data source URL, query, cycle identification, style reference, and write-back instructions
+- `references/channels.md` — Slack channel descriptions, reading strategy, large-response handling, and subagent extraction instructions
