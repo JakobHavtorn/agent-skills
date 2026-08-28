@@ -11,7 +11,7 @@
     {
       "name": "dev-workflow",
       "source": "./plugins/dev-workflow",
-      "description": "Developer workflow tools — create Linear issues, open PRs with lint and test, address PR review comments.",
+      "description": "Developer workflow tools — create Linear issues, open PRs with lint and test, address PR review comments, and create/evaluate agent skills.",
       "version": "1.0.0"
     },
     {
