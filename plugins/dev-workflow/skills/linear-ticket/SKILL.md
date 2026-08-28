@@ -12,7 +12,7 @@ description: >
 
 ## Overview
 
-Create a well-structured Linear issue by resolving all workspace metadata (team, user, labels, statuses, cycles, projects) upfront, then calling `save_issue` with the correct parameters. Uses Linear MCP tools throughout.
+Create a well-structured Linear issue by resolving workspace metadata (team, user, labels, statuses) and drafting the issue body from context, then calling `linear_save_issue`. Be assumptive — infer the title, body, and fields from the user's request and surrounding context rather than asking a series of questions. Only ask when critical information is truly missing.
 
 ---
 
@@ -20,65 +20,64 @@ Create a well-structured Linear issue by resolving all workspace metadata (team,
 
 Check that Linear MCP is available before doing anything else.
 
-**Gate:** If Linear MCP tools are not available (e.g., `list_teams` fails), stop and tell the user to configure the Linear MCP server. Do not proceed without workspace access.
+**Gate:** If Linear MCP tools are not available (e.g., `linear_list_teams` fails), stop and tell the user to configure the Linear MCP server. Do not proceed without workspace access.
 
 ---
 
-## Step 2: Gather workspace metadata (run in parallel)
+## Step 2: Resolve the user's team
 
-Call these Linear MCP tools in parallel to resolve IDs:
+Call `linear_get_user` with `"me"` to get the authenticated user. Note their `team` affiliation(s).
 
-- **Teams**: `linear_list_teams` → find the target team, note its `id`
-- **User**: `linear_list_users` → find the user to assign (or use `"me"`), note their `id`
-- **Labels**: `linear_list_issue_labels` → collect `id` for each relevant label
-- **Statuses**: `linear_list_issue_statuses` (requires team) → find status by name (e.g. "Todo"), note its `id`
+Default the team to the user's team. If the user belongs to multiple teams, pick the most likely one from context (e.g., the team mentioned in conversation) or default to the first one. Only ask if the choice is genuinely ambiguous.
 
-**Gate:** If the target team is not found, ask the user which team to use. Do not guess.
-**Gate:** If the assignee is not found, ask the user. Default to `"me"` if the user says "assign to me" or doesn't specify.
+Call `linear_list_issue_statuses` for the resolved team to find the default status (e.g. "Todo" or "Backlog").
 
 ---
 
-## Step 3: Gather issue details from the user
+## Step 3: Draft the issue from context
 
-Ask the user for (or infer from context):
+Infer as much as possible from the user's request and surrounding context. Write the title and body directly — do not ask the user to fill in sections.
 
-- **Title**: concise, imperative (required)
-- **Body**: problem, approach, and definition of done (see Step 4)
-- **Priority**: `0`=None, `1`=Urgent, `2`=High, `3`=Medium, `4`=Low (default: `0` if unspecified)
-- **Estimate**: points where `1` ≈ half day, `2` ≈ 1 day, `3` ≈ 2 days (optional)
-- **Labels**: names or IDs from Step 2 (optional)
-- **Cycle**: name, number, or ID (optional — ask if the user mentions a sprint/cycle)
-- **Project**: name, ID, or identifier like `PROJ-123` (optional — ask if the user mentions a project)
+### Title
 
-**Gate:** If the user hasn't provided enough context for the title or body, ask clarifying questions before proceeding. Do not fabricate issue content.
+Concise, imperative. Derive from the user's request.
 
----
+### Body
 
-## Step 4: Draft the issue body
+Use this template:
 
-Use the following template:
-
-```markdown
-## What does this solve (and why)?
-
-<problem statement and motivation>
-
-## How will this solve it?
-
-<approach taken or planned>
-
-## Definition of done
-
-- [ ] <checkable criterion 1>
-- [ ] <checkable criterion 2>
-- [ ] <checkable criterion 3>
 ```
+What does this solve (and why)?
+
+TODO
+
+How will this be solved?
+
+TODO
+
+Definition of done
+
+TODO
+```
+
+Fill in each `TODO` section from context. If a section cannot be reasonably inferred, leave it as `TODO` for the user to fill in later — but try to fill all sections.
+
+### Other fields
+
+Infer from context where possible:
+
+- **Priority**: `0`=None, `1`=Urgent, `2`=High, `3`=Medium, `4`=Low. Default: `0` if not inferable.
+- **Estimate**: `1` ≈ half day, `2` ≈ 1 day, `3` ≈ 2 days. Omit if not inferable.
+- **Labels**: Match from `linear_list_issue_labels` if the user mentioned keywords (e.g. "bug" → Bug label). Omit if none apply.
+- **Cycle**: If the user mentions a sprint or cycle, resolve it. Omit otherwise.
+- **Project**: If the user mentions a project or the context makes it obvious, include it. Omit otherwise.
+- **Assignee**: Default to `"me"` unless the user specifies someone else.
 
 The Linear MCP tools accept real newlines in markdown; do not use `\n` literals.
 
 ---
 
-## Step 5: Create the issue
+## Step 4: Create the issue
 
 Call `linear_save_issue` with:
 
@@ -86,20 +85,20 @@ Call `linear_save_issue` with:
 |---|---|
 | `team` | Team ID from Step 2 |
 | `title` | Concise, imperative title from Step 3 |
-| `description` | Markdown body from Step 4 |
-| `state` | Status name or ID from Step 2 (optional) |
-| `assignee` | User ID, name, email, or `"me"` from Step 2 (optional) |
-| `priority` | `0`=None `1`=Urgent `2`=High `3`=Medium `4`=Low |
+| `description` | Body from Step 3 |
+| `state` | Status name or ID from Step 2 |
+| `assignee` | `"me"` (default) or user-specified |
+| `priority` | `0`=None `1`=Urgent `2`=High `3`=Medium `4`=Low (optional) |
 | `estimate` | Points: `1` ≈ half day, `2` ≈ 1 day, `3` ≈ 2 days (optional) |
-| `labels` | Array of label names or IDs from Step 2 (optional) |
-| `cycle` | Cycle name, number, or ID (optional — omit if no cycle) |
-| `project` | Project name, ID, or identifier (optional — omit if no project) |
+| `labels` | Array of label names or IDs (optional) |
+| `cycle` | Cycle name, number, or ID (optional) |
+| `project` | Project name, ID, or identifier (optional) |
 
-Omit optional fields entirely if the user hasn't specified them — do not pass `null`.
+Omit optional fields entirely if not inferred from context — do not pass `null`.
 
 ---
 
-## Step 6: Confirm and respond
+## Step 5: Confirm and respond
 
 Call `linear_get_issue` on the returned issue ID to verify creation.
 
@@ -115,15 +114,15 @@ Call `linear_get_issue` on the returned issue ID to verify creation.
    | Team | <team name> |
    | Status | <status name> |
    | Assignee | <assignee name> |
-   | Priority | <priority> |
+   | Priority | <priority or "—"> |
    | Estimate | <estimate or "—"> |
    | Labels | <labels or "—"> |
    | Cycle | <cycle or "—"> |
    | Project | <project or "—"> |
 4. **Next steps**:
    - Review the issue description for accuracy
+   - Fill in any TODO sections
    - Add sub-issues or links if needed
-   - Move to the appropriate cycle/sprint
 ```
 
 ### If a gate stopped the process early
@@ -140,7 +139,7 @@ Call `linear_get_issue` on the returned issue ID to verify creation.
 ## Key facts
 
 - Priority `4` = Low (counter-intuitive — higher number = lower priority)
-- `linear_list_documents` rarely surfaces issue templates; always verify via a recent issue
 - Omitting optional fields (`cycle`, `project`) is fine — do not pass `null`
 - The Linear MCP tools accept real newlines in markdown; do not use `\n` literals
 - `linear_save_issue` accepts names or IDs for `team`, `state`, `assignee`, `labels`, `cycle`, `project` — no need to resolve everything to IDs first
+- Be assumptive: infer fields from context, draft the body yourself, and only ask the user when critical information is truly missing
