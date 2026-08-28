@@ -13,7 +13,7 @@ jobs:
 
       # ── 1. Skill validation (official reference validator) ──
       - name: Install skills-ref
-        run: npm install -g @anthropic/skills-ref
+        run:           npm install -g skills-ref
 
       - name: Validate each skill
         run: |
