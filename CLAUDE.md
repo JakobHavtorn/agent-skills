@@ -36,6 +36,12 @@ plugins/
         SKILL.md
         extract_recent_standups.py
         summarize_linear_issues.py
+  meta/                     # Meta-skills for skill authoring
+    plugin.json
+    skills/
+      skill-creator/        # Create, evaluate, and iterate on agent skills
+        SKILL.md
+        references/         # 6 reference files (dynamic-calling, writing-guide, etc.)
 .github/workflows/
   release-skills.yml        # Zips each skill and publishes as GitHub release on tag
   skill-lint.yml            # Lints all SKILL.md files
@@ -66,7 +72,7 @@ The `description` field is critical — it controls when the skill activates. Wr
 
 ## Creating a new skill
 
-1. Choose the appropriate plugin group (`dev-workflow` or `team-productivity`)
+1. Choose the appropriate plugin group (`dev-workflow`, `team-productivity`, or `meta`)
 2. Create `plugins/<group>/skills/<skill-name>/` directory
 3. Write `SKILL.md` with YAML frontmatter (`name`, `description`) and step-by-step instructions
 4. Add a `README.md` for the skill's GitHub page (description, triggers, platform, setup)
@@ -79,12 +85,13 @@ Skills that require shell access, network calls, or external binaries (e.g., `gh
 
 ## Plugin system
 
-This repo ships as a Claude Code plugin marketplace containing 2 plugins:
+This repo ships as a Claude Code plugin marketplace containing 3 plugins:
 
 | Plugin | Description |
 |---|---|
 | `dev-workflow` | Create Linear issues, open PRs, address review comments |
 | `team-productivity` | Prioritize tasks, summarize standups, compose weekly updates |
+| `meta` | Create, evaluate, and iterate on agent skills |
 
 - `.claude-plugin/marketplace.json` — marketplace listing with all plugin entries.
 - `plugins/<group>/plugin.json` — per-plugin manifest (name, version, keywords). Skills under `plugins/<group>/skills/` with SKILL.md frontmatter are auto-discovered by the plugin loader.

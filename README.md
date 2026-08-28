@@ -50,6 +50,14 @@ Team productivity tools — prioritize tasks, summarize standups, and compose we
 | [standup-summary](plugins/team-productivity/skills/standup-summary) | Summarize Linear activity and Slack messages since the last standup |
 | [speechrec-weekly-update](plugins/team-productivity/skills/speechrec-weekly-update) | Compose the pre-read status update for the weekly Speech Recognition sync call |
 
+### Meta (`meta`)
+
+Meta-skills for creating, evaluating, and iterating on agent skills.
+
+| Skill | Description |
+|---|---|
+| [skill-creator](plugins/meta/skills/skill-creator) | Create, evaluate, and iterate on high-quality agent skills with quality scoring and best-practice enforcement |
+
 ## License
 
 MIT

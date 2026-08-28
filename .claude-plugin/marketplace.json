@@ -11,13 +11,19 @@
     {
       "name": "dev-workflow",
       "source": "./plugins/dev-workflow",
-      "description": "Developer workflow tools — create Linear issues, open PRs with lint and test, address PR review comments, and create/evaluate agent skills.",
+      "description": "Developer workflow tools — create Linear issues, open PRs with lint and test, and address PR review comments.",
       "version": "1.0.0"
     },
     {
       "name": "team-productivity",
       "source": "./plugins/team-productivity",
       "description": "Team productivity tools — prioritize tasks, summarize standups, and compose weekly status updates from Linear and Slack.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "meta",
+      "source": "./plugins/meta",
+      "description": "Meta-skills for creating, evaluating, and iterating on agent skills.",
       "version": "1.0.0"
     }
   ]
