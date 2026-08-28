@@ -54,7 +54,7 @@ Fire all three data sources at once. They have no dependencies on each other. If
 
 ### 2a. Notion — Sprint Planning database
 
-Query the Sprint Planning data source. See `references/notion-data-source.md` for the data source URL, query, and how to interpret results.
+Query the Sprint Planning data source. See `references/notion.md` for the data source URL, query, and how to interpret results.
 
 - Query: `SELECT * FROM "collection://20dbef65-b3ab-8076-8351-000b245ea82b" ORDER BY "date:Dates:start" DESC LIMIT 6`
 - From results, identify: outgoing cycle (Goals = what team intended), upcoming cycle (check if Goals already has a draft), 1-2 older cycles (Goals = style reference).
@@ -64,7 +64,7 @@ Query the Sprint Planning data source. See `references/notion-data-source.md` fo
 
 ### 2b. Linear — Cycle and ticket status
 
-See `references/linear-queries.md` for team ID, cycle query calls, issue listing, and how to interpret results.
+See `references/linear.md` for team ID, cycle query calls, issue listing, and how to interpret results.
 
 Query Linear directly — no dependency on Notion for the cycle name. Get cycles (previous, current, next in parallel), then list issues for the outgoing cycle (optionally the upcoming cycle too). Group outgoing cycle's issues by `project` to map them to goal-level themes.
 
@@ -72,7 +72,7 @@ Query Linear directly — no dependency on Notion for the cycle name. Get cycles
 
 ### 2c. Slack — Last two weeks of discussion
 
-See `references/channels.md` for channel descriptions, reading strategy, and subagent instructions.
+See `references/slack.md` for channel descriptions, reading strategy, and subagent instructions.
 
 Compute the `oldest` timestamp via shell: `date -d '14 days ago' +%s` (Linux) or `date -v-14d +%s` (macOS).
 
@@ -128,6 +128,6 @@ Do not write to Notion unless the user explicitly asks. If they do, use `notion-
 
 ## Reference Files
 
-- `references/notion-data-source.md` — Notion data source URL, query, cycle identification, style reference, and write-back instructions
-- `references/linear-queries.md` — Linear team ID, cycle query calls, issue listing, and result interpretation
-- `references/channels.md` — Slack channel descriptions, reading strategy, large-response handling, and subagent extraction instructions
+- `references/notion.md` — Notion data source URL, query, cycle identification, style reference, and write-back instructions
+- `references/linear.md` — Linear team ID, cycle query calls, issue listing, and result interpretation
+- `references/slack.md` — Slack channel descriptions, reading strategy, large-response handling, and subagent extraction instructions
