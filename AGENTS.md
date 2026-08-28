@@ -47,7 +47,7 @@ Run `python3 bin/skillctl list` to see the current layout. Before opening a PR, 
 1. `skills-ref validate` passes on every skill directory.
 2. Plugin manifest `name` matches the directory name.
 3. Skill names are globally unique.
-4. `SKILL.md` is under 500 lines.
+4. Skills follow the design spec and criteria of the `skill-creator` skill.
 5. No personal data patterns (see above).
 
 CI runs all of these automatically in `.github/workflows/validate.yml`.
