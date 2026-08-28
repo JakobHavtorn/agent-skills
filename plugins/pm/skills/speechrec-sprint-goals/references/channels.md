@@ -25,11 +25,15 @@ date -v-14d +%s              # macOS
 
 These channels can exceed the single-response token budget. When that happens, the result is saved to a file instead of returning inline. Don't try to read that file directly with the Read tool — lines are too long.
 
-Instead, hand it off to a subagent with instructions to:
-1. Slice the file in ~80,000-character spans via Python
-2. Report back a factual summary scoped to the last two weeks
+Use `scripts/slice_file.py` to chunk the file into ~80,000-character spans:
 
-Running one subagent per channel in parallel is fastest.
+```bash
+python3 scripts/slice_file.py <file>                    # print all spans
+python3 scripts/slice_file.py <file> --index 2          # print only span 2
+python3 scripts/slice_file.py <file> --span 60000       # smaller spans
+```
+
+Then hand each span off to a subagent with instructions to report back a factual summary scoped to the last two weeks. Running one subagent per channel in parallel is fastest.
 
 ## What to extract from each channel
 

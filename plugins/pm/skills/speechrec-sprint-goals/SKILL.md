@@ -80,7 +80,7 @@ See `references/channels.md` for channel descriptions, reading strategy, and sub
 
 Compute the `oldest` timestamp via shell: `date -d '14 days ago' +%s` (Linux) or `date -v-14d +%s` (macOS).
 
-Fire all four `slack_read_channel` calls in parallel. For large responses, hand off to subagents — one per channel, run in parallel. Extract: active topics, explicit next-cycle goals/decisions, customer escalations, open questions.
+Fire all four `slack_read_channel` calls in parallel. For large responses, use `scripts/slice_file.py` to chunk into ~80,000-character spans, then hand each off to a subagent — one per channel, run in parallel. Extract: active topics, explicit next-cycle goals/decisions, customer escalations, open questions.
 
 **Gate:** If all four channels return zero messages, fail — report "Slack returned no messages in any of the four SR channels for the last 14 days."
 
