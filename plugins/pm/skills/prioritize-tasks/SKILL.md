@@ -9,10 +9,6 @@ description: >-
   the terminal and as a Slack DM to the user. Use when the user asks to
   prioritize tasks, wants to know what to work on, or needs a task list.
 allowed-tools: Bash(python:*) Bash(python3:*) Read
-metadata:
-  dk.jakob.category: pm
-  dk.jakob.version: "1.0"
-  dk.jakob.status: stable
 ---
 
 If the user provided a lookback window in their message (e.g. "last week", "since Monday"), use it in Step 1 for the Slack search. If none was provided, default to the last 14 days.

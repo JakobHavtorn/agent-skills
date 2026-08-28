@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""skillctl — install, link, and diagnose agent skills.
+
+Clone-once, link-many: symlinks skill directories from this repo into
+harness-specific target paths so a single `git pull` updates every harness.
+
+Usage:
+  skillctl link --plugin coding  --agent claude
+  skillctl link --plugin finance --agent opencode --scope project
+  skillctl unlink --plugin coding --agent claude
+  skillctl doctor
+  skillctl list
+"""
+
+import argparse
+import os
+import platform
+import shutil
+import stat
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+PLUGINS_DIR = REPO_ROOT / "plugins"
+
+# Harness target paths (spec §7 — verify against client docs at implementation time)
+HARNESS_PATHS = {
+    "claude": {
+        "user": Path.home() / ".claude" / "skills",
+        "project": Path.cwd() / ".claude" / "skills",
+    },
+    "codex": {
+        "user": Path.home() / ".codex" / "skills",
+        "project": Path.cwd() / ".agents" / "skills",
+    },
+    "opencode": {
+        "user": Path.home() / ".config" / "opencode" / "skills",
+        "project": Path.cwd() / ".opencode" / "skills",
+    },
+    "cursor": {
+        "user": Path.home() / ".cursor" / "skills",
+        "project": Path.cwd() / ".cursor" / "skills",
+    },
+}
+
+# On Windows, Git defaults to core.symlinks=false — symlinks become dead text files.
+FORCE_COPY = platform.system() == "Windows" or os.environ.get("SKILLCTL_FORCE_COPY", "")
+
+
+def get_plugin_skills(plugin_name: str) -> list[Path]:
+    """Return list of skill directories for a plugin."""
+    skills_dir = PLUGINS_DIR / plugin_name / "skills"
+    if not skills_dir.is_dir():
+        return []
+    return sorted(d for d in skills_dir.iterdir() if d.is_dir() and (d / "SKILL.md").exists())
+
+
+def get_all_skills() -> dict[str, list[Path]]:
+    """Return {plugin_name: [skill_dirs]} for all plugins."""
+    result = {}
+    if not PLUGINS_DIR.is_dir():
+        return result
+    for plugin_dir in sorted(PLUGINS_DIR.iterdir()):
+        if plugin_dir.is_dir() and (plugin_dir / "plugin.json").exists():
+            skills = get_plugin_skills(plugin_dir.name)
+            if skills:
+                result[plugin_dir.name] = skills
+    return result
+
+
+def get_target_dir(agent: str, scope: str) -> Path:
+    """Resolve the target directory for a given harness and scope."""
+    if agent not in HARNESS_PATHS:
+        print(f"error: unknown agent '{agent}'. Choose from: {', '.join(HARNESS_PATHS)}", file=sys.stderr)
+        sys.exit(1)
+    if scope not in ("user", "project"):
+        print(f"error: scope must be 'user' or 'project', got '{scope}'", file=sys.stderr)
+        sys.exit(1)
+    return HARNESS_PATHS[agent][scope]
+
+
+def link_skill(skill_dir: Path, target_dir: Path, copy: bool = False) -> str:
+    """Link or copy a single skill into target_dir. Returns 'linked', 'copied', 'exists', or 'error'."""
+    skill_name = skill_dir.name
+    link_path = target_dir / skill_name
+
+    if link_path.exists() or link_path.is_symlink():
+        if link_path.is_symlink() and link_path.resolve() == skill_dir.resolve():
+            return "exists"
+        # Refuse to overwrite — name collision is a hard error (spec §3)
+        if link_path.is_symlink():
+            actual = link_path.resolve()
+            print(f"  SKIP {skill_name}: target exists, points to {actual}", file=sys.stderr)
+        else:
+            print(f"  SKIP {skill_name}: target exists and is not a symlink", file=sys.stderr)
+        return "error"
+
+    if copy or FORCE_COPY:
+        shutil.copytree(skill_dir, link_path)
+        return "copied"
+    else:
+        os.symlink(skill_dir, link_path)
+        return "linked"
+
+
+def cmd_link(args):
+    """Link all skills from a plugin into a harness target directory."""
+    target_dir = get_target_dir(args.agent, args.scope)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    skills = get_plugin_skills(args.plugin)
+    if not skills:
+        print(f"error: no skills found in plugin '{args.plugin}'", file=sys.stderr)
+        sys.exit(1)
+
+    linked = 0
+    copied = 0
+    exists = 0
+    errors = 0
+
+    for skill_dir in skills:
+        result = link_skill(skill_dir, target_dir, copy=args.copy)
+        if result == "linked":
+            print(f"  LINKED {skill_dir.name} -> {target_dir / skill_dir.name}")
+            linked += 1
+        elif result == "copied":
+            print(f"  COPIED {skill_dir.name} -> {target_dir / skill_dir.name}")
+            copied += 1
+        elif result == "exists":
+            print(f"  EXISTS {skill_dir.name} (already linked)")
+            exists += 1
+        else:
+            errors += 1
+
+    print(f"\nDone: {linked} linked, {copied} copied, {exists} already existed, {errors} skipped")
+
+
+def cmd_unlink(args):
+    """Remove symlinks for a plugin's skills from a harness target directory."""
+    target_dir = get_target_dir(args.agent, args.scope)
+
+    skills = get_plugin_skills(args.plugin)
+    if not skills:
+        print(f"error: no skills found in plugin '{args.plugin}'", file=sys.stderr)
+        sys.exit(1)
+
+    removed = 0
+    for skill_dir in skills:
+        link_path = target_dir / skill_dir.name
+        if link_path.is_symlink():
+            link_path.unlink()
+            print(f"  REMOVED {skill_dir.name}")
+            removed += 1
+        elif link_path.exists():
+            print(f"  SKIP {skill_dir.name}: not a symlink, leaving in place", file=sys.stderr)
+        else:
+            print(f"  ABSENT {skill_dir.name}")
+
+    print(f"\nDone: {removed} removed")
+
+
+def cmd_doctor(args):
+    """Report what is linked where, plus orphans and broken links."""
+    print("=== skillctl doctor ===\n")
+    all_skills = get_all_skills()
+    if not all_skills:
+        print("No plugins or skills found.")
+        return
+
+    for plugin_name, skill_dirs in all_skills.items():
+        print(f"Plugin: {plugin_name}")
+        for skill_dir in skill_dirs:
+            print(f"  {skill_dir.name}")
+
+    print()
+    for agent, scopes in HARNESS_PATHS.items():
+        for scope_name, target in scopes.items():
+            if not target.exists():
+                continue
+            print(f"=== {agent} ({scope_name}) -> {target} ===")
+            for entry in sorted(target.iterdir()):
+                if entry.is_symlink():
+                    resolved = entry.resolve()
+                    if resolved.exists():
+                        print(f"  {entry.name} -> {resolved}  [OK]")
+                    else:
+                        print(f"  {entry.name} -> {resolved}  [BROKEN]")
+                elif entry.is_dir():
+                    # Could be a copy or an orphan
+                    has_skill = (entry / "SKILL.md").exists()
+                    tag = "copy" if has_skill else "orphan"
+                    print(f"  {entry.name}  [{tag}]")
+                else:
+                    print(f"  {entry.name}  [unknown]")
+            print()
+
+
+def cmd_list(args):
+    """List all plugins and their skills."""
+    all_skills = get_all_skills()
+    if not all_skills:
+        print("No plugins or skills found.")
+        return
+
+    for plugin_name, skill_dirs in all_skills.items():
+        print(f"{plugin_name}/")
+        for skill_dir in skill_dirs:
+            print(f"  {skill_dir.name}/")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="skillctl",
+        description="Install, link, and diagnose agent skills.",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # link
+    p_link = sub.add_parser("link", help="Symlink a plugin's skills into a harness directory")
+    p_link.add_argument("--plugin", required=True, help="Plugin name (coding, finance, pm)")
+    p_link.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor)")
+    p_link.add_argument("--scope", choices=["user", "project"], default="user", help="User or project scope")
+    p_link.add_argument("--copy", action="store_true", help="Copy instead of symlink (auto on Windows)")
+    p_link.set_defaults(func=cmd_link)
+
+    # unlink
+    p_unlink = sub.add_parser("unlink", help="Remove a plugin's skill symlinks from a harness directory")
+    p_unlink.add_argument("--plugin", required=True, help="Plugin name")
+    p_unlink.add_argument("--agent", required=True, help="Harness name")
+    p_unlink.add_argument("--scope", choices=["user", "project"], default="user", help="User or project scope")
+    p_unlink.set_defaults(func=cmd_unlink)
+
+    # doctor
+    p_doctor = sub.add_parser("doctor", help="Report linked skills, orphans, and broken links")
+    p_doctor.set_defaults(func=cmd_doctor)
+
+    # list
+    p_list = sub.add_parser("list", help="List all plugins and their skills")
+    p_list.set_defaults(func=cmd_list)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

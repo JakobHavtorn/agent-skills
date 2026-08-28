@@ -10,10 +10,6 @@ description: >-
   "add a ticket", "file a ticket", "log a ticket in linear", "create a bug
   ticket", "create a story in linear", "create a task in linear".
 allowed-tools: Bash(gh:*) Read
-metadata:
-  dk.jakob.category: coding
-  dk.jakob.version: "1.0"
-  dk.jakob.status: stable
 ---
 
 ## Overview
