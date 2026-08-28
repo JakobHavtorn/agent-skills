@@ -10,7 +10,9 @@ Fetches all review comments and review-level comments on a PR via GitHub's REST 
 
 - "address PR review comments", "fix review comments"
 - "respond to PR feedback"
-- "handle review comments"
+- "handle review comments", "handle PR feedback"
+- "address review feedback", "resolve review comments"
+- "process review comments", "review comments"
 
 ## Prerequisites
 
