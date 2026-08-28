@@ -10,17 +10,19 @@ description: >
   "push my changes for review". Also triggers when a user says "this is ready", "can you
   review this", "let's get this merged", or "open a review". Auto-detects lint and test
   commands for Go, Python, and JS/TS repos.
+metadata:
+  requires_toolsets: [terminal]
 ---
 
 ## Overview
 
-Drive a pull request on the current branch to a review-ready state: linted, tested, committed, pushed, and either freshly opened or updated. Prefers `gh pr` commands (auto-resolves owner/repo, handles fork detection). Falls back to `gh api` (REST) if `gh pr` is unavailable. Never uses `--project` on any `gh pr` command — the GraphQL-backed Projects mutations hit deprecation errors on classic Projects fields.
+Drive a pull request on the current branch to a review-ready state: linted, tested, committed, pushed, and either freshly opened or updated. Prefers `gh pr` commands (auto-resolves owner/repo, handles fork detection); falls back to `gh api` (REST) if `gh pr` is unavailable. Never uses `--project` — GraphQL Projects mutations hit deprecation errors on classic Projects fields.
 
 ## Defaults
 
 | Parameter | Default if not provided | Rationale |
 |---|---|---|
-| Base branch | `main` | Standard default branch in this org |
+| Base branch | Auto-detected from remote HEAD, falls back to `main` | Matches repo's actual default branch |
 | PR title | Derived from commit message subject | Conventional commit format already enforced |
 | Draft mode | No (ready for review) | Skill targets review-ready PRs |
 | Lint command | Auto-detected from repo tooling | Matches repo's own configuration |
@@ -51,6 +53,10 @@ git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "NOT_A_GIT_REPO"
 gh pr view --json number,url,state 2>/dev/null && echo "GH_PR_AVAILABLE" || echo "GH_PR_UNAVAILABLE"
 ```
 
+```bash
+git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "DEFAULT_BRANCH_UNKNOWN"
+```
+
 **Decision tree:**
 
 1. If `NOT_A_GIT_REPO` → **stop here**. Tell the user to run this skill from within a git repository.
@@ -58,6 +64,8 @@ gh pr view --json number,url,state 2>/dev/null && echo "GH_PR_AVAILABLE" || echo
 3. If `GH_NOT_AUTHENTICATED` → guide the user through `gh auth login`, then re-run detection.
 4. If `gh` available and authenticated but `GH_PR_UNAVAILABLE` → **Method B** (`gh api` REST fallback) for PR creation/update in Step 7.
 5. If `gh` available, authenticated, and `GH_PR_AVAILABLE` → **Method A** (`gh pr` commands, preferred) for PR creation/update in Step 7. Auto-resolves owner/repo, handles fork detection.
+
+Use the detected base branch (from `git symbolic-ref`) in Step 7's `--base` flag. If `DEFAULT_BRANCH_UNKNOWN`, fall back to `main`.
 
 ---
 
@@ -160,7 +168,7 @@ gh pr create \
 <description from Step 6>
 EOF
 )" \
-  --base main
+  --base <base branch>
 ```
 
 If a PR exists — update it:
@@ -183,7 +191,7 @@ gh api repos/{owner}/{repo}/pulls \
   --method POST \
   -f title="<PR title>" \
   -f head="<branch>" \
-  -f base="main" \
+  -f base="<base branch>" \
   -f body="$(cat <<'EOF'
 <description from Step 6>
 EOF
@@ -208,43 +216,49 @@ EOF
 
 ## Step 8: Respond to the user
 
-Present results using this exact format:
+### If all steps succeeded
 
 ```
-**PR:** <PR URL>
+1. **PR URL**: <PR URL>
+2. **Summary**:
+   - <bullet mirroring PR description bullet 1>
+   - <bullet mirroring PR description bullet 2>
+3. **Quality checks**:
 
-**Summary:**
-- <bullet mirroring PR description bullet 1>
-- <bullet mirroring PR description bullet 2>
-
-**Quality checks:**
-
-| Check | Result |
-|---|---|
-| Lint | pass / fail / skipped (reason) |
-| Tests | pass / fail / skipped (reason) |
-| Files changed | <N> |
-
-**Linear:** <TICKET-ID> — <closing word> (e.g., "Closes SR-2522")
-
-**Next steps:**
-- Request reviewers on the PR
-- Address CI feedback if checks fail
-- <any other relevant follow-up>
+   | Check | Result |
+   |---|---|
+   | Lint | pass / fail / skipped (reason) |
+   | Tests | pass / fail / skipped (reason) |
+   | Files changed | <N> |
+4. **Linear link**: <TICKET-ID> — <closing word> (e.g., "Closes SR-2522")
+5. **Next steps**:
+   - Request reviewers on the PR
+   - Address CI feedback if checks fail
+   - <any other relevant follow-up>
 ```
 
 If any quality check was skipped or failed, the Next steps section must call this out explicitly.
+
+### If a gate stopped the process early
+
+```
+1. **Status**: blocked
+2. **Step failed**: <step number and name>
+3. **Error**: <what went wrong>
+4. **Files changed**: <N> (if any before the gate)
+5. **Next steps**: <action to resolve> — see `references/troubleshooting.md`
+```
 
 ---
 
 ## Key rules
 
-- **Prefer `gh pr` over `gh api`.** `gh pr` auto-resolves owner/repo, handles fork detection, and is less error-prone. Use `gh api` (REST) only as a fallback when `gh pr` is unavailable.
-- **Never pass `--project`** to any `gh pr` command. The GraphQL-backed Projects mutations hit deprecation errors on classic Projects fields.
-- **Don't skip hooks** (`--no-verify`) on the commit or push.
-- **Don't rewrite history** (no `--amend`, no `git rebase -i`) unless the user explicitly asks.
+- **Prefer `gh pr` over `gh api`** — auto-resolves owner/repo, handles fork detection. Use `gh api` only as fallback.
+- **Never pass `--project`** to any `gh pr` command — GraphQL Projects mutations hit deprecation errors.
+- **Don't skip hooks** (`--no-verify`) or **rewrite history** (`--amend`, `rebase -i`) unless the user explicitly asks.
 
 ## Reference Files
 - `references/lint-test-commands.md` — Auto-detection table for lint/test commands (Go, Python, JS/TS, env-managed variants, linter-not-installed, pre-existing failures)
 - `references/pr-template.md` — PR description template with examples, multiple-ticket handling, and summary guidelines
 - `references/linear-linking.md` — Linear closing/non-closing words, URL formats, PR title conventions
+- `references/troubleshooting.md` — Merge conflicts, branch protection, CI failures, gh auth expiry, no remote, pre-commit hook failures
