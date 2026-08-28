@@ -38,7 +38,7 @@ Each row is a cycle entry with these key properties:
 
 Match the exact formatting of older completed cycles' `Goals` property:
 - Numbered bold titles per goal
-- One-line factual bodies (ticket IDs, what shipped vs. pending)
+- One-line factual bodies (ticket IDs hyperlinked to Linear, what shipped vs. pending)
 - Blank bodies where nothing concrete existed
 
 The team edits these down to remove commentary. Mirror the leanest, most recently-edited example you can find — not your own instinct for how detailed it should be.
@@ -48,3 +48,4 @@ The team edits these down to remove commentary. Mirror the leanest, most recentl
 If the user explicitly asks to write the draft into Notion, use `notion-update-page` on the upcoming cycle's page:
 - Replace the `Goals` property with the agreed text
 - Use `<br>` between numbered items to match existing formatting
+- Ticket IDs should be markdown links: `[SR-2864](https://linear.app/corti/issue/SR-2864/...)` — Notion renders these as rich links
