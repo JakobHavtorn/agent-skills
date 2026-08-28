@@ -28,10 +28,11 @@ These channels can exceed the single-response token budget. When that happens, t
 Use `scripts/slice_file.py` to chunk the file into ~80,000-character spans:
 
 ```bash
-python3 scripts/slice_file.py <file>
+N=$(python3 scripts/slice_file.py <file> --count)    # get number of spans
+python3 scripts/slice_file.py <file> --index $i       # print span i (1-based)
 ```
 
-The script prints each span with a header (`===== SPAN 1/N (chars 0-79999) =====`). Feed each span to a subagent and ask for a factual summary scoped to the last two weeks. Running one subagent per channel in parallel is fastest.
+Launch N subagents in parallel, one per span. Each subagent calls `slice_file.py --index $i`, reads only its span, and reports back a factual summary scoped to the last two weeks.
 
 ## What to extract from each channel
 
