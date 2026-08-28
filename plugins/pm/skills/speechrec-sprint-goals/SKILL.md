@@ -64,13 +64,9 @@ Query the Sprint Planning data source. See `references/notion-data-source.md` fo
 
 ### 2b. Linear — Cycle and ticket status
 
-Query Linear directly — no dependency on Notion for the cycle name:
+See `references/linear-queries.md` for team ID, cycle query calls, issue listing, and how to interpret results.
 
-- Get cycles: `list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "previous")`, `"current"`, and `"next"` — fire all three in parallel.
-- List outgoing cycle's issues: `list_issues(team: "Speech Recognition", cycle: "<previous cycle name>", limit: 250, fields: ["title","status","statusType","priority","assignee","project","labels","url","completedAt"])`
-- Optionally list upcoming cycle's issues (same call, cycle = next cycle name) — tickets already scoped tell you what's planned vs. aspirational.
-- Group outgoing cycle's issues by `project` — that grouping maps to goal-level themes on the Sprint Planning page. For each theme, note what's Done, In Progress/In Review/In QA, and Todo.
-- If the user named the cycle explicitly (e.g. "draft goals for Juno"), query that cycle by name instead of using previous/current/next.
+Query Linear directly — no dependency on Notion for the cycle name. Get cycles (previous, current, next in parallel), then list issues for the outgoing cycle (optionally the upcoming cycle too). Group outgoing cycle's issues by `project` to map them to goal-level themes.
 
 **Gate:** If `list_cycles` returns no cycles or `list_issues` returns zero issues, fail — report "Linear returned no cycle or issue data for the outgoing cycle."
 
@@ -133,4 +129,5 @@ Do not write to Notion unless the user explicitly asks. If they do, use `notion-
 ## Reference Files
 
 - `references/notion-data-source.md` — Notion data source URL, query, cycle identification, style reference, and write-back instructions
+- `references/linear-queries.md` — Linear team ID, cycle query calls, issue listing, and result interpretation
 - `references/channels.md` — Slack channel descriptions, reading strategy, large-response handling, and subagent extraction instructions
