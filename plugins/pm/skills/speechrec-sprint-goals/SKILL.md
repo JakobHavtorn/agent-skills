@@ -54,11 +54,9 @@ Fire all three data sources at once. They have no dependencies on each other. If
 
 ### 2a. Notion — Sprint Planning database
 
-Query the Sprint Planning data source. See `references/notion.md` for the data source URL, query, and how to interpret results.
+See `references/notion.md` for the data source URL, query, and how to interpret results.
 
-- Query: `SELECT * FROM "collection://20dbef65-b3ab-8076-8351-000b245ea82b" ORDER BY "date:Dates:start" DESC LIMIT 6`
-- From results, identify: outgoing cycle (Goals = what team intended), upcoming cycle (check if Goals already has a draft), 1-2 older cycles (Goals = style reference).
-- Note upcoming cycle's page URL — that's where the draft is destined if the user later asks to write it in.
+Query the Sprint Planning data source. Identify the outgoing cycle (Goals = what team intended), upcoming cycle (check if Goals already has a draft), and 1-2 older cycles (Goals = style reference). Note the upcoming cycle's page URL for potential write-back.
 
 **Gate:** If the query returns zero rows, fail — report "Notion Sprint Planning database returned no cycle entries."
 
@@ -74,9 +72,7 @@ Query Linear directly — no dependency on Notion for the cycle name. Get cycles
 
 See `references/slack.md` for channel descriptions, reading strategy, and subagent instructions.
 
-Compute the `oldest` timestamp via shell: `date -d '14 days ago' +%s` (Linux) or `date -v-14d +%s` (macOS).
-
-Fire all four `slack_read_channel` calls in parallel. For large responses, use `scripts/slice_file.py` to chunk into ~80,000-character spans, then hand each off to a subagent — one per channel, run in parallel. Extract: active topics, explicit next-cycle goals/decisions, customer escalations, open questions.
+Fire all four `slack_read_channel` calls in parallel with a 14-day lookback. For large responses, use `scripts/slice_file.py` to chunk and dispatch subagents — one per channel, run in parallel.
 
 **Gate:** If all four channels return zero messages, fail — report "Slack returned no messages in any of the four SR channels for the last 14 days."
 
