@@ -14,10 +14,6 @@ description: >-
   get this merged", or "open a review". Auto-detects lint and test commands
   for Go, Python, and JS/TS repos.
 allowed-tools: Bash(gh:*) Bash(git:*) Bash(npm:*) Bash(ruff:*) Bash(golangci-lint:*) Read
-metadata:
-  dk.jakob.category: coding
-  dk.jakob.version: "1.0"
-  dk.jakob.status: stable
 ---
 
 ## Overview

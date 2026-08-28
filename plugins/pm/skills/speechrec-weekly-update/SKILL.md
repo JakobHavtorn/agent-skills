@@ -8,10 +8,6 @@ description: >-
   Recognition channel. Use when the user asks for the weekly Speech
   Recognition status update, sync call pre-read, or weekly status post.
 allowed-tools: Bash(python:*) Bash(python3:*) Read
-metadata:
-  dk.jakob.category: pm
-  dk.jakob.version: "1.0"
-  dk.jakob.status: stable
 ---
 
 ## Overview

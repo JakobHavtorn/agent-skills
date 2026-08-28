@@ -9,10 +9,6 @@ description: >-
   use it as tax advice or for filing a return.
 compatibility: Requires Python 3.11+, uv, and the taxhelper CLI installed locally
 allowed-tools: Bash(taxhelper:*) Bash(uv:*) Bash(python:*) Read
-metadata:
-  dk.jakob.category: finance
-  dk.jakob.version: "1.0"
-  dk.jakob.status: stable
 ---
 
 # Tax Helper

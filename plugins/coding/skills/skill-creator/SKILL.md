@@ -15,10 +15,6 @@ description: >-
   "I keep doing X manually", "can you remember how to do X", or "turn this
   into a skill".
 allowed-tools: Bash(ruff:*) Bash(shellcheck:*) Read
-metadata:
-  dk.jakob.category: coding
-  dk.jakob.version: "1.0"
-  dk.jakob.status: stable
 ---
 
 # Skill Creator
