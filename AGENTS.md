@@ -106,4 +106,5 @@ Users run `npx plugins add JakobHavtorn/agent-skills` and select one or more plu
 ## Important constraints
 
 - All changes must be merged to `main` via a pull request — do not push directly to `main`.
+- Commit titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format (e.g. `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`).
 - This is primarily a documentation/reference repository — most of the codebase is `SKILL.md` files with no build step. Helper Python scripts (`parse_slack_overflow.py`, `extract_recent_standups.py`, `summarize_linear_issues.py`) are small utilities called by skills at runtime.
