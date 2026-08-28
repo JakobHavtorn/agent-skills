@@ -50,7 +50,7 @@ If any call fails, stop and return the failure template (see Output — failure)
 
 ## Step 2 — Gather all data in parallel
 
-Fire all three data sources at once. They have no dependencies on each other. If any source returns no data or errors, fail completely and report.
+Fire all three data sources in parallel — dispatch a subagent per source. They have no dependencies on each other. If any source returns no data or errors, fail completely and report.
 
 ### 2a. Notion — Sprint Planning database
 
