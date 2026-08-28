@@ -55,13 +55,19 @@ Query Linear directly for cycle and ticket data — no dependency on Notion for 
 
 - Get the current cycle: `list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "current")` — returns the cycle name, number, start/end dates.
 - Get the previous cycle: `list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "previous")` — this is the outgoing cycle whose tickets you need.
+- Get the next cycle: `list_cycles(teamId: "70db986a-d0a7-40fe-8894-132948e77ebe", type: "next")` — this is the upcoming cycle you're drafting goals for. Note its name for matching against the Notion Sprint Planning entry.
 - List the outgoing cycle's issues:
   ```
   list_issues(team: "Speech Recognition", cycle: "<previous cycle name>", limit: 250,
     fields: ["title","status","statusType","priority","assignee","project","labels","url","completedAt"])
   ```
-- Group the returned issues by `project` — that grouping maps back to the goal-level themes on the Sprint Planning page (e.g. "LLM-based text-entity tagging on streamed ASR transcripts" → the entity tagger goal, "Model Patching POC: Domain Vocabulary Expansion" → the vocab endpoint goal). For each theme, note what's Done, what's still In Progress/In Review/In QA, and what's untouched (Todo).
-- If the user named the cycle explicitly (e.g. "draft goals for Juno"), query that cycle by name instead of using current/previous.
+- Optionally, list issues already scoped to the upcoming cycle — some tickets may already be pulled in, which tells you what's already planned vs. what's aspirational:
+  ```
+  list_issues(team: "Speech Recognition", cycle: "<next cycle name>", limit: 250,
+    fields: ["title","status","statusType","priority","assignee","project","labels","url","completedAt"])
+  ```
+- Group the outgoing cycle's issues by `project` — that grouping maps back to the goal-level themes on the Sprint Planning page (e.g. "LLM-based text-entity tagging on streamed ASR transcripts" → the entity tagger goal, "Model Patching POC: Domain Vocabulary Expansion" → the vocab endpoint goal). For each theme, note what's Done, what's still In Progress/In Review/In QA, and what's untouched (Todo).
+- If the user named the cycle explicitly (e.g. "draft goals for Juno"), query that cycle by name instead of using current/previous/next.
 
 ### 1c. Slack — Last two weeks of discussion
 
