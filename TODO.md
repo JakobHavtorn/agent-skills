@@ -6,12 +6,6 @@ Future changes and improvements tracked in-repo. No external standard governs th
 
 - [ ] Add `skillctl test` subcommand — parse `tests/*/cases.md`, send prompts to agent CLI, record pass/fail with model + harness versions to `tests/<skill>/results.md`
 
-## Skills
-
-- [ ] `speechrec-sprint-goals`: validate against live Notion/Linear/Slack data end-to-end
-- [ ] `speechrec-sprint-goals`: consider extracting Linear query patterns to `references/linear-queries.md`
-- [ ] `review-pr-comments`: add worked example for Python repos (currently Go-flavored)
-
 ## Infrastructure
 
 - [ ] Verify `skillctl` target paths against current client docs (spec §7 notes they drift)
