@@ -12,7 +12,7 @@ If `git push` is rejected because the remote branch has commits you don't have:
    git rebase origin/$(git rev-parse --abbrev-ref HEAD)
    ```
 2. Resolve conflicts in each file, then `git add <resolved files>` and `git rebase --continue`.
-3. Push again with `git push` (no force needed after rebase).
+3. Push again with `git push --force-with-lease` — the rebase rewrote your local commit hashes, so a plain push will be rejected as non-fast-forward. `--force-with-lease` is safer than `--force` because it aborts if someone else pushed since your last fetch.
 
 Do NOT use `git push --force` or `git push -f` unless the user explicitly asks. If the rebase gets stuck, surface the conflict files to the user and let them resolve manually.
 
