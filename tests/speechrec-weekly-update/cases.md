@@ -3,8 +3,7 @@
 ## Should trigger
 
 1. "Compose the weekly Speech Recognition status update"
-2. "Prepare the pre-read for the sync call"
-3. "Write the weekly status post for the Speech Recognition channel"
+2. "Write the weekly status post for the Speech Recognition channel"
 
 ## Should NOT trigger
 
