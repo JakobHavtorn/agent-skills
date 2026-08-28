@@ -2,17 +2,18 @@
 name: open-pr
 description: >
   Create or update a pull request on the current branch. Lints and tests the change,
-  commits and pushes, then uses `gh api` (REST) to open or update the PR with a
-  Linear-linked description. Triggers: "open a pr", "create pull request", "submit for
-  review", "push and pr", "make a pr", "pr this", "put up a pr", "send for review",
-  "ready for review", "ship this", "create pr", "update pr", "push my changes for review".
+  commits and pushes, then opens or updates the PR with a Linear-linked description.
+  Prefers `gh pr` commands (simpler, auto-resolves owner/repo), falls back to `gh api`
+  (REST) if needed. Triggers: "open a pr", "create pull request", "submit for review",
+  "push and pr", "make a pr", "pr this", "put up a pr", "send for review", "ready for
+  review", "ship this", "create pr", "update pr", "push my changes for review".
   Also triggers when a user says "this is ready", "can you review this", or "let's get
   this merged". Auto-detects lint and test commands for Go, Python, and JS/TS repos.
 ---
 
 ## Overview
 
-Drive a pull request on the current branch to a review-ready state: linted, tested, committed, pushed, and either freshly opened or updated. Uses `gh api` (REST) which works reliably across this org's GitHub projects, while `gh pr edit --project` and GraphQL-backed Projects mutations hit deprecation errors on classic Projects fields.
+Drive a pull request on the current branch to a review-ready state: linted, tested, committed, pushed, and either freshly opened or updated. Prefers `gh pr` commands (simpler, auto-resolves owner/repo, handles edge cases like fork detection). Falls back to `gh api` (REST) if `gh pr` is unavailable or fails. Never uses `--project` on any `gh pr` command — the GraphQL-backed Projects mutations hit deprecation errors on classic Projects fields.
 
 ## Defaults
 
@@ -45,12 +46,17 @@ gh auth status 2>&1 | head -3 || echo "GH_NOT_AUTHENTICATED"
 git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "NOT_A_GIT_REPO"
 ```
 
+```bash
+gh pr view --json number,url,state 2>/dev/null && echo "GH_PR_AVAILABLE" || echo "GH_PR_UNAVAILABLE"
+```
+
 **Decision tree:**
 
 1. If `NOT_A_GIT_REPO` → **stop here**. Tell the user to run this skill from within a git repository.
 2. If `GH_NOT_INSTALLED` → ask the user to install `gh` (`brew install gh` on macOS). Proceed with Steps 2-4 (lint, test, commit, push) only — no PR creation. Tell the user to create the PR manually via the GitHub URL printed after push.
-3. If `GH_NOT_AUTHENTICATED` → guide the user through `gh auth login`, then continue with the full path.
-4. If `gh` available and authenticated → **full path** (all steps). Preferred.
+3. If `GH_NOT_AUTHENTICATED` → guide the user through `gh auth login`, then re-run detection.
+4. If `gh` available and authenticated but `GH_PR_UNAVAILABLE` → **Method B** (`gh api` REST fallback) for PR creation/update in Step 7.
+5. If `gh` available, authenticated, and `GH_PR_AVAILABLE` → **Method A** (`gh pr` commands, preferred) for PR creation/update in Step 7. Auto-resolves owner/repo, handles fork detection.
 
 ---
 
@@ -124,15 +130,42 @@ Read `references/linear-linking.md` for the complete Linear linking rules: closi
 
 ---
 
-## Step 7: Create or update the PR via `gh api`
+## Step 7: Create or update the PR
 
-First, check whether a PR already exists for the current branch:
+First, check whether a PR already exists for the current branch (works with both methods):
 
 ```bash
 gh pr view --json number,url,state 2>/dev/null
 ```
 
-### If no PR exists — create one
+### Method A — `gh pr` (preferred, if detected in Step 1)
+
+If no PR exists — create one:
+
+```bash
+gh pr create \
+  --title "<PR title>" \
+  --body "$(cat <<'EOF'
+<description from Step 6>
+EOF
+)" \
+  --base main
+```
+
+If a PR exists — update it:
+
+```bash
+gh pr edit <number> \
+  --title "<PR title>" \
+  --body "$(cat <<'EOF'
+<description from Step 6>
+EOF
+)"
+```
+
+### Method B — `gh api` REST fallback (if `gh pr` unavailable)
+
+If no PR exists — create one:
 
 ```bash
 gh api repos/{owner}/{repo}/pulls \
@@ -146,7 +179,7 @@ EOF
 )"
 ```
 
-### If a PR exists — update it
+If a PR exists — update it:
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/<number> \
@@ -158,7 +191,7 @@ EOF
 )"
 ```
 
-**Gate:** If the API call fails (e.g., 401 auth error, 422 validation error), surface the full error to the user. Do not retry silently or fall back to `gh pr create` without informing the user.
+**Gate:** If the PR creation or update fails (e.g., 401 auth error, 422 validation error), surface the full error to the user. Do not retry silently or switch methods without informing the user.
 
 ---
 
@@ -176,8 +209,8 @@ Present results with these sections:
 
 ## Key rules
 
-- **Use `gh api` (REST), never GraphQL.** `gh pr edit --project ...` and the GraphQL Projects mutations hit deprecation errors on classic Projects fields.
-- **Never pass `--project`** to any `gh pr` command.
+- **Prefer `gh pr` over `gh api`.** `gh pr` auto-resolves owner/repo, handles fork detection, and is less error-prone. Use `gh api` (REST) only as a fallback when `gh pr` is unavailable.
+- **Never pass `--project`** to any `gh pr` command. The GraphQL-backed Projects mutations hit deprecation errors on classic Projects fields.
 - **Don't skip hooks** (`--no-verify`) on the commit or push.
 - **Don't rewrite history** (no `--amend`, no `git rebase -i`) unless the user explicitly asks.
 
