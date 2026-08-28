@@ -1,19 +1,4 @@
 {
-  "name": "team-productivity",
-  "description": "Team productivity tools — prioritize tasks, summarize standups, and compose weekly status updates from Linear and Slack.",
-  "version": "1.0.0",
-  "author": {
-    "name": "JakobHavtorn"
-  },
-  "homepage": "https://github.com/JakobHavtorn/agent-skills",
-  "repository": "https://github.com/JakobHavtorn/agent-skills",
-  "license": "MIT",
-  "keywords": [
-    "slack",
-    "linear",
-    "standup",
-    "tasks",
-    "prioritization",
-    "status-update"
-  ]
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pm"
 }
