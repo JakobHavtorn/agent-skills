@@ -21,23 +21,23 @@ name: my-skill-name
 
 ```yaml
 description: >
-  [What it does] Analyze stocks using the SEPA methodology.
-  [Expert triggers] SEPA, Minervini, VCP, trend template, Stage 2, pivot point.
-  [Beginner triggers] "should I buy this stock", "is this a good setup".
-  [Context triggers] When user shares a chart, mentions swing trading criteria.
+  [What it does] Deploy an app through a gated CI/CD pipeline.
+  [Expert triggers] deploy, staging, promote, rollback, smoke test, canary.
+  [Beginner triggers] "ship this", "put it in production", "is it safe to deploy".
+  [Context triggers] When user mentions a release, a build, or a merge to main.
 ```
 
 **Writing a high-quality description:**
 
 1. Start with a concrete action verb: "Analyze", "Generate", "Fetch", "Evaluate" (not "Use" or "Handle")
-2. Name specific tools/APIs: "via yfinance", "using the Fintel API"
+2. Name specific tools/APIs: "via gh CLI", "using the GitHub API"
 3. List 5+ explicit trigger phrases in quotes
 4. Include 2+ sideways entry points (unexpected phrasings)
 5. End with context triggers ("also when the user...")
 
 **Common mistakes:**
-- Too short: "Analyze stocks" — won't trigger on specific requests
-- Too generic: "Financial analysis tool" — triggers on everything, useful for nothing
+- Too short: "Deploy apps" — won't trigger on specific requests
+- Too generic: "DevOps tool" — triggers on everything, useful for nothing
 - Missing beginner terms: Only expert jargon excludes most users
 
 ## Optional Fields
@@ -51,7 +51,7 @@ version: 1.0.0
 ### `author`
 Creator name or handle.
 ```yaml
-author: himself65
+author: your-name
 ```
 
 ### `license`
@@ -67,14 +67,14 @@ platforms: [macos, linux]   # Valid values: macos, linux, windows
 ```
 
 ### `required_environment_variables`
-Declare API keys or tokens the skill needs. These are secrets stored in `~/.hermes/.env`.
+Declare API keys or tokens the skill needs. Store secrets as environment variables or in your platform's credential system.
 
 ```yaml
 required_environment_variables:
-  - name: FINTEL_API_KEY
-    prompt: "Fintel API key"
-    help: "Get one at https://fintel.io/api"
-    required_for: "API access"
+  - name: GITHUB_TOKEN
+    prompt: "GitHub personal access token"
+    help: "Create one at https://github.com/settings/tokens"
+    required_for: "GitHub API access"
 ```
 
 Fields per entry:
@@ -92,68 +92,62 @@ required_credential_files:
     description: Google OAuth2 token (created by setup script)
 ```
 
-### `metadata.hermes`
-Hermes-specific metadata for discovery, activation, and configuration.
+### `metadata`
+Arbitrary key-value mapping for additional metadata. Some agent implementations define product-specific keys under `metadata` for discovery, activation, and configuration. Check your platform's documentation for supported fields.
 
 ```yaml
 metadata:
-  hermes:
-    tags: [Finance, Market Analysis, Options]
-    related_skills: [yfinance-data, earnings-preview]
-    category: market-analysis
+  tags: [DevOps, Deployment, CI/CD]
+  related_skills: [open-pr, release-notes]
+  category: devops
 ```
 
 ### Conditional Activation
 
-Control when the skill appears in the system prompt:
+Some agent implementations support conditional activation via frontmatter. These control when the skill appears in the system prompt:
 
 ```yaml
 metadata:
-  hermes:
-    requires_toolsets: [web]              # Hide if web toolset NOT active
-    requires_tools: [web_search]          # Hide if web_search NOT available
-    fallback_for_toolsets: [browser]      # Hide if browser IS active
-    fallback_for_tools: [browser_navigate] # Hide if browser_navigate IS available
+  requires_toolsets: [terminal]              # Hide if terminal toolset NOT active
+  fallback_for_toolsets: [browser]            # Hide if browser IS active
 ```
 
 | Field | Logic |
 |---|---|
 | `requires_toolsets` | Hidden when ANY listed toolset is unavailable |
-| `requires_tools` | Hidden when ANY listed tool is unavailable |
 | `fallback_for_toolsets` | Hidden when ANY listed toolset IS available |
-| `fallback_for_tools` | Hidden when ANY listed tool IS available |
+
+Note: These fields are product-specific extensions, not part of the core Agent Skills spec. Not all implementations support them.
 
 ### Config Settings
 
-Non-secret settings stored in `config.yaml`:
+Non-secret settings can be declared in metadata for some implementations:
 
 ```yaml
 metadata:
-  hermes:
-    config:
-      - key: wiki.path
-        description: Path to knowledge base directory
-        default: "~/wiki"
-        prompt: "Wiki directory path"
+  config:
+    - key: deploy.target
+      description: Default deployment target
+      default: "staging"
+      prompt: "Deployment target (staging or production)"
 ```
 
 ## Complete Frontmatter Example
 
 ```yaml
 ---
-name: sepa-strategy
+name: deploy-app
 description: >
-  Analyze stocks using Mark Minervini's SEPA methodology.
-  Triggers: SEPA, Minervini, VCP, trend template, Stage 2, pivot point,
-  superperformance, bullish stacking, breakout volume, cup-with-handle,
-  "should I buy this stock", "is this a good setup", growth stock screening.
+  Deploy an app through a gated CI/CD pipeline with build, test, staging,
+  and production promotion steps. Triggers: deploy, ship, promote, rollback,
+  canary, smoke test, "put it in production", "is it safe to deploy",
+  release pipeline, CD pipeline, staging deployment.
 version: 1.0.0
-author: himself65
+author: your-name
 license: MIT
 metadata:
-  hermes:
-    tags: [Finance, Trading, Technical Analysis]
-    related_skills: [yfinance-data, stock-correlation]
+  tags: [DevOps, Deployment, CI/CD]
+  related_skills: [open-pr, release-notes]
 ---
 ```
 

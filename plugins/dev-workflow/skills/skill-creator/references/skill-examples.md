@@ -1,29 +1,28 @@
 # Annotated Skill Examples
 
-Real excerpts from the best skills in this repo, with annotations explaining why specific patterns work.
+Real excerpts from well-structured skills, with annotations explaining why specific patterns work.
 
-## Example 1: Exhaustive Description (sepa-strategy)
+## Example 1: Exhaustive Description (deploy-app)
 
 ```yaml
 description: >
-  Analyze stocks using Mark Minervini's SEPA (Specific Entry Point Analysis) methodology.
-  Use this skill whenever the user mentions SEPA, Minervini, superperformance, trend template,
-  VCP (Volatility Contraction Pattern), Stage 2 uptrend, stage analysis, pivot point breakout,
-  or asks about growth stock screening criteria. Also triggers when the user wants to evaluate
-  whether a stock meets swing trading entry criteria, check moving average alignment (bullish
-  stacking: price above 50MA above 150MA above 200MA), assess breakout quality with volume confirmation,
-  calculate position sizing based on risk percentage, or identify consolidation patterns like
-  cup-with-handle, flat base, bull flag, or high tight flag. Use this skill even when the user
-  simply asks "should I buy this stock" or "is this a good setup" in the context of growth/momentum
-  trading, or when they share a stock chart and want pattern analysis.
+  Deploy an app through a gated CI/CD pipeline with build, test, staging,
+  and production promotion steps. Use this skill whenever the user mentions
+  deploy, ship, promote, rollback, canary release, smoke test, blue-green
+  deployment, or asks about promoting a build to production. Also triggers
+  when the user wants to verify a deployment is safe, check if staging tests
+  passed, create a release from a branch, or roll back a failed deployment.
+  Use this skill even when the user simply asks "is it safe to deploy" or
+  "put this in production" in the context of a release, or when they share
+  a build URL and want to know the next step.
 ```
 
 **Why this works:**
-- Starts with the formal methodology name (expert trigger)
-- Lists 8+ domain-specific terms (VCP, Stage 2, pivot point, bullish stacking)
-- Describes behavioral triggers ("evaluate whether a stock meets...")
-- Includes sideways entries ("should I buy this stock", "is this a good setup")
-- Covers input modalities ("share a stock chart")
+- Starts with the formal workflow name (expert trigger)
+- Lists 8+ domain-specific terms (canary, blue-green, smoke test, rollback)
+- Describes behavioral triggers ("verify a deployment is safe")
+- Includes sideways entries ("is it safe to deploy", "put this in production")
+- Covers input modalities ("share a build URL")
 
 ---
 
@@ -52,42 +51,42 @@ description: >
 
 ---
 
-## Example 3: Pass/Fail Gate (sepa-strategy, Step 2)
+## Example 3: Pass/Fail Gate (deploy-app, Step 2)
 
 ```markdown
-## Step 2: Stage Analysis — Identify the Current Stage
+## Step 2: Build — Verify the Build Passes
 
-| Stage | Characteristics | Action |
+| Build Status | Characteristics | Action |
 |---|---|---|
-| **Stage 1** — Basing | Price near 200MA, MA flat/declining | Do nothing, wait |
-| **Stage 2** — Advancing | Higher highs/lows, bullish MA alignment | **Only stage to buy** |
-| **Stage 3** — Topping | Wide swings at highs, false breakouts | Reduce, no new positions |
-| **Stage 4** — Declining | Below all MAs, bearish alignment | Full cash, stay away |
+| **Pass** | Exit code 0, no warnings | Proceed to Step 3 |
+| **Pass with warnings** | Exit code 0, deprecation warnings | Proceed, flag warnings |
+| **Fail** | Non-zero exit code | Stop — fix build errors before deploying |
+| **Timeout** | Build exceeds 10 min | Stop — investigate CI pipeline |
 
-If the stock is NOT in Stage 2, stop here and tell the user. No further analysis needed.
+If the build FAILS, stop here and tell the user. No further steps needed.
 ```
 
 **Why this works:**
 - Clear classification table (4 options, each with characteristics and action)
-- **Hard gate**: "stop here" — prevents wasted analysis on Stage 1/3/4 stocks
+- **Hard gate**: "stop here" — prevents deploying a broken build
 - The gate is explicit and non-negotiable, not a suggestion
 - Saves tokens and produces more accurate results
 
 ---
 
-## Example 4: Router Pattern (stock-correlation, Step 2)
+## Example 4: Router Pattern (csv-analysis, Step 2)
 
 ```markdown
 ## Step 2: Route to the Correct Sub-Skill
 
 | User Request | Route To | Examples |
 |---|---|---|
-| Single ticker, wants related stocks | **Sub-Skill A** | "what correlates with NVDA" |
-| Two+ tickers, wants relationship | **Sub-Skill B** | "correlation between AMD and NVDA" |
-| Group, wants structure/grouping | **Sub-Skill C** | "correlation matrix for FAANG" |
-| Time-varying or conditional | **Sub-Skill D** | "rolling correlation AMD NVDA" |
+| Wants summary stats | **Sub-Skill A** | "describe this CSV", "what's in this data" |
+| Wants to filter/transform | **Sub-Skill B** | "filter rows where X > 100", "group by category" |
+| Wants a chart/visualization | **Sub-Skill C** | "plot revenue over time", "bar chart by region" |
+| Wants correlations | **Sub-Skill D** | "which columns correlate", "correlation matrix" |
 
-If ambiguous, default to **Sub-Skill A** for single tickers, **Sub-Skill B** for two tickers.
+If ambiguous, default to **Sub-Skill A** for broad requests, **Sub-Skill B** for specific operations.
 ```
 
 **Why this works:**
@@ -151,7 +150,7 @@ Decision tree:
 
 ---
 
-## Example 6: Runtime Dependency Check with Algorithm Fallback (stock-correlation)
+## Example 6: Runtime Dependency Check with Algorithm Fallback (csv-analysis)
 
 ```markdown
 ## Step 1: Ensure Dependencies Are Available
@@ -159,14 +158,14 @@ Decision tree:
 **Current environment status:**
 
 ` ` `
-!`python3 -c "exec('try:\n import yfinance, pandas, numpy\n print(f\'yfinance={yfinance.__version__} pandas={pandas.__version__} numpy={numpy.__version__}\')\nexcept Exception:\n print(\'DEPS_MISSING\')')"`
+!`python3 -c "exec('try:\n import pandas, numpy, matplotlib\n print(f\'pandas={pandas.__version__} numpy={numpy.__version__} matplotlib={matplotlib.__version__}\')\nexcept Exception:\n print(\'DEPS_MISSING\')')"`
 ` ` `
 
 If `DEPS_MISSING`, install required packages before running any code:
 
 ` ` `python
 import subprocess, sys
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "yfinance", "pandas", "numpy"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "pandas", "numpy", "matplotlib"])
 ` ` `
 
 If all dependencies are already installed, skip the install step and proceed directly.
@@ -181,66 +180,63 @@ If all dependencies are already installed, skip the install step and proceed dir
 
 ---
 
-## Example 7: Structured Output Template (sepa-strategy, Step 9)
+## Example 7: Structured Output Template (deploy-app, Step 9)
 
 ```markdown
 ## Step 9: Respond to the User
 
-Present a structured analysis report with these sections:
+Present a structured deployment report with these sections:
 
-1. **Stock & Stage**: Ticker, current price, identified stage, base count
-2. **Trend Template Scorecard**: 8-condition checklist with pass/fail and actual values
-3. **Fundamental Grade**: A/B/C/D with EPS growth, acceleration, revenue, margins
-4. **Pattern Identified**: Which pattern, key measurements
-5. **Entry Assessment**: Pivot price, buy zone, breakout volume requirement
-6. **Position Sizing**: Exact shares, stop price, targets, reward/risk ratio
-7. **Market Environment**: Current assessment and sizing impact
-8. **Overall Verdict**: Strong Buy Setup / Watch List / Pass
+1. **Build & Test**: Build status, test results, lint grade
+2. **Staging Verification**: Smoke test results, health check status
+3. **Production Deployment**: Deployed version, deployment time, strategy used
+4. **Post-Deploy Checks**: Uptime, error rate, response time
+5. **Rollback Plan**: How to roll back, current state if rolled back
+6. **Warnings**: Any warnings from build, staging, or post-deploy
+7. **Overall Verdict**: Deployed / Rolled Back / Blocked
 
-Always end with the disclaimer that this is educational analysis, not investment advice.
+Always end with the disclaimer that manual verification is still recommended.
 ```
 
 **Why this works:**
-- 8 numbered sections — output is always structured identically
+- 7 numbered sections — output is always structured identically
 - Each section specifies exactly what data to include
 - Verdict system with 3 clear options (not a spectrum, a decision)
-- Mirrors the step structure (steps 2-8 → output sections 1-8)
+- Mirrors the step structure (steps 2-8 → output sections 1-7)
 - Ends with required disclaimer
 
 ---
 
-## Example 8: Reference File Pointer Pattern (sepa-strategy)
+## Example 8: Reference File Pointer Pattern (release-notes)
 
 ```markdown
 ## Reference Files
 
-- `references/stage-analysis.md` — Four-stage theory, transition signals, base counting
-- `references/trend-template.md` — Detailed 8-condition explanations and memory aids
-- `references/fundamentals.md` — EPS, revenue, margins, institutional holdings, catalysts
-- `references/patterns.md` — VCP 7 rules, cup-with-handle, flat base, flag, HTF
-- `references/entry-rules.md` — Pivot point mechanics, buy zone, true vs false breakout
-- `references/position-sizing.md` — Formula, stop loss evolution, pyramiding, loss handling
-- `references/market-environment.md` — Bull/choppy/bear criteria and position adjustments
+- `references/changelog-format.md` — Conventional commit parsing, changelog templates
+- `references/version-bumping.md` — SemVer rules, pre-release tagging, version comparison
+- `references/github-release.md` — GitHub release API, asset upload, release notes formatting
+- `references/breaking-changes.md` — How to detect, classify, and document breaking changes
+- `references/automated-changelog.md` — Generating changelogs from git log, commit conventional
 ```
 
 **Why this works:**
 - Each reference file is listed with a one-line description
 - Descriptions tell you what's in the file without opening it (saves tokens)
 - Files are organized by concept-cluster, not by step
-- 7 files is near the sweet spot for methodology-pattern skills
+- 5 files is a good count for a linear-pattern skill
 
 ---
 
-## Example 9: Edge Cases in Reference File (options-payoff, strategies.md)
+## Example 9: Edge Cases in Reference File (open-pr, lint-rules.md)
 
 ```markdown
 ## Edge Cases
 
-- **DTE = 0**: skip BS entirely, use intrinsic value only
-- **IV = 0**: BS undefined (σ=0), use max(intrinsic, 0)
-- **K1 > K2**: warn user, auto-sort strikes ascending
-- **Negative theoretical value**: clip to 0 for display (arbitrage-free floor)
-- **Calendar with IV skew**: use separate IV sliders for near vs far leg
+- **No staged changes**: warn user, prompt for files to stage before committing
+- **Pre-commit hooks fail**: stop, show hook output, do not skip hooks
+- **Branch name conflicts**: if branch exists, append issue number or prompt for new name
+- **PR title exceeds 72 chars**: warn but proceed — GitHub allows longer titles
+- **Multiple commits on branch**: squash by default, use `--no-squash` to preserve history
 ```
 
 **Why this works:**

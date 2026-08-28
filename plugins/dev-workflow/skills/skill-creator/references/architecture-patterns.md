@@ -8,13 +8,13 @@ Choosing the right structural pattern is the most impactful decision in skill de
 
 **Structure:** 5-7 numbered steps, executed in order.
 
-**Example:** `earnings-preview`
+**Example:** `open-pr`
 ```
-Step 1: Check yfinance
-Step 2: Fetch earnings data
-Step 3: Analyze estimates vs history
-Step 4: Assess analyst sentiment
-Step 5: Respond with briefing
+Step 1: Detection flow (gh CLI, auth, lint tools)
+Step 2: Run linters and tests
+Step 3: Stage and commit changes
+Step 4: Push branch and open PR via gh api
+Step 5: Respond with PR link and summary
 ```
 
 **Strengths:** Simple to follow, easy to debug, low token cost.
@@ -33,14 +33,14 @@ Step 5: Respond with briefing
 
 **Structure:** Step 1 (setup) + Step 2 (route) + Sub-Skill sections + Final step (respond).
 
-**Example:** `stock-correlation`
+**Example:** `csv-analysis`
 ```
-Step 1: Check dependencies
+Step 1: Check dependencies (pandas, numpy)
 Step 2: Route based on intent
-  - Single ticker → Sub-Skill A: Co-movement Discovery
-  - Two tickers → Sub-Skill B: Return Correlation
-  - Group → Sub-Skill C: Sector Clustering
-  - Time-varying → Sub-Skill D: Realized Correlation
+  - Summarize data → Sub-Skill A: Summary Statistics
+  - Filter/transform → Sub-Skill B: Data Transformation
+  - Visualize → Sub-Skill C: Chart Generation
+  - Find correlations → Sub-Skill D: Correlation Analysis
 Step 3: Respond to user
 ```
 
@@ -57,32 +57,32 @@ Step 3: Respond to user
 
 ## Methodology Pattern
 
-**When to use:** The skill implements a known framework or methodology with sequential validation gates. Each step builds on the previous one, and failure at any gate stops the analysis.
+**When to use:** The skill implements a known framework or methodology with sequential validation gates. Each step builds on the previous one, and failure at any gate stops the process.
 
 **Structure:** 7-9 numbered steps, each with explicit pass/fail criteria.
 
-**Example:** `sepa-strategy`
+**Example:** `deploy-app`
 ```
-Step 1: Gather stock data
-Step 2: Stage analysis (STOP if not Stage 2)
-Step 3: Trend template — 8 conditions (STOP if any fail)
-Step 4: Fundamental check (grade A/B/C/D)
-Step 5: Pattern recognition (VCP, cup-handle, etc.)
-Step 6: Entry point analysis
-Step 7: Position sizing & stop loss
-Step 8: Market environment check
-Step 9: Respond with structured report
+Step 1: Detect deploy tools and environment
+Step 2: Build (STOP if build fails)
+Step 3: Run tests (STOP if tests fail)
+Step 4: Lint and type check (grade A/B/C/D)
+Step 5: Create staging deployment
+Step 6: Smoke test staging (STOP if critical checks fail)
+Step 7: Promote to production
+Step 8: Post-deploy verification
+Step 9: Respond with deployment report
 ```
 
-**Strengths:** Thorough, educational, produces high-quality analysis, prevents premature conclusions.
+**Strengths:** Thorough, educational, produces high-quality results, prevents premature conclusions.
 **Weaknesses:** Highest token cost, requires deep domain knowledge to write.
 
 **Design rules:**
 - Every step MUST have a clear pass/fail gate or a grading system
-- Failed gates must stop analysis with a clear message ("Not Stage 2 — no further analysis needed")
-- Use tables for checklists and criteria (the 8-condition trend template is the gold standard)
+- Failed gates must stop analysis with a clear message ("Build failed — no further steps needed")
+- Use tables for checklists and criteria
 - Defer ALL detailed criteria to reference files; SKILL.md shows the checklist, reference shows the rubric
-- Always end with a verdict system (Strong Buy / Watch / Pass)
+- Always end with a verdict system (Deployed / Rollback / Blocked)
 - The final step output template should mirror the step structure (9 steps → 8 output sections)
 
 ---
@@ -120,12 +120,12 @@ Step 5: Respond with brief explanation
 
 **Structure:** 3-5 steps + heavy reference files (one per endpoint category).
 
-**Example:** `fintel-data`
+**Example:** `github-api`
 ```
-Step 1: Check API key
+Step 1: Check auth (GITHUB_TOKEN)
 Step 2: Identify what user needs (mega routing table)
 Step 3: Make the API call
-Step 4: Handle common patterns
+Step 4: Handle common patterns (pagination, rate limits, errors)
 Step 5: Respond to user
 ```
 
@@ -134,10 +134,10 @@ Step 5: Respond to user
 
 **Design rules:**
 - The routing table in SKILL.md should be a high-level category map, not every endpoint
-- Each reference file covers one endpoint category (market-data, fundamentals, options, etc.)
+- Each reference file covers one endpoint category (repos, issues, pull-requests, etc.)
 - Reference files should include: endpoint URL, parameters, example curl/code, response format
 - Always include a "common patterns" step for things like pagination, rate limits, error codes
-- API keys should use `required_environment_variables` in frontmatter, not inline instructions
+- API keys should use environment variables in frontmatter, not inline instructions
 
 ---
 
@@ -167,4 +167,4 @@ Steps that always proceed regardless of result. **Fix:** Add "If X fails, stop h
 "Summarize the results for the user." **Fix:** Number every output section, specify what data goes in each.
 
 ### The Hardcoded Universe
-Static ticker lists or data that will go stale. **Fix:** Build universes dynamically at runtime using screening APIs.
+Static data lists or values that will go stale. **Fix:** Build data dynamically at runtime using APIs or detection flows.

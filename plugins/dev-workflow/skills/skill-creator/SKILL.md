@@ -59,11 +59,11 @@ Before writing SKILL.md, plan the structure. Read `references/architecture-patte
 
 | Pattern | When to use | Steps | Example |
 |---|---|---|---|
-| **Linear** | Single workflow, no branching | 5-7 | earnings-preview, etf-premium |
-| **Router** | Multiple sub-tasks under one umbrella | 3 + sub-skills | stock-correlation (4 sub-skills) |
-| **Methodology** | Complex domain framework with sequential gates | 7-9 | sepa-strategy (9-step trading methodology) |
+| **Linear** | Single workflow, no branching | 5-7 | open-pr, release-notes |
+| **Router** | Multiple sub-tasks under one umbrella | 3 + sub-skills | csv-analysis (4 sub-skills) |
+| **Methodology** | Complex domain framework with sequential gates | 7-9 | deploy-app (9-step deployment methodology) |
 | **Widget** | Generates interactive UI output | 4-5 | options-payoff (extract + compute + render) |
-| **API Wrapper** | Wraps an external API with many endpoints | 3-5 + heavy references | fintel-data (6 steps, 1 reference file) |
+| **API Wrapper** | Wraps an external API with many endpoints | 3-5 + heavy references | github-api (6 steps, 1 reference file) |
 
 ### Plan the Step Outline
 
@@ -157,7 +157,7 @@ Run the skill through the quality rubric in `references/quality-rubric.md`. Scor
 - [ ] Core steps adapt behavior based on detection results (not hardcoded to one tool)
 - [ ] Separate runtimes treated as separate environments (terminal vs execute_code)
 - [ ] Legal/ethical disclaimers included where appropriate
-- [ ] No hardcoded ticker lists, tool paths, or static data that will go stale
+- [ ] No hardcoded data, tool paths, or static values that will go stale
 
 If any item fails, fix it before delivering to the user.
 
@@ -169,7 +169,7 @@ When the user asks to improve a skill:
 
 ### 6a: Read the Current Skill
 
-Load the skill with `skill_view(name)` or read the SKILL.md directly. Also read all reference files.
+Load the skill by reading the SKILL.md directly. Also read all reference files.
 
 ### 6b: Score It Against the Rubric
 
@@ -194,7 +194,7 @@ List concrete changes ranked by impact:
 
 ### 6d: Apply Changes
 
-After user approval, edit the skill. Use `skill_manage(action='patch', ...)` for targeted changes or `skill_manage(action='edit', ...)` for full rewrites.
+After user approval, edit the skill files directly — targeted edits for small changes, full rewrites for structural rework.
 
 ---
 
@@ -226,7 +226,7 @@ Use the comprehensive rubric from `references/quality-rubric.md`. Score each of 
 | 7 | Error handling | 6/10 | Missing data handling unclear |
 | 8 | Code/formula quality | 8/10 | Working JS, copy-paste ready |
 | 9 | SKILL.md conciseness | 7/10 | 196 lines, well within target |
-| 10 | Domain accuracy | 9/10 | BS formulas correct, edge cases covered |
+| 10 | Domain accuracy | 9/10 | Formulas correct, edge cases covered |
 
 **Overall: 81/100** -- Production quality
 
@@ -242,9 +242,9 @@ For context, here are scores for known high-quality skills in this repo:
 
 | Skill | Score | Why |
 |---|---|---|
-| sepa-strategy | ~90/100 | 9 steps, 7 refs, exhaustive triggers, structured verdict |
+| deploy-app | ~90/100 | 9 steps, 7 refs, exhaustive triggers, structured verdict |
 | options-payoff | ~85/100 | Strong defaults, working code, live data, clean output |
-| stock-correlation | ~80/100 | Router pattern, 4 sub-skills, good defaults |
+| csv-analysis | ~80/100 | Router pattern, 4 sub-skills, good defaults |
 
 ---
 

@@ -113,16 +113,16 @@ For Python skills that need specific libraries.
 !`python3 -c "exec('try:\n import lib\n print(\'lib \' + lib.__version__)\nexcept Exception:\n print(\'LIB_NOT_INSTALLED\')')"`
 ```
 
-### Real Example: stock-correlation (multi-package + algorithm fallback)
+### Real Example: csv-analysis (multi-package + algorithm fallback)
 
 ```markdown
 ` ` `
-!`python3 -c "exec('try:\n import yfinance, pandas, numpy\n print(f\'yfinance={yfinance.__version__} pandas={pandas.__version__} numpy={numpy.__version__}\')\nexcept Exception:\n print(\'DEPS_MISSING\')')"`
+!`python3 -c "exec('try:\n import pandas, numpy, matplotlib\n print(f\'pandas={pandas.__version__} numpy={numpy.__version__} matplotlib={matplotlib.__version__}\')\nexcept Exception:\n print(\'DEPS_MISSING\')')"`
 ` ` `
 
 If `DEPS_MISSING`, install:
 ` ` `python
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "yfinance", "pandas", "numpy"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "pandas", "numpy", "matplotlib"])
 ` ` `
 ```
 
@@ -146,26 +146,26 @@ For skills that wrap external APIs.
 !`echo $API_KEY | head -c 8 && echo "...KEY_SET" || echo "KEY_NOT_SET"`
 ```
 
-### Real Example: fintel-data
+### Real Example: github-api
 
 ```markdown
 ` ` `
-!`echo $FINTEL_API_KEY | head -c 8 && echo "...KEY_SET" || echo "KEY_NOT_SET"`
+!`echo $GITHUB_TOKEN | head -c 8 && echo "...KEY_SET" || echo "KEY_NOT_SET"`
 ` ` `
 
 If `KEY_NOT_SET`:
-- Ask the user for their Fintel API key
-- Guide them to https://fintel.io/api to get one
-- Once provided, export it: `export FINTEL_API_KEY=<key>`
+- Ask the user for their GitHub token
+- Guide them to https://github.com/settings/tokens to create one
+- Once provided, export it: `export GITHUB_TOKEN=<token>`
 ```
 
-### Real Example: finance-sentiment (multi-line Python check)
+### Real Example: linear-ticket (multi-line Python check)
 
 ```markdown
 ` ` `
 !`python3 -c "
 import os
-key = os.environ.get('ADANOS_API_KEY', '')
+key = os.environ.get('LINEAR_API_KEY', '')
 if key:
     print(f'KEY={key[:8]}...SET')
 else:
@@ -180,52 +180,50 @@ else:
 
 ## Pattern 5: Live Data Injection
 
-For skills that need current market data, not stale defaults.
+For skills that need current data, not stale defaults.
 
 ### Structure
 
 ```
-!`python3 -c "exec('try:\n import yfinance as yf\n p=yf.Ticker(\'^GSPC\').fast_info[\'lastPrice\']\n print(f\'PRICE={p:.0f}\')\nexcept Exception:\n print(\'PRICE_UNAVAILABLE\')')"`
+!`git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "BRANCH_UNAVAILABLE"`
 ```
 
-### Real Example: options-payoff (current SPX price)
+### Real Example: deploy-app (current git branch)
 
 ```markdown
-**Current SPX reference price:**
+**Current branch and commit:**
 ` ` `
-!`python3 -c "exec('try:\n import yfinance as yf\n p=yf.Ticker(\'^GSPC\').fast_info[\'lastPrice\']\n print(f\'SPX ≈ {p:.0f}\')\nexcept Exception:\n print(\'SPX price unavailable — check market data\')')"`
+!`git rev-parse --abbrev-ref HEAD 2>/dev/null && git log --oneline -1 2>/dev/null || echo "git info unavailable — not a git repo?")"`
 ` ` `
 ```
 
-**Why this matters for options:** A default spot price of "5000" becomes wrong within days. Live injection means the payoff chart is immediately useful without manual adjustment.
+**Why this matters:** A hardcoded branch name like "main" breaks in feature-branch workflows. Live injection means the deploy targets the correct branch without manual adjustment.
 
-**Fallback design:** When live data fails, the skill still works — it just uses a static default and tells the user to check.
+**Fallback design:** When live data fails, the skill still works — it just asks the user to specify the branch and notes the detection failed.
 
 ---
 
 ## Pattern 6: Frontmatter Conditional Activation
 
-Skills can declare themselves as fallbacks or require specific tools at the YAML level.
+Skills can declare themselves as fallbacks or require specific tools at the YAML level. Note: these fields are product-specific extensions — not all agent implementations support them. Check your platform's documentation.
 
 ### `fallback_for_toolsets` — Activate when primary is missing
 
 ```yaml
 metadata:
-  hermes:
-    fallback_for_toolsets: [web]
+  fallback_for_toolsets: [web]
 ```
 
-**Real example:** duckduckgo-search only appears when the web toolset (with API keys) is NOT configured. Once the user sets up Firecrawl, the skill auto-hides.
+**Example:** A search skill only appears when the web toolset (with API keys) is NOT configured. Once the user sets up a richer search tool, the skill auto-hides.
 
 ### `requires_toolsets` — Only show when tools exist
 
 ```yaml
 metadata:
-  hermes:
-    requires_toolsets: [terminal]
+  requires_toolsets: [terminal]
 ```
 
-**Real example:** docker-management only appears when terminal tools are active — it makes no sense on Claude.ai.
+**Example:** A docker-management skill only appears when terminal tools are active — it makes no sense in a web-only environment.
 
 ### Combining with runtime detection
 
@@ -234,8 +232,7 @@ Frontmatter controls **whether the skill loads**. Runtime detection controls **h
 ```yaml
 # Frontmatter: only load when terminal is available
 metadata:
-  hermes:
-    requires_toolsets: [terminal]
+  requires_toolsets: [terminal]
 ```
 
 ```markdown
@@ -294,8 +291,8 @@ Different execution environments have different capabilities. Skills must not as
 |---|---|---|---|---|
 | Claude Code (CLI) | Yes | Yes | No (unless MCP) | Yes |
 | Claude.ai (web) | Sandboxed | Limited | No | Restricted |
-| Hermes Agent (terminal) | Yes | Yes | Configurable | Yes |
 | execute_code sandbox | Isolated | Pre-installed only | No | Varies |
+| Other CLI agents | Yes | Yes | Configurable | Yes |
 
 ### Rule: Test in the runtime you'll use
 
@@ -360,10 +357,10 @@ Preferred (richest) → Standard → Minimal → Manual instruction
 ### Hardcoded single tool
 
 ```markdown
-# BAD — fails immediately if yfinance not installed
+# BAD — fails immediately if requests not installed
 ` ` `python
-import yfinance as yf
-data = yf.download("AAPL")
+import requests
+data = requests.get("https://api.example.com/data").json()
 ` ` `
 ```
 

@@ -20,7 +20,7 @@ description: >
 - Minimum 5 distinct trigger phrases
 - Include at least 2 "sideways entry points" (unexpected phrasings that should still trigger)
 - Name specific tools, methods, or APIs the skill uses
-- Include example ticker symbols or entities if domain-specific
+- Include domain-specific entities or examples if the skill targets a specific domain
 
 ## Writing Step 1: Detection Flow
 
@@ -60,12 +60,12 @@ Every skill that uses external tools MUST start with a detection flow — not ju
 - **Treat runtimes as separate:** Terminal and execute_code are different — a shell install doesn't mean execute_code has the package
 - **Keep checks fast:** Under 2 seconds — they run synchronously before the skill loads
 
-For pure analysis skills (no external deps), use a "Gather Data" step that still detects data source availability (e.g., "if yfinance available, use it; otherwise accept manual input from user").
+For pure analysis skills (no external deps), use a "Gather Data" step that still detects data source availability (e.g., "if a Python library is available, use it; otherwise accept manual input from user").
 
 ## Writing Core Steps (2 through N)
 
 For each step:
-1. **Clear heading**: `## Step N: [Verb] [Object]` (e.g., "Compute Correlations", "Identify Stage")
+1. **Clear heading**: `## Step N: [Verb] [Object]` (e.g., "Fetch Data", "Run Tests")
 2. **Decision table** if the step involves routing or classification
 3. **Pass/fail gate** if applicable ("If condition fails, stop here and tell the user")
 4. **Reference pointer** for deep content: "Read `references/X.md` for details."
@@ -78,9 +78,9 @@ Every skill MUST have explicit defaults for all parameters. Create a table:
 ```markdown
 | Parameter | Default if not provided | Rationale |
 |---|---|---|
-| Lookback period | 1y | Balances recency and statistical significance |
-| Ticker | SPY | Most liquid, universally recognized |
-| Risk per trade | 1% | Standard conservative sizing |
+| Output format | json | Most programs can consume it |
+| Timeout | 30s | Balances thoroughness and responsiveness |
+| Verbose | false | Reduces noise in normal usage |
 ```
 
 ## Writing the Final Step: Respond to the User
@@ -109,7 +109,7 @@ Number every output section. Include a verdict/grade system if the skill is eval
 
 ### Naming Convention
 - `lowercase-hyphenated.md` (never camelCase or underscores)
-- Topic-focused: `quantization.md`, `position-sizing.md`
+- Topic-focused: `api-reference.md`, `troubleshooting.md`
 - One file per concept-cluster, not per section
 
 ### Reference File Structure
@@ -140,7 +140,7 @@ Number every output section. Include a verdict/grade system if the skill is eval
 Use table pointers in the relevant step, not scattered inline links:
 
 ```markdown
-Read `references/position-sizing.md` for the full formula, examples, and pyramiding rules.
+Read `references/api-reference.md` for the full endpoint list, parameters, and response formats.
 ```
 
 Or as a reference section at the end:

@@ -8,13 +8,13 @@ How well does the description field capture the full range of user requests that
 
 | Score | Criteria |
 |---|---|
-| 1-3 | Generic description ("analyze stocks"), few trigger phrases, no sideways entries |
+| 1-3 | Generic description ("deploy apps"), few trigger phrases, no sideways entries |
 | 4-5 | Decent coverage of main use case, 3-5 trigger phrases, expert-only terminology |
 | 6-7 | Good coverage, 6-10 trigger phrases, mix of expert and beginner phrasing |
 | 8-9 | Excellent, 10+ triggers, sideways entries, example entities, covers edge cases |
 | 10 | Exhaustive — hard to imagine a valid request that wouldn't trigger this skill |
 
-**Benchmark:** sepa-strategy scores 9/10 (15+ triggers including "should I buy this stock")
+**Benchmark:** deploy-app scores 9/10 (15+ triggers including "is it safe to deploy")
 
 ## Dimension 2: Defaults Coverage
 
@@ -42,7 +42,7 @@ Are steps numbered, well-bounded, and sequenced logically with clear exit gates?
 | 8-9 | 5-9 well-defined steps, each with pass/fail criteria, clear exit gates |
 | 10 | Perfect step architecture — every step has a deliverable, gate, and transition |
 
-**Benchmark:** sepa-strategy scores 9/10 (9 steps, each with explicit pass/fail, "stop here" gates)
+**Benchmark:** deploy-app scores 9/10 (9 steps, each with explicit pass/fail, "stop here" gates)
 
 ## Dimension 4: Reference File Strategy
 
@@ -56,7 +56,7 @@ Is complexity properly deferred to reference files? Is SKILL.md lean?
 | 8-9 | Clean architecture — SKILL.md under 250 lines, 3-7 reference files covering all depth |
 | 10 | Perfect split — SKILL.md is pure workflow, all detail in well-organized references |
 
-**Benchmark:** sepa-strategy scores 9/10 (250 lines, 7 reference files totaling ~29KB)
+**Benchmark:** deploy-app scores 9/10 (250 lines, 7 reference files totaling ~29KB)
 
 ## Dimension 5: Dynamic Calling & Runtime Adaptation
 
@@ -70,9 +70,9 @@ Does the skill detect available tools at runtime and adapt its behavior with mul
 | 8-9 | Full detection flow → decision tree → 2+ method paths; auth detection; graceful fallbacks |
 | 10 | Multi-dimensional detection (tools + auth + runtime + live data), decision tree with 3+ paths, inline fallbacks at every usage point, frontmatter conditional activation |
 
-**Benchmark:** github-auth scores 10/10 (detects gh vs git, auth state, credential helper; 3 distinct method paths). options-payoff scores 8/10 (dep check + live SPX price injection with fallback). duckduckgo-search scores 9/10 (CLI vs Python vs built-in, runtime awareness, `fallback_for_toolsets`).
+**Benchmark:** github-auth scores 10/10 (detects gh vs git, auth state, credential helper; 3 distinct method paths). options-payoff scores 8/10 (dep check + live data injection with fallback). duckduckgo-search scores 9/10 (CLI vs Python vs built-in, runtime awareness, `fallback_for_toolsets`).
 
-**Note:** Skills that are pure analysis (no external deps) can score 7+ by having a well-structured "Gather Data" step with data source alternatives (e.g., yfinance vs manual input).
+**Note:** Skills that are pure analysis (no external deps) can score 7+ by having a well-structured "Gather Data" step with data source alternatives (e.g., a Python library vs manual input).
 
 ## Dimension 6: Output Template
 
@@ -86,7 +86,7 @@ Does the final step specify the exact output structure?
 | 8-9 | Fully specified template: numbered sections, what data in each, verdict system |
 | 10 | Template so precise that two runs of the skill produce identically structured output |
 
-**Benchmark:** sepa-strategy scores 9/10 (8 numbered sections + verdict + disclaimer)
+**Benchmark:** deploy-app scores 9/10 (8 numbered sections + verdict + disclaimer)
 
 ## Dimension 7: Error Handling & Missing Data
 
@@ -100,7 +100,7 @@ How does the skill handle missing data, failed API calls, or partial input?
 | 8-9 | Comprehensive: missing data noted and flagged, fallback approaches, user prompts |
 | 10 | Graceful degradation at every step — always produces useful output even with partial data |
 
-**Benchmark:** sepa-strategy scores 8/10 ("proceed with what you have, flag RS as significant gap")
+**Benchmark:** deploy-app scores 8/10 ("proceed with what you have, flag missing checks as significant gap")
 
 ## Dimension 8: Code / Formula Quality
 
@@ -114,7 +114,7 @@ Are code templates and formulas correct, complete, and copy-paste ready?
 | 8-9 | Copy-paste ready code with proper imports, error handling, and comments |
 | 10 | Production-quality code templates in reference files + skeleton in SKILL.md |
 
-**Benchmark:** stock-correlation scores 8/10 (full Python functions with imports, dropna, edge cases)
+**Benchmark:** csv-analysis scores 8/10 (full Python functions with imports, dropna, edge cases)
 
 **Note:** Not all skills need code. For pure analysis skills, score based on formula clarity and table quality.
 
@@ -144,7 +144,7 @@ Is the skill's domain knowledge correct and trustworthy?
 | 8-9 | Highly accurate, edge cases documented, disclaimers appropriate |
 | 10 | Expert-level accuracy — could be used as a reference by domain practitioners |
 
-**Benchmark:** options-payoff scores 9/10 (Black-Scholes correct, edge cases documented, disclaimer present)
+**Benchmark:** options-payoff scores 9/10 (formulas correct, edge cases documented, disclaimer present)
 
 ---
 
