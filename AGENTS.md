@@ -24,13 +24,9 @@ tests/<skill>/cases.md                # trigger + behavior test cases
 
 Skills are discovered only from immediate children of `skills/`. Nested subdirectories would break discovery. CI rejects any `SKILL.md` not at exactly `plugins/<plugin>/skills/<skill>/SKILL.md`.
 
-## Frontmatter rules
+## Authoring skills
 
-Only the six spec-defined fields may appear at top level: `name`, `description` (required), `license`, `compatibility`, `metadata`, `allowed-tools` (optional). Custom properties go inside `metadata` (string-to-string map, reverse-DNS keys).
-
-- `name` must match the parent directory name exactly and be unique across the entire repo.
-- `description` must state both *what* the skill does and *when* to use it (a "use when" clause). This field controls activation.
-- No `license` field — the root `LICENSE` file governs everything.
+For frontmatter rules, detection flows, step structure, reference file organization, and quality scoring, use the `skill-creator` skill (`plugins/coding/skills/skill-creator/`). It covers the full authoring lifecycle and is the single source of truth for how to write a SKILL.md.
 
 ## Skill name uniqueness
 
