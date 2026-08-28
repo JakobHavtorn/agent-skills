@@ -1,110 +1,59 @@
 # AGENTS.md
 
-This file provides guidance to AI coding agents when working with code in this repository.
+Guidance for AI agents working **on** this repository. Not a skill — no harness loads this file.
 
-## Project overview
+## Standards
 
-A collection of personal agent skills for developer workflow and team productivity, following the [Agent Skills](https://agentskills.io) open standard. Skills are installable into Claude Code, OpenCode, and other supported agents (Codex, Gemini CLI, GitHub Copilot, etc.).
+This repo conforms to two upstream standards:
 
-## Repository structure
+- [Agent Skills](https://agentskills.io) — individual skill folders: `SKILL.md` frontmatter, bundled resources, progressive disclosure.
+- [Agent Plugins 1.0.0](https://agent-plugins.org) — packaging layer: `plugin.json`, fixed `skills/` and `mcp.json` locations.
 
-This repo is a **Claude Code plugin marketplace** (`.claude-plugin/marketplace.json` + `plugins/`) and an **Agent Skills** repository (the `SKILL.md` files inside `plugins/<group>/skills/`).
+## Layout
 
 ```
-.claude-plugin/
-  marketplace.json          # Marketplace definition — lists all plugin groups
-plugins/
-  dev-workflow/             # Developer workflow tools
-    plugin.json             # Plugin manifest for this group
-    skills/
-      linear-ticket/        # Create Linear issues with proper template
-        SKILL.md
-      open-pr/              # Create/update PRs with lint, test, Linear linking
-        SKILL.md
-      review-pr-comments/   # Address PR review comments via gh api
-        SKILL.md
-  team-productivity/        # Team productivity tools
-    plugin.json
-    skills/
-      prioritize-tasks/     # Prioritized task list from Linear + Slack + To-do
-        SKILL.md
-        parse_slack_overflow.py
-      standup-summary/      # Standup recap from Linear activity and Slack
-        SKILL.md
-        parse_slack_overflow.py
-      speechrec-weekly-update/  # Weekly Speech Recognition sync pre-read
-        SKILL.md
-        extract_recent_standups.py
-        summarize_linear_issues.py
-  meta/                     # Meta-skills for skill authoring
-    plugin.json
-    skills/
-      skill-creator/        # Create, evaluate, and iterate on agent skills
-        SKILL.md
-        references/         # 6 reference files (dynamic-calling, writing-guide, etc.)
-.github/workflows/
-  release-skills.yml        # Zips each skill and publishes as GitHub release on tag
-  skill-lint.yml            # Lints all SKILL.md files
+plugins/<plugin>/plugin.json          # manifest ($schema + name, both required)
+plugins/<plugin>/skills/<skill>/      # immediate children only — SKILL.md discovered at this depth
+plugins/<plugin>/skills/<skill>/SKILL.md
+plugins/<plugin>/skills/<skill>/scripts/   # executable helpers
+plugins/<plugin>/skills/<skill>/references/  # loaded on demand
+plugins/<plugin>/skills/<skill>/assets/      # templates, lookup tables
+bin/skillctl                          # install / link / doctor
+tests/<skill>/cases.md                # trigger + behavior test cases
 ```
 
-## How skills work
+Skills are discovered only from immediate children of `skills/`. Nested subdirectories would break discovery. CI rejects any `SKILL.md` not at exactly `plugins/<plugin>/skills/<skill>/SKILL.md`.
 
-Each skill is a self-contained directory under `plugins/<group>/skills/`. The `SKILL.md` file is what the agent reads at runtime — it tells the model when to activate, what steps to follow, and where to find reference details.
+## Frontmatter rules
 
-### SKILL.md format
+Only the six spec-defined fields may appear at top level: `name`, `description` (required), `license`, `compatibility`, `metadata`, `allowed-tools` (optional). Custom properties go inside `metadata` (string-to-string map, reverse-DNS keys).
 
-```markdown
----
-name: skill-name
-description: >
-  Multi-line description that doubles as the trigger definition.
-  Include specific phrases, keywords, and scenarios that should activate this skill.
----
+- `name` must match the parent directory name exactly and be unique across the entire repo.
+- `description` must state both *what* the skill does and *when* to use it (a "use when" clause). This field controls activation.
+- No `license` field — the root `LICENSE` file governs everything.
 
-# Skill Title
+## Skill name uniqueness
 
-Step-by-step instructions organized as ## Step N sections.
-```
+Skill directory names must be unique across the whole repository, not just within a plugin. Harnesses install into a single flat directory; two plugins shipping the same name collide on install.
 
-**Required frontmatter fields:** `name`, `description`
+## Data rule
 
-The `description` field is critical — it controls when the skill activates. Write it as a comprehensive trigger list, not a summary.
+Never write personal data — account numbers, balances, transaction exports, employer data, client names — into any file in this repo. Skills that operate on personal data resolve it at runtime from `$SKILLS_DATA_DIR` or equivalent. CI rejects IBAN-shaped strings, long digit runs, and `.csv`/`.ofx`/`.qif` files.
 
-## Creating a new skill
+## Validation
 
-1. Choose the appropriate plugin group (`dev-workflow`, `team-productivity`, or `meta`)
-2. Create `plugins/<group>/skills/<skill-name>/` directory
-3. Write `SKILL.md` with YAML frontmatter (`name`, `description`) and step-by-step instructions
-4. Add a `README.md` for the skill's GitHub page (description, triggers, platform, setup)
-5. Update the root `README.md` to list the new skill in the appropriate plugin group table
-6. The skill will be auto-zipped and released on tag push via GitHub Actions
+Run `python3 bin/skillctl list` to see the current layout. Before opening a PR, ensure:
 
-### Platform considerations
+1. `skills-ref validate` passes on every skill directory.
+2. Plugin manifest `name` matches the directory name.
+3. Skill names are globally unique.
+4. `SKILL.md` is under 500 lines.
+5. No personal data patterns (see above).
 
-Skills that require shell access, network calls, or external binaries (e.g., `gh`, `python`) only work on **CLI-based agents** like Claude Code and OpenCode. They do **not** work on Claude.ai, which runs in a sandboxed environment that restricts network access and binaries.
+CI runs all of these automatically in `.github/workflows/validate.yml`.
 
-## Plugin system
+## Constraints
 
-This repo ships as a Claude Code plugin marketplace containing 3 plugins:
-
-| Plugin | Description |
-|---|---|
-| `dev-workflow` | Create Linear issues, open PRs, address review comments |
-| `team-productivity` | Prioritize tasks, summarize standups, compose weekly updates |
-| `meta` | Create, evaluate, and iterate on agent skills |
-
-- `.claude-plugin/marketplace.json` — marketplace listing with all plugin entries.
-- `plugins/<group>/plugin.json` — per-plugin manifest (name, version, keywords). Skills under `plugins/<group>/skills/` with SKILL.md frontmatter are auto-discovered by the plugin loader.
-
-Users run `npx plugins add JakobHavtorn/agent-skills` and select one or more plugin groups interactively; `--yes` installs every discovered group. Individual skills can be installed via `npx skills add JakobHavtorn/agent-skills --skill <name>`.
-
-## CI/CD
-
-- **Release workflow** (`.github/workflows/release-skills.yml`): On tag push (`v*`), zips each skill from `plugins/*/skills/*/` and publishes them as a GitHub release.
-- **Lint workflow** (`.github/workflows/skill-lint.yml`): Lints all `SKILL.md` files across all plugin groups. The linter caps `description` at 1024 chars and rejects angle brackets (`<` / `>`).
-
-## Important constraints
-
-- All changes must be merged to `main` via a pull request — do not push directly to `main`.
-- Commit titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format (e.g. `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`).
-- This is primarily a documentation/reference repository — most of the codebase is `SKILL.md` files with no build step. Helper Python scripts (`parse_slack_overflow.py`, `extract_recent_standups.py`, `summarize_linear_issues.py`) are small utilities called by skills at runtime.
+- All changes merged to `main` via pull request.
+- Commit titles follow [Conventional Commits](https://www.conventionalcommits.org/).
+- A single skill directory must remain a valid drop-in copy: `cp -r plugins/<plugin>/skills/<skill> ~/.claude/skills/` works with zero repo tooling.
