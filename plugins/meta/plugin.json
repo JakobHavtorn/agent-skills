@@ -1,0 +1,11 @@
+{
+  "name": "meta",
+  "description": "Meta-skills for creating, evaluating, and iterating on agent skills.",
+  "version": "1.0.0",
+  "author": {
+    "name": "JakobHavtorn"
+  },
+  "homepage": "https://github.com/JakobHavtorn/agent-skills",
+  "repository": "https://github.com/JakobHavtorn/agent-skills",
+  "license": "MIT"
+}
