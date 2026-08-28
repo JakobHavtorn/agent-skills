@@ -5,15 +5,16 @@ description: >
   commits and pushes, then opens or updates the PR with a Linear-linked description.
   Prefers `gh pr` commands (simpler, auto-resolves owner/repo), falls back to `gh api`
   (REST) if needed. Triggers: "open a pr", "create pull request", "submit for review",
-  "push and pr", "make a pr", "pr this", "put up a pr", "send for review", "ready for
-  review", "ship this", "create pr", "update pr", "push my changes for review".
-  Also triggers when a user says "this is ready", "can you review this", or "let's get
-  this merged". Auto-detects lint and test commands for Go, Python, and JS/TS repos.
+  "push and pr", "make a pr", "pr this", "pr my branch", "put up a pr", "put this up",
+  "send for review", "send it", "ready for review", "ship this", "create pr", "update pr",
+  "push my changes for review". Also triggers when a user says "this is ready", "can you
+  review this", "let's get this merged", or "open a review". Auto-detects lint and test
+  commands for Go, Python, and JS/TS repos.
 ---
 
 ## Overview
 
-Drive a pull request on the current branch to a review-ready state: linted, tested, committed, pushed, and either freshly opened or updated. Prefers `gh pr` commands (simpler, auto-resolves owner/repo, handles edge cases like fork detection). Falls back to `gh api` (REST) if `gh pr` is unavailable or fails. Never uses `--project` on any `gh pr` command — the GraphQL-backed Projects mutations hit deprecation errors on classic Projects fields.
+Drive a pull request on the current branch to a review-ready state: linted, tested, committed, pushed, and either freshly opened or updated. Prefers `gh pr` commands (auto-resolves owner/repo, handles fork detection). Falls back to `gh api` (REST) if `gh pr` is unavailable. Never uses `--project` on any `gh pr` command — the GraphQL-backed Projects mutations hit deprecation errors on classic Projects fields.
 
 ## Defaults
 
@@ -62,13 +63,7 @@ gh pr view --json number,url,state 2>/dev/null && echo "GH_PR_AVAILABLE" || echo
 
 ## Step 2: Lint the changed files
 
-Pick the linter that matches the repo. If the repo has multiple languages, run each linter that applies to the changed files.
-
-| Repo | Lint command |
-| --- | --- |
-| Go | `golangci-lint run ./...` (or scope to changed packages) |
-| Python | `ruff check .` (or `ruff check <changed files>`; via `uv run ruff check` / `poetry run ruff check` if that's how the repo manages its env) |
-| JS/TS | Prefer the repo's own script — check `package.json` for `lint`, `format.fix`, `typecheck`. Typical combo: `npm run format.fix && npm run typecheck`. |
+Pick the linter that matches the repo's language and tooling. If the repo has multiple languages, run each linter that applies to the changed files. See `references/lint-test-commands.md` for the full auto-detection table (Go, Python, JS/TS, pnpm, yarn, env-managed variants, linter-not-installed handling).
 
 **Gate:** Fix every reported issue before moving on. Do not silence rules to make the linter pass. If the linter is not installed (e.g., `golangci-lint: command not found`), surface this to the user — do not skip linting silently.
 
@@ -76,11 +71,7 @@ Pick the linter that matches the repo. If the repo has multiple languages, run e
 
 ## Step 3: Run the test suite
 
-Run the repo's full test command and confirm it passes:
-
-- Go: `go test ./...`
-- Python: `pytest` (or `uv run pytest` / `poetry run pytest`, matching how the repo manages its env)
-- JS/TS: `npm run test` (or the script declared in `package.json`)
+Run the repo's full test command and confirm it passes. See `references/lint-test-commands.md` for env-managed variants and pre-existing failure handling.
 
 **Gate:** If a test fails because of the change, fix the code — not the test. If a test is unrelated and pre-existing red, surface it to the user before proceeding rather than opening a PR on top of a broken main. Do not push until all relevant tests pass.
 
@@ -88,7 +79,23 @@ Run the repo's full test command and confirm it passes:
 
 ## Step 4: Commit and push
 
-Stage only the files relevant to this change (`git add <files>` — avoid `git add -A` so stray local files like `.env`, dumps, or scratch recordings don't sneak in). Write a conventional-commit-style message (`feat:`, `fix:`, `refactor:`, etc.).
+Before staging, check for unrelated uncommitted changes:
+
+```bash
+git status --porcelain
+```
+
+**Gate:** If `git status --porcelain` shows files that are unrelated to this change (e.g., modified files you didn't touch as part of the work), surface them to the user. Do not stage files you didn't change — stage only the files relevant to this change (`git add <files>` — avoid `git add -A` so stray local files like `.env`, dumps, or scratch recordings don't sneak in).
+
+Write a conventional-commit-style message (`feat:`, `fix:`, `refactor:`, etc.).
+
+Before pushing, check if the branch already has unpushed commits:
+
+```bash
+git log origin/$(git rev-parse --abbrev-ref HEAD)..HEAD --oneline 2>/dev/null
+```
+
+**Gate:** If there are no unpushed commits AND the remote is already up to date, surface this to the user — there may be nothing new to push. Proceed only if the user confirms.
 
 Push the branch, setting upstream if it isn't tracked yet:
 
@@ -108,25 +115,27 @@ Branch names in this org typically encode the Linear ticket, e.g. `improve-trans
 git rev-parse --abbrev-ref HEAD | grep -oiE '[A-Z]+-[0-9]+$' | tr '[:lower:]' '[:upper:]'
 ```
 
-If the branch has no ticket suffix, ask the user for the ID before drafting the description rather than guessing or omitting it.
+**Gate:** If the branch has no ticket suffix, ask the user for the ID before drafting the description. Do not guess or omit the Linear section without confirming.
 
 ---
 
 ## Step 6: Draft the PR description
 
-Use this template verbatim (GitHub-flavored Markdown):
+Use the template from `references/pr-template.md` verbatim. The core structure:
 
 ```markdown
 ## Summary
 
-<2–5 bullets describing what changed and why. Reference the Linear ticket inline, e.g. "Addresses SR-2522 by ...">
+- <2-5 bullets describing what changed and why>
 
 ## Linear
 
-Closes SR-2522
+Closes <TICKET-ID>
 ```
 
-Read `references/linear-linking.md` for the complete Linear linking rules: closing vs non-closing words, URL formats, and PR title conventions for this org.
+Read `references/pr-template.md` for the full template with examples, multiple-ticket handling, and summary guidelines. Read `references/linear-linking.md` for closing vs non-closing words, URL formats, and PR title conventions.
+
+**Gate:** If the ticket ID from Step 5 is unresolved (user couldn't provide one) AND no Linear section can be written, confirm with the user that they want to proceed without a Linear link before continuing. Do not silently omit the section.
 
 ---
 
@@ -137,6 +146,8 @@ First, check whether a PR already exists for the current branch (works with both
 ```bash
 gh pr view --json number,url,state 2>/dev/null
 ```
+
+**Gate:** If the PR `state` is `MERGED` or `CLOSED`, surface this to the user. Do not attempt to update a merged or closed PR — ask whether to create a new PR or reopen (if closed and reopenable).
 
 ### Method A — `gh pr` (preferred, if detected in Step 1)
 
@@ -197,13 +208,32 @@ EOF
 
 ## Step 8: Respond to the user
 
-Present results with these sections:
+Present results using this exact format:
 
-1. **PR URL**: The GitHub URL of the created or updated PR
-2. **Summary**: What was changed (2-5 bullets mirroring the PR description)
-3. **Quality checks**: Lint result (pass/fail), test result (pass/fail), files changed count
-4. **Linear link**: The ticket ID and closing word used (e.g., "Closes SR-2522")
-5. **Next steps**: What the user should do next (request reviewers, address CI feedback, etc.)
+```
+**PR:** <PR URL>
+
+**Summary:**
+- <bullet mirroring PR description bullet 1>
+- <bullet mirroring PR description bullet 2>
+
+**Quality checks:**
+
+| Check | Result |
+|---|---|
+| Lint | pass / fail / skipped (reason) |
+| Tests | pass / fail / skipped (reason) |
+| Files changed | <N> |
+
+**Linear:** <TICKET-ID> — <closing word> (e.g., "Closes SR-2522")
+
+**Next steps:**
+- Request reviewers on the PR
+- Address CI feedback if checks fail
+- <any other relevant follow-up>
+```
+
+If any quality check was skipped or failed, the Next steps section must call this out explicitly.
 
 ---
 
@@ -215,5 +245,6 @@ Present results with these sections:
 - **Don't rewrite history** (no `--amend`, no `git rebase -i`) unless the user explicitly asks.
 
 ## Reference Files
-
-- `references/linear-linking.md` -- Linear closing words, non-closing words, URL formats, and PR title conventions for this org
+- `references/lint-test-commands.md` — Auto-detection table for lint/test commands (Go, Python, JS/TS, env-managed variants, linter-not-installed, pre-existing failures)
+- `references/pr-template.md` — PR description template with examples, multiple-ticket handling, and summary guidelines
+- `references/linear-linking.md` — Linear closing/non-closing words, URL formats, PR title conventions
