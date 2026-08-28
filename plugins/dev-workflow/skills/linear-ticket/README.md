@@ -1,16 +1,19 @@
 # linear-ticket
 
-Create a Linear issue with proper template, fields, and metadata for the Speech Recognition team.
+Create a Linear issue with proper template, fields, and metadata.
 
 ## What it does
 
-Gathers workspace metadata (teams, users, labels, statuses, cycles) and creates a Linear issue with the correct team, project, assignee, labels, priority, and cycle fields. Uses the Linear MCP tools to ensure all metadata is resolved properly before issue creation.
+Resolves workspace metadata (teams, users, labels, statuses, cycles, projects) and creates a Linear issue with the correct team, project, assignee, labels, priority, and cycle fields. Uses the Linear MCP tools to ensure all metadata is resolved properly before issue creation.
 
 ## Triggers
 
 - "create a Linear ticket", "create a Linear issue"
 - "add a ticket to Linear"
 - "file a bug in Linear"
+- "make a linear ticket", "open a linear issue"
+- "create a ticket", "add a ticket"
+- "file a ticket", "log a ticket in linear"
 
 ## Prerequisites
 
