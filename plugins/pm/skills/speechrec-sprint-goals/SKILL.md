@@ -3,8 +3,8 @@ name: speechrec-sprint-goals
 description: >-
   Draft the sprint goals for the Speech Recognition (SR) team's upcoming Linear
   cycle by reviewing the outgoing cycle's goals and ticket status in Linear plus
-  the last two weeks of relevant Slack discussion. Use this whenever the user
-  wants to fill in, draft, or update the "Goals" for a new cycle entry on the
+  the last two weeks of relevant Slack discussion. Use when the user wants
+  to fill in, draft, or update the "Goals" for a new cycle entry on the
   Team Speech Rec Sprint Planning Notion page, wants help preparing for
   cycle/sprint planning, asks "what should our goals be for [cycle name]", or
   references drafting sprint goals biweekly / every two weeks / for the next
