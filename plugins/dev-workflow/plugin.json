@@ -1,0 +1,19 @@
+{
+  "name": "dev-workflow",
+  "description": "Developer workflow tools — create Linear issues, open PRs with lint and test, address PR review comments.",
+  "version": "1.0.0",
+  "author": {
+    "name": "JakobHavtorn"
+  },
+  "homepage": "https://github.com/JakobHavtorn/agent-skills",
+  "repository": "https://github.com/JakobHavtorn/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "linear",
+    "github",
+    "pull-request",
+    "code-review",
+    "workflow",
+    "tickets"
+  ]
+}
