@@ -1,63 +1,69 @@
 # Agent Skills
 
-A collection of personal agent skills for developer workflow and team productivity, following the [Agent Skills](https://agentskills.io) open standard.
+A version-controlled catalog of agent skills covering software engineering, personal finance, and project management. Installable into any `SKILL.md`-compatible harness (Claude Code, Codex CLI, OpenCode, Cursor, and others) without per-harness forks of the content.
+
+Conforms to the [Agent Skills](https://agentskills.io) and [Agent Plugins 1.0.0](https://agent-plugins.org) standards.
 
 ## Quick Start
 
-### Plugin Groups (Claude Code, OpenCode, Cursor, and More)
-
 ```bash
-npx plugins add JakobHavtorn/agent-skills
+git clone git@github.com:JakobHavtorn/agent-skills.git ~/.agent-skills
+~/.agent-skills/bin/skillctl link --plugin coding  --agent claude
+~/.agent-skills/bin/skillctl link --plugin finance --agent opencode
+~/.agent-skills/bin/skillctl link --plugin pm      --agent claude
 ```
 
-The installer prompts you to select one or more plugin groups. To install every group non-interactively:
+Clone once, link many — `git pull` updates every harness at once.
+
+### Supported harnesses
+
+| Harness | User scope | Project scope |
+|---|---|---|
+| Claude Code | `~/.claude/skills/<name>/` | `.claude/skills/` |
+| Codex CLI | `~/.codex/skills/<name>/` | `.agents/skills/` |
+| OpenCode | `~/.config/opencode/skills/<name>/` | `.opencode/skills/` |
+| Cursor | `~/.cursor/skills/<name>/` | `.cursor/skills/` |
+
+### Commands
 
 ```bash
-npx plugins add JakobHavtorn/agent-skills --yes
+skillctl list                          # list all plugins and skills
+skillctl link --plugin <p> --agent <a> # symlink a plugin's skills into a harness
+skillctl unlink --plugin <p> --agent <a>  # remove a plugin's links
+skillctl doctor                        # report links, orphans, broken symlinks
 ```
 
-### Individual Skills
+## Plugins
 
-```bash
-npx skills add JakobHavtorn/agent-skills --skill linear-ticket
-```
+### `coding`
 
-### Other Agents
-
-```bash
-npx skills add JakobHavtorn/agent-skills -a <agent-name>
-```
-
-## Available Skills
-
-### Developer Workflow (`dev-workflow`)
-
-Developer workflow tools — create Linear issues, open PRs, and address review comments.
+Software engineering skills — Linear tickets, pull requests, code review.
 
 | Skill | Description |
 |---|---|
-| [linear-ticket](plugins/dev-workflow/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
-| [open-pr](plugins/dev-workflow/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, opens with Linear-linked description |
-| [review-pr-comments](plugins/dev-workflow/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
+| [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
+| [open-pr](plugins/coding/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, Linear-linked description |
+| [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
+| [skill-creator](plugins/coding/skills/skill-creator) | Create, evaluate, and iterate on agent skills |
 
-### Team Productivity (`team-productivity`)
+### `finance`
 
-Team productivity tools — prioritize tasks, summarize standups, and compose weekly status updates.
-
-| Skill | Description |
-|---|---|
-| [prioritize-tasks](plugins/team-productivity/skills/prioritize-tasks) | Build a prioritized task list from Linear, Slack messages, and Slack To-do doc |
-| [standup-summary](plugins/team-productivity/skills/standup-summary) | Summarize Linear activity and Slack messages since the last standup |
-| [speechrec-weekly-update](plugins/team-productivity/skills/speechrec-weekly-update) | Compose the pre-read status update for the weekly Speech Recognition sync call |
-
-### Meta (`meta`)
-
-Meta-skills for creating, evaluating, and iterating on agent skills.
+Personal finance skills.
 
 | Skill | Description |
 |---|---|
-| [skill-creator](plugins/meta/skills/skill-creator) | Create, evaluate, and iterate on high-quality agent skills with quality scoring and best-practice enforcement |
+| [taxhelper](plugins/finance/skills/taxhelper) | Danish tax assessment lookup, rubric search, and PDF worksheet flows |
+
+### `pm`
+
+Project management and team productivity skills.
+
+| Skill | Description |
+|---|---|
+| [prioritize-tasks](plugins/pm/skills/prioritize-tasks) | Prioritized task list from Linear, Slack, and To-do doc |
+| [standup-summary](plugins/pm/skills/standup-summary) | Standup recap from Linear activity and Slack messages |
+| [speechrec-weekly-update](plugins/pm/skills/speechrec-weekly-update) | Pre-read status update for the weekly Speech Recognition sync call |
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
