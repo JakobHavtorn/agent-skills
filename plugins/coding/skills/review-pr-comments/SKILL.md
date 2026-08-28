@@ -1,15 +1,12 @@
 ---
 name: review-pr-comments
-description: >
-  Address PR review comments by fetching all review comments via gh api, assessing
-  which warrant code changes, implementing those changes, and running the linter.
-  Does not commit or push. Triggers: "address pr review comments", "fix review
-  comments", "respond to pr feedback", "handle review comments", "address review
-  feedback", "fix pr comments", "reply to review comments", "handle pr feedback",
-  "resolve review comments", "process review comments", "review comments",
-  "pr comments", "address feedback on pr".
-metadata:
-  requires_toolsets: [terminal]
+description: >-
+  Address PR review comments by fetching all review comments via gh api,
+  assessing which warrant code changes, implementing those changes, and
+  running the linter. Does not commit or push. Use when the user asks to
+  address, fix, or respond to PR review comments, handle code review
+  feedback, or work through review comments on a pull request.
+allowed-tools: Bash(gh:*) Bash(ruff:*) Bash(golangci-lint:*) Read
 ---
 
 ## Overview

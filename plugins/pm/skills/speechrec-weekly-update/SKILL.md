@@ -1,6 +1,17 @@
 ---
 name: speechrec-weekly-update
-description: Composes the pre-read status update for the weekly Speech Recognition sync call, ready to post in the team Slack channel. Gathers context from the previous status post, Notion sprint planning, Linear project updates, recent standup notes, and recent messages in the internal Speech Recognition channel.
+description: >-
+  Composes the pre-read status update for the weekly Speech Recognition sync
+  call, ready to post in the team Slack channel. Gathers context from the
+  previous status post, Notion sprint planning, Linear project updates,
+  recent standup notes, and recent messages in the internal Speech
+  Recognition channel. Use when the user asks for the weekly Speech
+  Recognition status update, sync call pre-read, or weekly status post.
+allowed-tools: Bash(python:*) Bash(python3:*) Read
+metadata:
+  dk.jakob.category: pm
+  dk.jakob.version: "1.0"
+  dk.jakob.status: stable
 ---
 
 ## Overview
