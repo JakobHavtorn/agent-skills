@@ -63,6 +63,7 @@ Project management and team productivity skills.
 | [prioritize-tasks](plugins/pm/skills/prioritize-tasks) | Prioritized task list from Linear, Slack, and To-do doc |
 | [standup-summary](plugins/pm/skills/standup-summary) | Standup recap from Linear activity and Slack messages |
 | [speechrec-weekly-update](plugins/pm/skills/speechrec-weekly-update) | Pre-read status update for the weekly Speech Recognition sync call |
+| [speechrec-sprint-goals](plugins/pm/skills/speechrec-sprint-goals) | Draft SR team sprint goals from Notion, Linear, and Slack |
 
 ## License
 
