@@ -1,6 +1,15 @@
 ---
 name: standup-summary
-description: Summarize Linear activity and Slack messages since the last standup. Accepts a timespan (e.g. "since Monday", "last 2 days") or defaults to the last 3 workdays. Use when the user asks for a standup summary, a recap of recent work, or what they've been doing.
+description: >-
+  Summarize Linear activity and Slack messages since the last standup.
+  Accepts a timespan (e.g. "since Monday", "last 2 days") or defaults to the
+  last 3 workdays. Use when the user asks for a standup summary, a recap of
+  recent work, or what they've been doing.
+allowed-tools: Bash(python:*) Bash(python3:*) Read
+metadata:
+  dk.jakob.category: pm
+  dk.jakob.version: "1.0"
+  dk.jakob.status: stable
 ---
 
 If the user provided a timespan in their message (e.g. "since Monday", "last 2 days", "since Friday"), use it in Step 1. If none was provided, default to the last 3 workdays.
