@@ -4,7 +4,7 @@ Future changes and improvements tracked in-repo. No external standard governs th
 
 ## Testing
 
-- [ ] Add `skillctl test` subcommand — parse `tests/*/cases.md`, send prompts to agent CLI, record pass/fail with model + harness versions to `tests/<skill>/results.md`
+- [x] Add `skillctl test` subcommand — parse `tests/*/cases.json`, send prompts to agent CLI, record pass/fail with model + harness versions to `tests/<skill>/results.json`
 
 ## Infrastructure
 

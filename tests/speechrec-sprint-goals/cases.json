@@ -1,0 +1,14 @@
+{
+  "should_trigger": [
+    "Draft the sprint goals for the next SR cycle",
+    "What should our goals be for Juno?",
+    "Help me prepare for cycle planning — draft the goals",
+    "Fill in the Goals for the new cycle entry on the Sprint Planning page",
+    "Draft sprint goals biweekly for the next cycle"
+  ],
+  "should_not_trigger": [
+    "Summarize my standup",
+    "Compose the weekly Speech Recognition status update",
+    "Prioritize my tasks"
+  ]
+}

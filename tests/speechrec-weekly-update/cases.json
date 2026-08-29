@@ -1,0 +1,11 @@
+{
+  "should_trigger": [
+    "Compose the weekly Speech Recognition status update",
+    "Write the weekly status post for the Speech Recognition channel"
+  ],
+  "should_not_trigger": [
+    "Write a standup summary",
+    "Schedule a meeting to discuss the speech recognition roadmap",
+    "Summarize the sprint planning notes"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "should_trigger": [
+    "Address the review comments on PR #42",
+    "Fix the code review feedback on my pull request",
+    "Work through the review comments on this PR"
+  ],
+  "should_not_trigger": [
+    "Open a PR for this branch",
+    "Review this code for me",
+    "Close PR #42 without merging"
+  ]
+}

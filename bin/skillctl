@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""skillctl — install, link, and diagnose agent skills.
+"""skillctl — install, link, test, and diagnose agent skills.
 
-Clone-once, link-many: symlinks skill directories from this repo into
+Clone-on-one, link-many: symlinks skill directories from this repo into
 harness-specific target paths so a single `git pull` updates every harness.
 
 Usage:
@@ -10,18 +10,32 @@ Usage:
   skillctl unlink --plugin coding --agent claude
   skillctl doctor
   skillctl list
+  skillctl test
+  skillctl test --skill open-pr
+  skillctl test --runner claude --model claude-sonnet-4-20250514
 """
 
 import argparse
+import json
 import os
 import platform
+import re
 import shutil
 import stat
+import subprocess
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
+
+C_BLUE = "\033[34m"
+C_GREEN = "\033[32m"
+C_RED = "\033[31m"
+C_RESET = "\033[0m"
 
 # Harness target paths (spec §7 — verify against client docs at implementation time)
 HARNESS_PATHS = {
@@ -227,6 +241,365 @@ def cmd_list(args):
             print(f"  {skill_dir.name}/")
 
 
+# ---------------------------------------------------------------------------
+# skillctl test — trigger detection testing
+# ---------------------------------------------------------------------------
+
+TESTS_DIR = REPO_ROOT / "tests"
+
+def _opencode_args(prompt: str, model: str | None) -> list[str]:
+    args = ["run", "--format", "json"]
+    if model:
+        args += ["-m", model]
+    args.append(prompt)
+    return args
+
+
+def _claude_args(prompt: str, model: str | None) -> list[str]:
+    args = ["--print"]
+    if model:
+        args += ["--model", model]
+    args.append(prompt)
+    return args
+
+
+RUNNERS = {
+    "opencode": {
+        "cmd": "opencode",
+        "args_fn": _opencode_args,
+        "extract": lambda output: _extract_opencode_text(output),
+    },
+    "claude": {
+        "cmd": "claude",
+        "args_fn": _claude_args,
+        "extract": lambda output: output,
+    },
+}
+
+
+def collect_skill_descriptions() -> list[dict]:
+    """Collect {name, description} from all SKILL.md files in the repo."""
+    import yaml
+
+    skills = []
+    if not PLUGINS_DIR.is_dir():
+        return skills
+    for plugin_dir in sorted(PLUGINS_DIR.iterdir()):
+        if not plugin_dir.is_dir() or not (plugin_dir / "plugin.json").exists():
+            continue
+        skills_dir = plugin_dir / "skills"
+        if not skills_dir.is_dir():
+            continue
+        for skill_dir in sorted(skills_dir.iterdir()):
+            skill_md = skill_dir / "SKILL.md"
+            if not skill_md.exists():
+                continue
+            content = skill_md.read_text()
+            m = re.match(r"^---\n(.*?\n)---", content, re.DOTALL)
+            if not m:
+                continue
+            try:
+                fm = yaml.safe_load(m.group(1))
+            except Exception:
+                continue
+            if not isinstance(fm, dict):
+                continue
+            name = fm.get("name", skill_dir.name)
+            desc = fm.get("description", "")
+            if isinstance(desc, str):
+                desc = " ".join(desc.split())
+            skills.append({"name": name, "description": desc or ""})
+    return skills
+
+
+def build_classification_prompt(skills: list[dict], user_message: str) -> str:
+    """Build the prompt that asks the LLM which skill(s) to activate."""
+    lines = [
+        "You are an AI agent with the following skills available:",
+        "",
+    ]
+    for i, s in enumerate(skills, 1):
+        lines.append(f"{i}. {s['name']}: {s['description']}")
+    lines.append("")
+    lines.append(
+        "Which skill(s) should be activated for the user message below? "
+        "Reply with ONLY skill names, one per line. "
+        'If none apply, reply "none".'
+    )
+    lines.append("")
+    lines.append(f"User message: \"{user_message}\"")
+    return "\n".join(lines)
+
+
+def _extract_opencode_text(json_output: str) -> str:
+    """Extract assistant text from opencode run --format json output (NDJSON)."""
+    text_parts = []
+    for line in json_output.strip().splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "text":
+            part = event.get("part", {})
+            if isinstance(part, dict) and part.get("text"):
+                text_parts.append(part["text"])
+    return "\n".join(text_parts)
+
+
+def run_runner(runner: str, prompt: str, model: str | None) -> tuple[str, str]:
+    """Execute the LLM runner and return (text_output, model_identifier)."""
+    if runner not in RUNNERS:
+        print(f"error: unknown runner '{runner}'. Choose from: {', '.join(RUNNERS)}", file=sys.stderr)
+        sys.exit(1)
+
+    cfg = RUNNERS[runner]
+    cmd = cfg["cmd"]
+    args = cfg["args_fn"](prompt, model)
+
+    if not shutil.which(cmd):
+        print(f"error: '{cmd}' not found on PATH", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        proc = subprocess.run(
+            [cmd] + args,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        return "", model or ""
+
+    output = proc.stdout if proc.returncode == 0 else proc.stderr
+    text = cfg["extract"](output)
+    return text, model or cmd
+
+
+def parse_skill_names(response: str, known_skills: list[dict]) -> set[str]:
+    """Parse the LLM response into a set of matched skill names."""
+    known_names = {s["name"] for s in known_skills}
+    matched = set()
+    for line in response.strip().splitlines():
+        name = line.strip().strip("-").strip()
+        if name.lower() == "none":
+            continue
+        if name in known_names:
+            matched.add(name)
+    return matched
+
+
+def load_cases(skill_name: str) -> dict | None:
+    """Load tests/<skill_name>/cases.json."""
+    cases_file = TESTS_DIR / skill_name / "cases.json"
+    if not cases_file.exists():
+        return None
+    try:
+        return json.loads(cases_file.read_text())
+    except json.JSONDecodeError as e:
+        print(f"error: invalid JSON in {cases_file}: {e}", file=sys.stderr)
+        return None
+
+
+def find_test_skills() -> list[str]:
+    """Return skill names that have tests/*/cases.json."""
+    if not TESTS_DIR.is_dir():
+        return []
+    return sorted(
+        d.name for d in TESTS_DIR.iterdir()
+        if d.is_dir() and (d / "cases.json").exists()
+    )
+
+
+def execute_case(runner: str, model: str | None, skills: list[dict],
+                 skill_name: str, case_type: str, prompt: str, index: int) -> dict:
+    """Run a single trigger-detection case and return a result dict."""
+    classification_prompt = build_classification_prompt(skills, prompt)
+    response, model_id = run_runner(runner, classification_prompt, model)
+    matched = parse_skill_names(response, skills)
+    triggered = skill_name in matched
+    passed = triggered if case_type == "should_trigger" else not triggered
+    return {
+        "skill": skill_name,
+        "type": case_type,
+        "prompt": prompt,
+        "index": index,
+        "expected": case_type == "should_trigger",
+        "actual": triggered,
+        "passed": passed,
+        "matched_skills": sorted(matched),
+    }
+
+
+def _count_block_lines(raw_results: list[dict], args) -> int:
+    """Count lines _flush_skill_block will print for these results."""
+    cases_sorted = sorted(raw_results,
+                          key=lambda r: (r["type"] != "should_trigger", r["index"]))
+    case_lines = sum(1 for r in cases_sorted if args.verbose or not r["passed"])
+    summary_line = 0 if args.verbose else 1
+    return 5 + case_lines + summary_line
+
+
+def _flush_skill_block(skill_name: str, raw_results: list[dict], args,
+                       total_pass: int, total_fail: int, results_all: list):
+    """Print a skill's test block and write results.json.
+
+    Returns updated (total_pass, total_fail).
+    """
+    cases_sorted = sorted(raw_results,
+                          key=lambda r: (r["type"] != "should_trigger", r["index"]))
+
+    print(f"\n{'=' * 60}")
+    print(f"Testing: {skill_name}")
+    print(f"{'=' * 60}")
+
+    case_results = []
+    for r in cases_sorted:
+        case_results.append({
+            "type": r["type"], "prompt": r["prompt"],
+            "expected": r["expected"], "actual": r["actual"],
+            "passed": r["passed"], "matched_skills": r["matched_skills"],
+        })
+        if r["passed"]:
+            total_pass += 1
+        else:
+            total_fail += 1
+        if args.verbose or not r["passed"]:
+            status = f"{C_GREEN}PASS{C_RESET}" if r["passed"] else f"{C_RED}FAIL{C_RESET}"
+            label = "trigger" if r["type"] == "should_trigger" else "no-trig"
+            extra = f" (got: {', '.join(r['matched_skills']) or 'none'})" if not r["passed"] else ""
+            print(f"  [{status}] {label}  {r['prompt']}{extra}")
+
+    if not args.verbose:
+        skill_pass = sum(1 for c in case_results if c["passed"])
+        print(f"  {skill_pass}/{len(case_results)} passed")
+
+    result_obj = {
+        "skill": skill_name,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "model": args.model or args.runner,
+        "runner": args.runner,
+        "summary": {
+            "passed": sum(1 for c in case_results if c["passed"]),
+            "failed": sum(1 for c in case_results if not c["passed"]),
+            "total": len(case_results),
+        },
+        "cases": case_results,
+    }
+    results_all.append(result_obj)
+
+    results_file = TESTS_DIR / skill_name / "results.json"
+    results_file.write_text(json.dumps(result_obj, indent=2, ensure_ascii=False) + "\n")
+
+    return total_pass, total_fail
+
+
+def cmd_test(args):
+    """Run trigger detection tests for skills."""
+    skills = collect_skill_descriptions()
+    if not skills:
+        print("error: no skills found in plugins/", file=sys.stderr)
+        sys.exit(1)
+
+    skill_names = find_test_skills()
+    if not skill_names:
+        print("error: no tests/*/cases.json found", file=sys.stderr)
+        sys.exit(1)
+
+    if args.skill:
+        if args.skill not in skill_names:
+            print(f"error: no tests/{args.skill}/cases.json found", file=sys.stderr)
+            sys.exit(1)
+        skill_names = [args.skill]
+
+    all_jobs = []
+    for skill_name in skill_names:
+        cases = load_cases(skill_name)
+        if cases is None:
+            print(f"  SKIP {skill_name}: no cases.json", file=sys.stderr)
+            continue
+        should_trigger = cases.get("should_trigger", [])
+        should_not_trigger = cases.get("should_not_trigger", [])
+        for i, prompt in enumerate(should_trigger):
+            all_jobs.append((skill_name, "should_trigger", prompt, i))
+        for i, prompt in enumerate(should_not_trigger):
+            all_jobs.append((skill_name, "should_not_trigger", prompt, i))
+
+    if not all_jobs:
+        print("error: no test cases found", file=sys.stderr)
+        sys.exit(1)
+
+    remaining = {}
+    for job in all_jobs:
+        remaining[job[0]] = remaining.get(job[0], 0) + 1
+    skill_results = {name: [] for name in remaining}
+
+    total_cases = len(all_jobs)
+    completed = 0
+    total_pass = 0
+    total_fail = 0
+    results_all = []
+
+    print(f"{C_BLUE}  0/{total_cases} cases complete...{C_RESET}", end="", flush=True)
+
+    executor = ThreadPoolExecutor(max_workers=args.jobs)
+    futures = {
+        executor.submit(execute_case, args.runner, args.model,
+                        skills, job[0], job[1], job[2], job[3]): job
+        for job in all_jobs
+    }
+
+    try:
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+            except Exception:
+                job = futures[future]
+                result = {
+                    "skill": job[0], "type": job[1], "prompt": job[2],
+                    "index": job[3], "expected": job[1] == "should_trigger",
+                    "actual": False, "passed": False, "matched_skills": [],
+                }
+
+            skill_name = result["skill"]
+            skill_results[skill_name].append(result)
+            remaining[skill_name] -= 1
+            completed += 1
+
+            if remaining[skill_name] == 0:
+                block_lines = _count_block_lines(skill_results[skill_name], args)
+                print(f"\r\033[{block_lines}L", end="", flush=True)
+                total_pass, total_fail = _flush_skill_block(
+                    skill_name, skill_results[skill_name],
+                    args, total_pass, total_fail, results_all)
+                if completed < total_cases:
+                    print(f"\r\033[2K{C_BLUE}  {completed}/{total_cases} cases complete...{C_RESET}",
+                          end="", flush=True)
+            else:
+                print(f"\r\033[2K{C_BLUE}  {completed}/{total_cases} cases complete...{C_RESET}",
+                      end="", flush=True)
+    except KeyboardInterrupt:
+        print(f"\r\033[2K{C_RED}\n  Interrupted at {completed}/{total_cases} cases — cancelling...{C_RESET}",
+              file=sys.stderr)
+        for f in futures:
+            f.cancel()
+        executor.shutdown(wait=False, cancel_futures=True)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
+    else:
+        executor.shutdown(wait=True)
+
+    print(f"\r\033[2K")
+    print(f"\n{'=' * 60}")
+    print(f"Total: {C_GREEN}{total_pass} passed{C_RESET}, {C_RED}{total_fail} failed{C_RESET}")
+    print(f"{'=' * 60}")
+
+    if total_fail > 0:
+        sys.exit(1)
+
+
 def cmd_help(args, parser=None):
     """Show detailed help with examples."""
     print(__doc__)
@@ -267,12 +640,16 @@ def cmd_help(args, parser=None):
     print("  skillctl unlink --plugin coding --agent claude")
     print("  skillctl unlink --agent claude")
     print("  skillctl doctor")
+    print("  skillctl test")
+    print("  skillctl test --skill open-pr")
+    print("  skillctl test --jobs 8 --verbose")
+    print("  skillctl test --runner claude --model claude-sonnet-4-20250514 --verbose")
 
 
 def main():
     parser = argparse.ArgumentParser(
         prog="skillctl",
-        description="Install, link, and diagnose agent skills.",
+        description="Install, link, test, and diagnose agent skills.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -299,6 +676,17 @@ def main():
     # list
     p_list = sub.add_parser("list", help="List all plugins and their skills")
     p_list.set_defaults(func=cmd_list)
+
+    # test
+    p_test = sub.add_parser("test", help="Run trigger detection tests for skills")
+    p_test.add_argument("--skill", help="Test a single skill (by test directory name)")
+    p_test.add_argument("--runner", default="opencode", choices=list(RUNNERS.keys()),
+                        help="LLM runner to use (default: opencode)")
+    p_test.add_argument("--model", help="Model identifier (e.g. corti/corti-s1, claude-sonnet-4-20250514)")
+    p_test.add_argument("--verbose", action="store_true", help="Show per-case details, not just failures")
+    p_test.add_argument("--jobs", "-j", type=int, default=8,
+                        help="Number of parallel LLM calls (default: 8)")
+    p_test.set_defaults(func=cmd_test)
 
     # help
     p_help = sub.add_parser("help", help="Show detailed help with examples")

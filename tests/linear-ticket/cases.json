@@ -1,0 +1,14 @@
+{
+  "should_trigger": [
+    "Create a Linear ticket for a bug where the login button doesn't work on Safari",
+    "File a bug in Linear for the API returning 500 on empty payloads",
+    "Add a ticket to Linear for the missing pagination on the users endpoint",
+    "Make a Linear story for adding dark mode to the settings page",
+    "Create a task in Linear for updating the CI pipeline to use Node 22"
+  ],
+  "should_not_trigger": [
+    "What's the status of the login bug ticket?",
+    "Summarize my Linear tickets for the week",
+    "Create a Jira ticket for the login bug"
+  ]
+}

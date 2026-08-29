@@ -1,0 +1,14 @@
+{
+  "should_trigger": [
+    "Create a skill for generating commit messages from git diff",
+    "I want a skill to automate monthly invoice reconciliation",
+    "I keep doing this deployment checklist manually, can you remember how to do it?",
+    "Improve this skill — the triggers are too broad and it fires on unrelated prompts",
+    "Run evals on the open-pr skill to see how it performs"
+  ],
+  "should_not_trigger": [
+    "Write me a bash script that generates commit messages",
+    "What skills are installed?",
+    "What does the linear-ticket skill do?"
+  ]
+}
