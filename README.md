@@ -29,8 +29,12 @@ Clone once, link many — `git pull` updates every harness at once.
 ```bash
 skillctl list                          # list all plugins and skills
 skillctl link --plugin <p> --agent <a> # symlink a plugin's skills into a harness
+skillctl link --all --agent <a>        # symlink every plugin into a harness
 skillctl unlink --plugin <p> --agent <a>  # remove a plugin's links
+skillctl test                          # run trigger detection tests for all skills
+skillctl test --skill <name> --verbose # test a single skill with per-case output
 skillctl doctor                        # report links, orphans, broken symlinks
+skillctl help                          # show detailed help with examples
 ```
 
 ## Plugins
