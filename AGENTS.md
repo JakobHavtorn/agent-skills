@@ -24,7 +24,6 @@ tests/<skill>/results.json            # last test run output (gitignored)
 ```
 
 When adding or changing features tracked in `TODO.md`, update the corresponding checklist item before opening the PR.
-```
 
 Skills are discovered only from immediate children of `skills/`. Nested subdirectories would break discovery. CI rejects any `SKILL.md` not at exactly `plugins/<plugin>/skills/<skill>/SKILL.md`.
 
