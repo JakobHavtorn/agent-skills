@@ -18,8 +18,12 @@ plugins/<plugin>/skills/<skill>/SKILL.md
 plugins/<plugin>/skills/<skill>/scripts/   # executable helpers
 plugins/<plugin>/skills/<skill>/references/  # loaded on demand
 plugins/<plugin>/skills/<skill>/assets/      # templates, lookup tables
-bin/skillctl                          # install / link / doctor
-tests/<skill>/cases.md                # trigger + behavior test cases
+bin/skillctl                          # install / link / test / doctor
+tests/<skill>/cases.json              # trigger detection test cases
+tests/<skill>/results.json            # last test run output (gitignored)
+```
+
+When adding or changing features tracked in `TODO.md`, update the corresponding checklist item before opening the PR.
 ```
 
 Skills are discovered only from immediate children of `skills/`. Nested subdirectories would break discovery. CI rejects any `SKILL.md` not at exactly `plugins/<plugin>/skills/<skill>/SKILL.md`.

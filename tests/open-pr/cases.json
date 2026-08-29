@@ -1,0 +1,14 @@
+{
+  "should_trigger": [
+    "Open a PR for this branch",
+    "Push and PR this",
+    "Ship this to review",
+    "This is ready, can you review this?",
+    "Put this up for review"
+  ],
+  "should_not_trigger": [
+    "Review the code in this PR",
+    "What's the CI status on my PR?",
+    "What's the diff between main and my feature branch?"
+  ]
+}

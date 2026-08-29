@@ -1,0 +1,13 @@
+{
+  "should_trigger": [
+    "Prioritize my tasks for this week",
+    "What should I work on next?",
+    "Give me a task list",
+    "What's on my plate?"
+  ],
+  "should_not_trigger": [
+    "Create a Linear ticket for the auth bug",
+    "Summarize my standup for today",
+    "List all issues in the Backlog milestone"
+  ]
+}

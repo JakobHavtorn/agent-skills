@@ -1,0 +1,12 @@
+{
+  "should_trigger": [
+    "Give me a standup summary for today",
+    "What have I been doing since Monday?",
+    "Recap my recent work from the last 2 days"
+  ],
+  "should_not_trigger": [
+    "Prioritize my tasks",
+    "Write a weekly project report for stakeholders",
+    "Create a Linear ticket for the bug I found"
+  ]
+}

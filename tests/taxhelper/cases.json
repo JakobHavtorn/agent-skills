@@ -1,0 +1,14 @@
+{
+  "should_trigger": [
+    "What does rubrik 51 cover in my årsopgørelse?",
+    "Look up field 417 on my tax assessment",
+    "Generate a review worksheet for my Danish tax return",
+    "Can I get kørselsfradrag for my commute to Aarhus?",
+    "Search for rules about renteudgifter in the tax database"
+  ],
+  "should_not_trigger": [
+    "How do I file my US taxes?",
+    "What's the VAT rate in Denmark?",
+    "How much income tax do I pay in California?"
+  ]
+}
