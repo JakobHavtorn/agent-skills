@@ -1,0 +1,116 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "corti": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Corti",
+      "options": {
+        "baseURL": "https://ai.eu.corti.app/v1",
+        "apiKey": "{env:CORTI_BEARER}"
+      },
+      "models": {
+        "corti-s1": {
+          "name": "Corti S1"
+        },
+        "corti-s1-instant": {
+          "name": "Corti S1 Instant"
+        },
+        "corti-s1-mini": {
+          "name": "Corti S1 Mini"
+        },
+        "corti-s1-mini-instant": {
+          "name": "Corti S1 Mini Instant"
+        },
+        "corti-s1-beta": {
+          "name": "Corti S1 Beta"
+        },
+        "corti-s1-embedding": {
+          "name": "Corti S1 Embedding"
+        },
+        "corti-s1-ultra-beta": {
+          "name": "Corti S1 Ultra Beta",
+          "attachment": true,
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          }
+        },
+        "corti-s1-tiny": {
+          "name": "Corti S1 Tiny"
+        },
+        "corti-s1-tiny-instant": {
+          "name": "Corti S1 Tiny Instant"
+        }
+      }
+    }
+  },
+  "model": "corti/corti-s1",
+  "tools": {
+    "notion_notion-create-*": false,
+    "notion_notion-update-folder": false,
+    "notion_notion-update-view": false,
+    "notion_notion-create-view": false,
+    "notion_notion-create-database": false,
+    "notion_notion-create-folder": false,
+    "notion_notion-create-comment": false,
+    "notion_notion-create-pages": false,
+    "notion_notion-create-file-upload": false,
+    "notion_notion-create-attachment": false,
+    "notion_notion-duplicate-page": false,
+    "notion_notion-download-attachment": false,
+    "notion_notion-move-pages": false,
+    "notion_notion-update-data-source": false,
+    "notion_notion-get-comments": false,
+    "notion_notion-get-users": false,
+    "notion_notion-get-teams": false,
+    "notion_notion-get-session-status": false,
+    "notion_notion-list-*": false,
+    "notion_notion-query-meeting-notes": false,
+    "notion_notion-query-sessions": false,
+    "notion_notion-search-sessions": false,
+    "notion_notion-search-agents": false,
+    "notion_notion-spawn-session": false,
+    "notion_notion-stop-session": false,
+    "notion_notion-send-message-to-session": false,
+    "notion_notion-wait-session": false,
+    "notion_notion-read-session-event": false,
+    "notion_notion-list-session-events": false,
+    "notion_notion-notion-convert-page-to-skill": false
+  },
+  "mcp": {
+    "linear": {
+      "type": "remote",
+      "url": "https://mcp.linear.app/mcp",
+      "enabled": true,
+      "oauth": {},
+      "timeout": 30000
+    },
+    "slack": {
+      "type": "remote",
+      "url": "https://mcp.slack.com/mcp",
+      "enabled": true,
+      "oauth": {
+        "clientId": "{env:SLACK_CLIENT_ID}",
+        "clientSecret": "{env:SLACK_CLIENT_SECRET}",
+        "scope": "search:read.public search:read.private search:read.mpim search:read.im search:read.files files:read search:read.users chat:write users:read users:read.email channels:history groups:history mpim:history im:history"
+      },
+      "timeout": 30000
+    },
+    "notion": {
+      "type": "remote",
+      "url": "https://mcp.notion.com/mcp",
+      "enabled": true,
+      "oauth": {},
+      "timeout": 30000
+    }
+  },
+  "plugin": [
+    "@plannotator/opencode@latest",
+    "@cortexkit/opencode-magic-context@latest",
+    "@cortexkit/aft-opencode@latest"
+  ],
+  "compaction": {
+    "auto": false,
+    "prune": false
+  }
+}
