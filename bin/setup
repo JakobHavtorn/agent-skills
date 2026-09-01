@@ -2,13 +2,15 @@
 set -euo pipefail
 
 # setup — bootstrap agent-skills on a new machine.
-# Installs RTK, links skills into harness directories, initializes RTK for OpenCode.
+# Installs RTK, links skills into harness directories, links opencode config,
+# and initializes RTK for OpenCode.
 #
 # Usage:
-#   bin/setup                    # install rtk + link all skills to opencode
-#   bin/setup --agent claude     # link to Claude Code instead
-#   bin/setup --no-rtk           # skip rtk install, just link skills
+#   bin/setup                    # install rtk + link all skills + config to opencode
+#   bin/setup --agent claude     # link to Claude Code instead (no config linking)
+#   bin/setup --no-rtk           # skip rtk install, just link skills + config
 #   bin/setup --all              # link all plugins to all harnesses
+#   bin/setup --plugin coding    # link only a specific plugin
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -55,6 +57,32 @@ if $INSTALL_RTK; then
   if command -v rtk &>/dev/null; then
     rtk init -g --opencode 2>/dev/null && echo "rtk initialized for OpenCode" || true
   fi
+  echo ""
+fi
+
+# --- Link opencode config ---------------------------------------------
+
+if [[ "$AGENT" == "opencode" ]] || $LINK_ALL; then
+  OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
+  mkdir -p "$OPENCODE_CONFIG_DIR"
+
+  echo "linking opencode config..."
+  for cfg_file in config/opencode.jsonc config/tui.json config/tui-preferences.jsonc; do
+    source="$REPO_ROOT/$cfg_file"
+    target="$OPENCODE_CONFIG_DIR/$(basename "$cfg_file")"
+    if [[ -e "$target" && ! -L "$target" ]]; then
+      echo "  backing up existing $(basename "$cfg_file") -> $(basename "$cfg_file").bak"
+      mv "$target" "$target.bak"
+    fi
+    ln -sf "$source" "$target"
+    echo "  linked $(basename "$cfg_file")"
+  done
+
+  echo ""
+  echo "Required env vars:"
+  echo "  CORTI_BEARER          Corti API key"
+  echo "  SLACK_CLIENT_ID       Slack MCP OAuth client ID"
+  echo "  SLACK_CLIENT_SECRET   Slack MCP OAuth client secret"
   echo ""
 fi
 

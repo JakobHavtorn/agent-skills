@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "scroll_acceleration": {
+    "enabled": false
+  },
+  "plugin": [
+    "@cortexkit/opencode-magic-context@latest",
+    "@cortexkit/aft-opencode@latest"
+  ]
+}
