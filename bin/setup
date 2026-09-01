@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# setup — bootstrap agent-skills on a new machine.
+# Installs RTK, links skills into harness directories, initializes RTK for OpenCode.
+#
+# Usage:
+#   bin/setup                    # install rtk + link all skills to opencode
+#   bin/setup --agent claude     # link to Claude Code instead
+#   bin/setup --no-rtk           # skip rtk install, just link skills
+#   bin/setup --all              # link all plugins to all harnesses
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+AGENT="${AGENT:-opencode}"
+INSTALL_RTK=true
+LINK_ALL=false
+PLUGINS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --agent) AGENT="$2"; shift 2 ;;
+    --no-rtk) INSTALL_RTK=false; shift ;;
+    --all) LINK_ALL=true; shift ;;
+    --plugin) PLUGINS+=("$2"); shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+echo "=== agent-skills setup ==="
+echo "  repo:    $REPO_ROOT"
+echo "  agent:   $AGENT"
+echo "  rtk:     $INSTALL_RTK"
+echo ""
+
+# --- RTK ---------------------------------------------------------------
+
+if $INSTALL_RTK; then
+  if command -v brew &>/dev/null; then
+    if command -v rtk &>/dev/null; then
+      echo "rtk already installed — upgrading..."
+      brew upgrade rtk 2>/dev/null || true
+    else
+      echo "installing rtk via Homebrew..."
+      brew install rtk
+    fi
+  elif command -v rtk &>/dev/null; then
+    echo "rtk already installed (non-brew)"
+  else
+    echo "Homebrew not found — install from https://brew.sh, then re-run." >&2
+    exit 1
+  fi
+
+  if command -v rtk &>/dev/null; then
+    rtk init -g --opencode 2>/dev/null && echo "rtk initialized for OpenCode" || true
+  fi
+  echo ""
+fi
+
+# --- Link skills -------------------------------------------------------
+
+if $LINK_ALL; then
+  echo "linking all plugins to all harnesses..."
+  for a in claude codex opencode cursor; do
+    python3 "$SCRIPT_DIR/skillctl" link --agent "$a" --force || true
+  done
+elif [[ ${#PLUGINS[@]} -gt 0 ]]; then
+  for p in "${PLUGINS[@]}"; do
+    python3 "$SCRIPT_DIR/skillctl" link --plugin "$p" --agent "$AGENT" --force
+  done
+else
+  python3 "$SCRIPT_DIR/skillctl" link --agent "$AGENT" --force
+fi
+
+echo ""
+echo "=== done ==="
+echo "run 'skillctl doctor' to verify, 'skillctl list' to see available skills."

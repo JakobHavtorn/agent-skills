@@ -6,14 +6,35 @@ Conforms to the [Agent Skills](https://agentskills.io) and [Agent Plugins 1.0.0]
 
 ## Quick Start
 
+**One-liner** (clones, installs RTK, links all skills to OpenCode):
+
 ```bash
-git clone git@github.com:JakobHavtorn/agent-skills.git ~/.agent-skills
-~/.agent-skills/bin/skillctl link --plugin coding  --agent claude
-~/.agent-skills/bin/skillctl link --plugin finance --agent opencode
-~/.agent-skills/bin/skillctl link --plugin pm      --agent claude
+curl -fsSL https://raw.githubusercontent.com/JakobHavtorn/agent-skills/main/install.sh | bash
 ```
 
-Clone once, link many — `git pull` updates every harness at once.
+Customize with flags:
+
+```bash
+curl ... | bash -s -- --agent claude        # link to Claude Code
+curl ... | bash -s -- --no-rtk              # skip RTK, just link skills
+curl ... | bash -s -- --all                # link everything to all harnesses
+curl ... | bash -s -- --plugin coding       # link only the coding plugin
+```
+
+**Manual** (if you prefer to clone yourself):
+
+```bash
+git clone git@github.com:JakobHavtorn/agent-skills.git ~/.agent-skills
+~/.agent-skills/bin/setup --agent opencode
+```
+
+Clone once, link many — `git pull && bin/setup` updates every harness at once.
+
+Verify your installation:
+
+```bash
+~/.agent-skills/bin/skillctl doctor   # check links, orphans, broken symlinks
+```
 
 ### Supported harnesses
 
