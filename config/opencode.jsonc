@@ -96,6 +96,16 @@
       },
       "timeout": 30000
     },
+    "synapse": {
+      "type": "remote",
+      "url": "https://mcp.synapse.corti.app/mcp",
+      "enabled": true,
+      "oauth": {
+        "clientId": "synapse-mcp",
+        "scope": "openid email profile offline_access"
+      },
+      "timeout": 30000
+    },
     "notion": {
       "type": "remote",
       "url": "https://mcp.notion.com/mcp",
