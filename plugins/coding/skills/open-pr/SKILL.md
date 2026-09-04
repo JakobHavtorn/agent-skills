@@ -18,7 +18,7 @@ allowed-tools: Bash(gh:*) Bash(git:*) Bash(npm:*) Bash(ruff:*) Bash(golangci-lin
 
 ## Overview
 
-Drive a pull request on the current branch to a review-ready state: linted, tested, committed, pushed, and either freshly opened or updated. Prefers `gh pr` commands (auto-resolves owner/repo, handles fork detection); falls back to `gh api` (REST) if `gh pr` is unavailable. Never uses `--project` — GraphQL Projects mutations hit deprecation errors on classic Projects fields.
+Drive a pull request on the current branch to a review-ready state: linted, tested, committed, pushed, and either freshly opened or updated. Prefers `gh pr` commands (auto-resolves owner/repo, handles fork detection); falls back to `gh api` (REST) if `gh pr` is unavailable.
 
 ## Defaults
 
@@ -256,7 +256,6 @@ If any quality check was skipped or failed, the Next steps section must call thi
 ## Key rules
 
 - **Prefer `gh pr` over `gh api`** — auto-resolves owner/repo, handles fork detection. Use `gh api` only as fallback.
-- **Never pass `--project`** to any `gh pr` command — GraphQL Projects mutations hit deprecation errors.
 - **Don't skip hooks** (`--no-verify`) or **rewrite history** (`--amend`, `rebase -i`) unless the user explicitly asks.
 
 ## Reference Files
