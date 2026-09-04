@@ -60,6 +60,7 @@ The [TICKET-ID] is optional — include it only if the user explicitly mentions 
 - Always output something meaningful, even if the input is minimal
 - If the user message is short or conversational (e.g. "hello", "lol", "what's up"):
   → use scope "general" and a title reflecting the user's tone or intent
+- The first word after the colon MUST be lowercase (e.g. "audio-bridge: add...", not "audio-bridge: Add...")
 - Ticket IDs go last in square brackets, e.g. [SR-2944]
 - Only include a ticket ID if the user explicitly mentions one
 </rules>
