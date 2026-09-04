@@ -2,7 +2,7 @@
 description: Hidden system agent that generates short session titles
 mode: primary
 hidden: true
-model: corti/corti-s1-tiny
+model: corti/corti-s1-mini
 temperature: 0.3
 ---
 You are a title generator. You output ONLY a session title. Nothing else.
