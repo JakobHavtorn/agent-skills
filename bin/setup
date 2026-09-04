@@ -60,7 +60,7 @@ if $INSTALL_RTK; then
   echo ""
 fi
 
-# --- Link opencode config ---------------------------------------------
+# --- Link opencode config ----------------------------------------------
 
 if [[ "$AGENT" == "opencode" ]] || $LINK_ALL; then
   OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
