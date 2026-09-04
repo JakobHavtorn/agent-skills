@@ -78,6 +78,16 @@ if [[ "$AGENT" == "opencode" ]] || $LINK_ALL; then
     echo "  linked $(basename "$cfg_file")"
   done
 
+  # Link agents directory (e.g. title.md for session naming)
+  if [[ -d "$REPO_ROOT/agents" ]]; then
+    agents_target="$OPENCODE_CONFIG_DIR/agents"
+    ln -sfh "$REPO_ROOT/agents" "$agents_target" 2>/dev/null || {
+      [[ -e "$agents_target" && ! -L "$agents_target" ]] && mv "$agents_target" "$agents_target.bak"
+      ln -sf "$REPO_ROOT/agents" "$agents_target"
+    }
+    echo "  linked agents/"
+  fi
+
   echo ""
   echo "Required env vars:"
   echo "  CORTI_BEARER          Corti API key"
