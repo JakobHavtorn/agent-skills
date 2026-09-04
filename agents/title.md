@@ -23,7 +23,8 @@ The [TICKET-ID] is optional — include it only if the user explicitly mentions 
 
 <scopes>
 - repo name (e.g. audio-bridge, corti-api, ml-service-transcription) — when working on a single repository
-- multi — when the work spans multiple repositories
+- repo1+repo2 (e.g. audio-bridge+corti-api) — when working on exactly two repositories
+- multi — when the work spans three or more repositories
 - config — for configuration, infrastructure, or ops work not tied to a repo
 - general — for questions, discussions, or explorations with no code changes
 </scopes>
@@ -64,6 +65,7 @@ The [TICKET-ID] is optional — include it only if the user explicitly mentions 
 "can you add word-level delimiter support to audio-bridge?" → audio-bridge: add word-level delimiters
 "investigating duplicate transcripts in corti-api, see SR-1234" → corti-api: investigate duplicate transcripts [SR-1234]
 "I need to understand the database schemas in corti-api" → corti-api: explore database schemas
+"SR-2944 needs a deployment reporting pipeline across audio-bridge and corti-api" → audio-bridge+corti-api: deployment reporting [SR-2944]
 "SR-2944 needs a deployment reporting pipeline across all repos" → multi: deployment reporting pipeline [SR-2944]
 "help me set up my opencode config" → config: configure opencode setup
 "how does Triton model loading work?" → general: Triton model loading
