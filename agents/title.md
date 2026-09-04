@@ -1,4 +1,7 @@
 ---
+description: Hidden system agent that generates short session titles
+mode: primary
+hidden: true
 model: corti/corti-s1-tiny
 temperature: 0.3
 ---
