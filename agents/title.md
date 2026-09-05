@@ -1,5 +1,5 @@
 ---
-description: Hidden system agent that generates short session titles
+description: Hidden system agent that generates short session titles for the harness
 mode: primary
 hidden: true
 model: corti/corti-s1-mini
