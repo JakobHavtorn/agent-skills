@@ -31,6 +31,10 @@ Skills are discovered only from immediate children of `skills/`. Nested subdirec
 
 For frontmatter rules, detection flows, step structure, reference file organization, and quality scoring, use the `skill-creator` skill (`plugins/coding/skills/skill-creator/`). It covers the full authoring lifecycle and is the single source of truth for how to write a SKILL.md.
 
+## README.md
+
+When adding a new skill, update `README.md` to include it in the relevant plugin's skill table. When adding a new agent to `agents/`, update `README.md` to document it.
+
 ## Skill name uniqueness
 
 Skill directory names must be unique across the whole repository, not just within a plugin. Harnesses install into a single flat directory; two plugins shipping the same name collide on install.
@@ -53,6 +57,6 @@ CI runs all of these automatically in `.github/workflows/validate.yml`.
 
 ## Constraints
 
-- All changes merged to `main` via pull request.
+- All changes merged to `main` via pull request. No direct pushes to `main`.
 - Commit titles follow [Conventional Commits](https://www.conventionalcommits.org/).
 - A single skill directory must remain a valid drop-in copy: `cp -r plugins/<plugin>/skills/<skill> ~/.claude/skills/` works with zero repo tooling.
