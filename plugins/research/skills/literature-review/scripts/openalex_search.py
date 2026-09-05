@@ -1,33 +1,23 @@
 #!/usr/bin/env python3
 """OpenAlex search client for the literature-review skill.
 
-Queries the public OpenAlex API (https://api.openalex.org/works) and
-returns structured paper metadata as JSON. No API key required.
+Queries the public OpenAlex API (https://api.openalex.org/works) and returns structured paper metadata as JSON. No API key required.
 
 OpenAlex provides several advantages for literature reviews:
 
 - Citation counts for ranking papers by impact
 - Date-range filtering with sort-by-citation-count
-- Reverse citation graph via the ``cites:`` filter (find papers that
-  cite a given work)
+- Reverse citation graph via the ``cites:`` filter (find papers that cite a given work)
 - Topic clustering via ``group_by=primary_topic.id``
 - Rich metadata: DOIs, concepts, open-access PDF links, related works
 
 Design notes:
 
-- No additional dependencies required. Uses ``requests`` when available,
-  falls back to ``urllib`` with a requests-compatible shim.
-- The ``mailto`` parameter is appended to every request for the OpenAlex
-  politeness pool — it gives us faster, more reliable responses. The
-  default email can be overridden via ``--email`` or the
-  ``OPENALEX_EMAIL`` environment variable.
-- OpenAlex abstracts are stored as an *inverted index* (word → list of
-  positions). We reconstruct the original text by reversing the index.
-  Some works have no abstract (``null``); those get an empty string.
-- The arXiv ID is extracted from the work's ``locations`` array — we look
-  for a location whose source is the arXiv repository.
-- ``max_results`` is clamped to 50 to match the skill's documented upper
-  bound.
+- No additional dependencies required. Uses ``requests`` when available, falls back to ``urllib`` with a requests-compatible shim.
+- The ``mailto`` parameter is appended to every request for the OpenAlex politeness pool — it gives us faster, more reliable responses. The default email can be overridden via ``--email`` or the ``OPENALEX_EMAIL`` environment variable.
+- OpenAlex abstracts are stored as an *inverted index* (word → list of positions). We reconstruct the original text by reversing the index. Some works have no abstract (``null``); those get an empty string.
+- The arXiv ID is extracted from the work's ``locations`` array — we look for a location whose source is the arXiv repository.
+- ``max_results`` is clamped to 50 to match the skill's documented upper bound.
 """
 
 from __future__ import annotations
@@ -66,20 +56,13 @@ except ImportError:
     class _UrllibRequestsShim:
         """Minimal requests-compatible shim using urllib.
 
-        Only supports what openalex_search needs: GET with query params.
-        Params are encoded with quote_plus so multi-word queries work.
+        Only supports what openalex_search needs: GET with query params. Params are encoded with quote_plus so multi-word queries work.
         """
 
         @staticmethod
-        def get(
-            url: str,
-            params: dict | None = None,
-            timeout: int = DEFAULT_TIMEOUT_SECONDS,
-        ) -> _UrllibResponse:
+        def get(url: str, params: dict | None = None, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> _UrllibResponse:
             if params:
-                query = urllib.parse.urlencode(
-                    params, quote_via=urllib.parse.quote_plus
-                )
+                query = urllib.parse.urlencode(params, quote_via=urllib.parse.quote_plus)
                 url = f"{url}?{query}"
             req = urllib.request.Request(
                 url, headers={"User-Agent": "literature-review-skill/0.3 (mailto:openalex)"}
@@ -99,28 +82,21 @@ except ImportError:
 def _reconstruct_abstract(inverted_index: dict | None) -> str:
     """Rebuild abstract text from OpenAlex's inverted index.
 
-    OpenAlex stores abstracts as ``{word: [pos1, pos2, ...]}``.
-    We reverse this into a flat list of (position, word) pairs, sort by
-    position, and join with spaces. Returns an empty string when the
-    inverted index is null or empty.
+    OpenAlex stores abstracts as ``{word: [pos1, pos2, ...]}``. We reverse this into a flat list of (position, word) pairs,
+    sort by position, and join with spaces. Returns an empty string when the inverted index is null or empty.
     """
     if not inverted_index:
         return ""
-    indexed = sorted(
-        (pos, word)
-        for word, positions in inverted_index.items()
-        for pos in positions
-    )
+    indexed = sorted((pos, word) for word, positions in inverted_index.items() for pos in positions)
     return " ".join(word for _, word in indexed)
 
 
 def _extract_arxiv_id(work: dict) -> str:
     """Find the arXiv ID for a work, if available.
 
-    OpenAlex doesn't expose arXiv IDs directly. We scan the ``locations``
-    array for a location whose source is the arXiv repository, then
-    extract the ID from the URL (e.g. ``/abs/2401.09417`` → ``2401.09417``).
-    Falls back to checking ``ids.arxiv`` if present (newer API versions).
+    OpenAlex doesn't expose arXiv IDs directly. We scan the ``locations`` array for a location whose source is the arXiv
+    repository, then extract the ID from the URL (e.g. ``/abs/2401.09417`` → ``2401.09417``). Falls back to checking
+    ``ids.arxiv`` if present (newer API versions).
     """
     # Direct field (not always present)
     ids = work.get("ids") or {}
@@ -181,13 +157,7 @@ def _parse_work(work: dict) -> dict:
     # Concepts — top 5 by score
     concepts: list[dict] = []
     for c in (work.get("concepts") or [])[:5]:
-        concepts.append(
-            {
-                "name": c.get("display_name", ""),
-                "score": round(c.get("score", 0.0), 3),
-                "level": c.get("level"),
-            }
-        )
+        concepts.append({"name": c.get("display_name", ""), "score": round(c.get("score", 0.0), 3), "level": c.get("level")})
 
     return {
         "id": work.get("id", ""),
@@ -206,11 +176,7 @@ def _parse_work(work: dict) -> dict:
 
 
 def _build_filters(
-    query: str,
-    start_date: str | None,
-    end_date: str | None,
-    concept: str | None,
-    cites: str | None,
+    query: str, start_date: str | None, end_date: str | None, concept: str | None, cites: str | None
 ) -> list[str]:
     """Build the OpenAlex ``filter`` parameter.
 
@@ -262,22 +228,18 @@ def search(
     """Query OpenAlex and return structured results.
 
     Args:
-        query: free-text topic, e.g. "efficient transformer attention".
-            Leave empty when using ``cites`` for reverse-citation lookup.
+        query: free-text topic, e.g. "efficient transformer attention". Leave empty when using ``cites`` for reverse-citation lookup.
         max_results: number of papers to return (clamped to 50).
-        sort_by: "relevance" (default), "cited_by_count", or
-            "publication_date".
+        sort_by: "relevance" (default), "cited_by_count", or "publication_date".
         start_date: YYYY-MM-DD, inclusive.
         end_date: YYYY-MM-DD, inclusive.
         concept: concept ID (e.g. "C41008148") or display name to filter by.
         cites: OpenAlex work ID to find papers citing that work.
         email: email for the OpenAlex politeness pool.
-        group_by: field to group results by (e.g. "primary_topic.id").
-            When set, returns group counts instead of paper listings.
+        group_by: field to group results by (e.g. "primary_topic.id"). When set, returns group counts instead of paper listings.
 
     Returns:
-        Dict with ``meta`` (total count), ``results`` (list of paper dicts
-        or group counts), and ``group_by`` (if applicable).
+        Dict with ``meta`` (total count), ``results`` (list of paper dicts or group counts), and ``group_by`` (if applicable).
     """
     if max_results <= 0:
         return {"meta": {"count": 0}, "results": []}
@@ -285,9 +247,7 @@ def search(
 
     filters = _build_filters(query, start_date, end_date, concept, cites)
     if not filters:
-        raise ValueError(
-            "At least one of query, concept, or cites must be provided"
-        )
+        raise ValueError("At least one of query, concept, or cites must be provided")
 
     mailto = email or os.environ.get("OPENALEX_EMAIL", DEFAULT_EMAIL)
 
@@ -308,9 +268,7 @@ def search(
         }
         params["sort"] = sort_map.get(sort_by, f"{sort_by}:desc")
 
-    resp = requests.get(
-        OPENALEX_ENDPOINT, params=params, timeout=DEFAULT_TIMEOUT_SECONDS
-    )
+    resp = requests.get(OPENALEX_ENDPOINT, params=params, timeout=DEFAULT_TIMEOUT_SECONDS)
     resp.raise_for_status()
 
     import json as _json
@@ -318,16 +276,10 @@ def search(
     data = _json.loads(resp.text)
 
     if group_by:
-        return {
-            "meta": data.get("meta", {}),
-            "group_by": data.get("group_by", []),
-        }
+        return {"meta": data.get("meta", {}), "group_by": data.get("group_by", [])}
 
     results = [_parse_work(w) for w in data.get("results", [])]
-    return {
-        "meta": data.get("meta", {}),
-        "results": results,
-    }
+    return {"meta": data.get("meta", {}), "results": results}
 
 
 # --- CLI -------------------------------------------------------------------
@@ -337,8 +289,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Query the OpenAlex API and emit structured paper metadata as JSON. "
-            "Supports relevance-sorted search, date filtering, reverse-citation "
-            "lookup, and topic clustering."
+            "Supports relevance-sorted search, date filtering, reverse-citation lookup, and topic clustering."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
@@ -350,17 +301,9 @@ def _build_parser() -> argparse.ArgumentParser:
             '  python openalex_search.py "attention mechanism" --concept "Artificial intelligence"\n'
         ),
     )
+    parser.add_argument("query", nargs="?", default="", help="free-text search topic (omit when using --cites)")
     parser.add_argument(
-        "query",
-        nargs="?",
-        default="",
-        help="free-text search topic (omit when using --cites)",
-    )
-    parser.add_argument(
-        "--max-results",
-        type=int,
-        default=20,
-        help=f"number of papers to return (default: 20, max: {MAX_RESULTS_UPPER_BOUND})",
+        "--max-results", type=int, default=20, help=f"number of papers to return (default: 20, max: {MAX_RESULTS_UPPER_BOUND})"
     )
     parser.add_argument(
         "--sort-by",
@@ -368,40 +311,18 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["cited_by_count", "relevance", "publication_date"],
         help="sort order (default: relevance — text-matching score)",
     )
+    parser.add_argument("--start-date", default=None, help="earliest publication date, YYYY-MM-DD (inclusive)")
+    parser.add_argument("--end-date", default=None, help="latest publication date, YYYY-MM-DD (inclusive)")
+    parser.add_argument("--concept", default=None, help="filter by concept ID (e.g. C41008148) or display name")
     parser.add_argument(
-        "--start-date",
-        default=None,
-        help="earliest publication date, YYYY-MM-DD (inclusive)",
-    )
-    parser.add_argument(
-        "--end-date",
-        default=None,
-        help="latest publication date, YYYY-MM-DD (inclusive)",
-    )
-    parser.add_argument(
-        "--concept",
-        default=None,
-        help="filter by concept ID (e.g. C41008148) or display name",
-    )
-    parser.add_argument(
-        "--cites",
-        default=None,
-        help=(
-            "OpenAlex work ID to find papers citing that work "
-            "(e.g. W4403944333 or full URL)"
-        ),
+        "--cites", default=None, help="OpenAlex work ID to find papers citing that work (e.g. W4403944333 or full URL)"
     )
     parser.add_argument(
         "--group-by",
         default=None,
-        help="group results by a field (e.g. primary_topic.id) — "
-        "returns cluster counts instead of paper listings",
+        help="group results by a field (e.g. primary_topic.id) — returns cluster counts instead of paper listings",
     )
-    parser.add_argument(
-        "--email",
-        default=None,
-        help="email for OpenAlex politeness pool (default: built-in)",
-    )
+    parser.add_argument("--email", default=None, help="email for OpenAlex politeness pool (default: built-in)")
     return parser
 
 
