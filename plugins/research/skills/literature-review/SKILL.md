@@ -1,6 +1,6 @@
 ---
 name: literature-review
-description: Use this skill when the user wants a systematic literature review, survey, or synthesis across multiple academic papers on a topic. Also covers annotated bibliographies and cross-paper comparisons. Searches OpenAlex (relevance-sorted, date-filtered, with reverse-citation lookup) and outputs reports in APA, IEEE, or BibTeX format. Not for single-paper tasks.
+description: Use when the user wants a systematic literature review, survey, or synthesis across multiple academic papers on a topic. Also covers annotated bibliographies and cross-paper comparisons. Searches OpenAlex (relevance-sorted, date-filtered, with reverse-citation lookup) and outputs reports in APA, IEEE, or BibTeX format. Not for single-paper tasks.
 allowed-tools: Bash(python:*) Bash(python3:*) Read
 ---
 
