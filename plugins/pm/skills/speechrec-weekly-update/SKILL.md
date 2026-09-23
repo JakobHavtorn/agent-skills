@@ -52,8 +52,7 @@ Run the following steps to gather context for the status update. Run each step (
 
 Fetch the Sprint Planning page and find the relevant cycle entries:
 - Sprint Planning page: `https://www.notion.so/cortihome/Sprint-Planning-20dbef65b3ab800c85dbd99368164e20`
-- Search the data source `collection://20dbef65-b3ab-8076-8351-000b245ea82b` using MCP `notion-search` to find recent cycle pages (e.g. query: "cycle sprint goals dates"). Fetch the top 3–4 results individually using `notion-fetch` on each page URL.
-- From the fetched pages, identify the **current cycle** (today's date is between its `Dates` start and end) and the **next cycle** (start date is after the current cycle's end). Extract each cycle's `Goals` property.
+- Query the data source `collection://20dbef65-b3ab-8076-8351-000b245ea82b` using MCP `notion-query-data-sources` with `mode: "rows"`, `limit: 5`, sorted by `Dates` descending. This returns the 5 most recent cycle entries — enough to cover the current and next cycle plus a few for context. From the returned rows, identify the **current cycle** (today's date is between its `Dates` start and end) and the **next cycle** (start date is after the current cycle's end). Extract each cycle's `Goals` property.
 
 **Pick which cycle's goals are "forward-looking" using this heuristic:**
 - Compute `days_elapsed` (today − current cycle start) and `days_remaining` (current cycle end − today) for the current cycle.
@@ -74,14 +73,14 @@ Run the following two Linear fetches in parallel:
 **Part 1 - Tickets:** Call `list_issues` for the Speech Recognition team, filtered to issues updated in the last 7 days (`updatedAt: "-P7D"`), ordered by `updatedAt` descending, limit 200. The result might exceed the token budget and spill to disk. In that case, run the bundled summarizer to get a categorized listing:
 
 ```bash
-python3 ~/.config/opencode/skills/speechrec-weekly-update/summarize_linear_issues.py <FILE_PATH>
+python3 ~/.config/opencode/skills/speechrec-weekly-update/scripts/summarize_linear_issues.py <FILE_PATH>
 ```
 
 It groups issues into Recently Completed (last 7 days; override with `--days N`), In Progress, and In Review, with one line per issue (`updatedAt | status | SR-id | title | [project]`).
 
 Note any items representing meaningful progress, blockers, or newly completed work for the status update.
 
-**Part 2 - Projects:** Call MCP `list_projects` for the Speech Recognition team with `state: "in_progress"`, plus a second call with no state filter but `updatedAt: "-P14D"` to catch projects recently moved to paused, blocked, or completed. Deduplicate. For each project returned, call MCP `get_status_updates` to retrieve the two most recent project updates and read them. Use these updates (not just the project name) as the source of truth for current project status (if it is recent).
+**Part 2 - Projects:** Call MCP `list_projects` for the Speech Recognition team with `state: "in_progress"`, plus a second call with no state filter but `updatedAt: "-P14D"` to catch projects recently moved to paused, blocked, or completed. Deduplicate. For each project returned, call MCP `get_status_updates` to retrieve the two most recent project updates and read them. Use these updates (not just the project name) as the source of truth for current project status (if it is recent). If a project has no status updates or they are stale (>14 days old), fall back to inferring status from the issue activity fetched in Part 1 — look for issues in that project among recently completed, in-progress, and in-review items.
 
 ### 2d. Fetch standup notes (Slack Canvas)
 
@@ -94,7 +93,7 @@ The canvas is too large to fit in context, so Claude Code's harness automaticall
 **Part 2**: Run the extractor script that ships with this skill, passing the file path from the error:
 
 ```bash
-python3 ~/.config/opencode/skills/speechrec-weekly-update/extract_recent_standups.py <FILE_PATH>
+python3 ~/.config/opencode/skills/speechrec-weekly-update/scripts/extract_recent_standups.py <FILE_PATH>
 ```
 
 It parses the JSON dump, splits the canvas markdown on `## ![](slack_date:YYYY-MM-DD)` headers, and prints only the sections from the last 10 days.
