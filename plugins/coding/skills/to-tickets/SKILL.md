@@ -8,19 +8,19 @@ disable-model-invocation: true
 
 Break a plan, spec, or conversation into a set of **tickets**: tracer-bullet vertical slices, each declaring the tickets that **block** it.
 
+## Step 1: Detect the issue tracker
+
 The issue tracker should have been provided to you. If no issue tracker is available, tell the user to connect one (this setup uses Linear via MCP).
 
-## Process
-
-### 1. Gather context
+## Step 2: Gather context
 
 Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments.
 
-### 2. Explore the codebase (optional)
+## Step 3: Explore the codebase (optional)
 
 Look for opportunities to prefactor the code to make the implementation easier. "Make the change easy, then make the easy change."
 
-### 3. Draft vertical slices
+## Step 4: Draft vertical slices
 
 Break the work into **tracer bullet** tickets.
 
@@ -37,7 +37,7 @@ Give each ticket its **blocking edges**: the other tickets that must complete be
 
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change (rename a column, retype a shared symbol) whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket; green is promised only there.
 
-### 4. Quiz the user
+## Step 5: Quiz the user
 
 Present the proposed breakdown as a numbered list. For each ticket, show:
 
@@ -53,7 +53,7 @@ Ask the user:
 
 Iterate until the user approves the breakdown.
 
-### 5. Publish the tickets with the linear-ticket skill
+## Step 6: Publish the tickets with the linear-ticket skill
 
 Publish the approved tickets in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. For each ticket, use the `linear-ticket` skill to create the issue with proper metadata (team, status, labels, cycle, project), drafting the body from the ticket:
 
