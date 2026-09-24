@@ -70,7 +70,6 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [find-skills](plugins/coding/skills/find-skills) | Discover and install skills from the open agent skills ecosystem |
 | [frontend-design](plugins/coding/skills/frontend-design) | Distinctive, intentional visual design for new or reshaped UI |
 | [grill-me](plugins/coding/skills/grill-me) | Relentless interview to sharpen a plan or design (user-invoked) |
-| [grill-with-docs](plugins/coding/skills/grill-with-docs) | Grilling that also creates docs — ADRs and glossary (user-invoked) |
 | [grilling](plugins/coding/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds |
 | [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
 | [open-pr](plugins/coding/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, Linear-linked description |
