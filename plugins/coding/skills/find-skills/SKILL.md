@@ -76,7 +76,7 @@ When you find relevant skills, present them to the user with:
 
 1. The skill name and what it does
 2. The install count and source
-3. The install command they can run
+3. Whether to vendor it into this repo or trial it CLI-managed first
 4. A link to learn more at skills.sh
 
 Example response:
@@ -86,21 +86,20 @@ I found a skill that might help! The "react-best-practices" skill provides
 React and Next.js performance optimization guidelines from Vercel Engineering.
 (185K installs)
 
-To install it:
-npx skills add vercel-labs/agent-skills@react-best-practices
+Want me to vendor it into the agent-skills repo so every harness gets it?
 
 Learn more: https://skills.sh/vercel-labs/agent-skills/react-best-practices
 ```
 
-### Step 6: Offer to Install
+### Step 6: Offer to Vendor
 
-If the user wants to proceed, you can install the skill for them:
+If the user wants to proceed, vendor the skill into this repo so it is version-controlled, CI-validated, and synced to every harness by `bin/setup`:
 
-```bash
-npx skills add <owner/repo@skill> -g -y
-```
+1. Fetch the skill's folder from its source repo (`SKILL.md` plus any bundled resources)
+2. Copy it to `plugins/<plugin>/skills/<skill-name>/` in the agent-skills repo
+3. Validate the frontmatter, document it in `README.md`, link it with `skillctl link`, and open a pull request
 
-The `-g` flag installs globally (user-level) and `-y` skips confirmation prompts.
+Reserve `npx skills add <owner/repo@skill>` for a one-off trial before vendoring — CLI-managed installs live outside this repo: not reviewed, not CI-validated, not synced by `bin/setup`.
 
 ## Common Skill Categories
 
@@ -128,7 +127,7 @@ If no relevant skills exist:
 
 1. Acknowledge that no existing skill was found
 2. Offer to help with the task directly using your general capabilities
-3. Suggest the user could create their own skill with `npx skills init`
+3. Suggest creating a new skill with the skill-creator skill
 
 Example:
 
