@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # setup — bootstrap agent-skills on a new machine.
-# Installs RTK, links skills into harness directories, links opencode config,
-# and initializes RTK for OpenCode.
+# Installs RTK, links skills into harness directories, and links opencode config.
 #
 # Usage:
 #   bin/setup                    # install rtk + link all skills + config to opencode
@@ -54,9 +53,6 @@ if $INSTALL_RTK; then
     exit 1
   fi
 
-  if command -v rtk &>/dev/null; then
-    rtk init -g --opencode 2>/dev/null && echo "rtk initialized for OpenCode" || true
-  fi
   echo ""
 fi
 
