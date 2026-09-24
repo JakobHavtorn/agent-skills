@@ -6,7 +6,7 @@ description: >-
   Slack To-do doc. Output is grouped into Now/Next/Later tiers, continuously
   numbered so any item can be referred to by number, and ticket-less tasks
   can be turned into Linear issues via the linear-ticket skill. Delivered in
-  the terminal and as a Slack DM to the user. Use when the user asks to
+  the terminal and as a Slack DM to the user. This skill should be used when the user asks to
   prioritize tasks, wants to know what to work on, or needs a task list.
 allowed-tools: Bash(python:*) Bash(python3:*) Read
 ---

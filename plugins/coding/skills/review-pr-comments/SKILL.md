@@ -3,7 +3,7 @@ name: review-pr-comments
 description: >-
   Address PR review comments by fetching all review comments via gh api,
   assessing which warrant code changes, implementing those changes, and
-  running the linter. Does not commit or push. Use when the user asks to
+  running the linter. Does not commit or push. This skill should be used when the user asks to
   address, fix, or respond to PR review comments, handle code review
   feedback, or work through review comments on a pull request.
 allowed-tools: Bash(gh:*) Bash(ruff:*) Bash(golangci-lint:*) Read
