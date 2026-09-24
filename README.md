@@ -66,6 +66,8 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | Skill | Description |
 |---|---|
 | [find-skills](plugins/coding/skills/find-skills) | Discover and install skills from the open agent skills ecosystem |
+| [grill-me](plugins/coding/skills/grill-me) | Relentless interview to sharpen a plan or design (user-invoked) |
+| [grilling](plugins/coding/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds |
 | [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
 | [open-pr](plugins/coding/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, Linear-linked description |
 | [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
