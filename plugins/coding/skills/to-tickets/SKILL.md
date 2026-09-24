@@ -65,8 +65,4 @@ Publish the approved tickets in dependency order (blockers first) so each ticket
 
 Record blocking edges as Linear blocking relations so the frontier is queryable.
 
-Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
-
-Do NOT close or modify any parent issue.
-
 Avoid specific file paths or code snippets in the published tickets: they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
