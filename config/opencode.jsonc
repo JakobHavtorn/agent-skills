@@ -61,7 +61,9 @@
         "oauth": {
           "client_id": "{env:SLACK_CLIENT_ID}",
           "client_secret": "{env:SLACK_CLIENT_SECRET}",
-          "scope": "search:read.public search:read.private search:read.mpim search:read.im search:read.files files:read search:read.users chat:write users:read users:read.email channels:history groups:history mpim:history im:history"
+          "scope": "search:read.public search:read.private search:read.mpim search:read.im search:read.files files:read search:read.users chat:write users:read users:read.email channels:history groups:history mpim:history im:history",
+          "callback_port": 19876,
+          "redirect_uri": "http://127.0.0.1:19876/mcp/oauth/callback"
         },
         "disabled": false,
         "timeout": {
