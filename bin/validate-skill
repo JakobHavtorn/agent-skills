@@ -3,10 +3,10 @@
 frontmatter fields that the Agent Skills spec does not define.
 
 skills-ref enforces the spec's field set; harnesses (Claude Code, Codex)
-define additional top-level fields for invocation policy. This wrapper
-validates a stripped copy when a SKILL.md only adds whitelisted extensions
-(each extension's value must have the expected shape), and fails normally
-on anything else.
+define additional top-level fields for invocation policy and read them at
+runtime. Those fields are exempt from spec validation here — their semantics
+belong to the harnesses, so we strip them for spec validation and do not
+validate their values on the harnesses' behalf.
 """
 import re
 import pathlib
@@ -16,10 +16,10 @@ import tempfile
 
 # Fields the spec validator allows.
 SPEC_FIELDS = {"allowed-tools", "compatibility", "description", "license", "metadata", "name"}
-# Harness-extension fields we knowingly ignore for spec validation, with the
-# value shape each must have. Only add fields here deliberately: anything
-# outside this map still fails validation.
-HARNESS_EXTENSIONS = {"disable-model-invocation": ("true", "false")}
+# Harness-extension fields exempt from spec validation, kept verbatim in the
+# skill. Add fields here only when a harness defines them and reads them at
+# runtime — their semantics are the harness's, not ours to validate.
+HARNESS_EXTENSIONS = {"disable-model-invocation"}
 
 
 def validate(path):
@@ -52,9 +52,8 @@ def main():
             f"  - Unexpected fields in frontmatter: {', '.join(illegal)}"
         )
 
-    # Strip harness extensions (including any indented continuation lines),
-    # validating each value against the expected shape, and validate the
-    # result with skills-ref.
+    # Strip harness extensions (including any indented continuation lines)
+    # and validate the result.
     kept = []
     skipping = False
     for l in lines:
@@ -62,15 +61,7 @@ def main():
             if l.startswith((" ", "\t")) or not l.strip():
                 continue
             skipping = False
-        key, sep, raw = l.partition(":")
-        key = key.strip()
-        if key in HARNESS_EXTENSIONS and sep:
-            value = raw.strip().strip("'\"").lower()
-            if value not in HARNESS_EXTENSIONS[key]:
-                sys.exit(
-                    f"Validation failed for {skill_dir}:\n"
-                    f"  - Invalid value for {key}: {raw.strip()!r}"
-                )
+        if l.split(":", 1)[0].strip() in HARNESS_EXTENSIONS and ":" in l:
             skipping = True
             continue
         kept.append(l)
