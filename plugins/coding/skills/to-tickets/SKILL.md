@@ -18,8 +18,6 @@ Work from whatever is already in the conversation context. If the user passes a 
 
 ### 2. Explore the codebase (optional)
 
-If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
-
 Look for opportunities to prefactor the code to make the implementation easier. "Make the change easy, then make the easy change."
 
 ### 3. Draft vertical slices
@@ -63,6 +61,6 @@ Publish the approved tickets in dependency order (blockers first) so each ticket
 - **Acceptance criteria**: how to verify the slice is complete.
 - **Blocked by**: a reference to each blocking ticket, or "None (can start immediately)".
 
-Record blocking edges as Linear blocking relations so the frontier is queryable.
+Record blocking edges as Linear blocking relations so unblocked tickets are queryable.
 
 Avoid specific file paths or code snippets in the published tickets: they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
