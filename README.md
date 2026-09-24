@@ -6,7 +6,7 @@ Conforms to the [Agent Skills](https://agentskills.io) and [Agent Plugins 1.0.0]
 
 ## Quick Start
 
-**One-liner** (clones, installs RTK, links all skills to OpenCode):
+**One-liner** (clones and links all skills to OpenCode):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/JakobHavtorn/agent-skills/main/install.sh | bash
@@ -16,7 +16,6 @@ Customize with flags:
 
 ```bash
 curl ... | bash -s -- --agent claude        # link to Claude Code
-curl ... | bash -s -- --no-rtk              # skip RTK, just link skills
 curl ... | bash -s -- --all                # link everything to all harnesses
 curl ... | bash -s -- --plugin coding       # link only the coding plugin
 ```
