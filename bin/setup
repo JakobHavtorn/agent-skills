@@ -2,12 +2,11 @@
 set -euo pipefail
 
 # setup — bootstrap agent-skills on a new machine.
-# Installs RTK, links skills into harness directories, and links opencode config.
+# Links skills into harness directories and links opencode config.
 #
 # Usage:
-#   bin/setup                    # install rtk + link all skills + config to opencode
+#   bin/setup                    # link all skills + config to opencode
 #   bin/setup --agent claude     # link to Claude Code instead (no config linking)
-#   bin/setup --no-rtk           # skip rtk install, just link skills + config
 #   bin/setup --all              # link all plugins to all harnesses
 #   bin/setup --plugin coding    # link only a specific plugin
 
@@ -15,14 +14,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 AGENT="${AGENT:-opencode}"
-INSTALL_RTK=true
 LINK_ALL=false
 PLUGINS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --agent) AGENT="$2"; shift 2 ;;
-    --no-rtk) INSTALL_RTK=false; shift ;;
     --all) LINK_ALL=true; shift ;;
     --plugin) PLUGINS+=("$2"); shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -32,29 +29,7 @@ done
 echo "=== agent-skills setup ==="
 echo "  repo:    $REPO_ROOT"
 echo "  agent:   $AGENT"
-echo "  rtk:     $INSTALL_RTK"
 echo ""
-
-# --- RTK ---------------------------------------------------------------
-
-if $INSTALL_RTK; then
-  if command -v brew &>/dev/null; then
-    if command -v rtk &>/dev/null; then
-      echo "rtk already installed — upgrading..."
-      brew upgrade rtk 2>/dev/null || true
-    else
-      echo "installing rtk via Homebrew..."
-      brew install rtk
-    fi
-  elif command -v rtk &>/dev/null; then
-    echo "rtk already installed (non-brew)"
-  else
-    echo "Homebrew not found — install from https://brew.sh, then re-run." >&2
-    exit 1
-  fi
-
-  echo ""
-fi
 
 # --- Link opencode config ----------------------------------------------
 

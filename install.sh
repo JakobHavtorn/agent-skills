@@ -4,11 +4,10 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/JakobHavtorn/agent-skills/main/install.sh | bash
 #
-# Clones (or updates) the repo, installs RTK, and links skills into harness dirs.
+# Clones (or updates) the repo and links skills into harness dirs.
 # All flags after the pipe are forwarded to bin/setup:
 #
 #   curl ... | bash -s -- --agent claude
-#   curl ... | bash -s -- --no-rtk --plugin coding
 #   curl ... | bash -s -- --all
 
 set -euo pipefail
