@@ -63,7 +63,7 @@ Publish the approved tickets in dependency order (blockers first) so each ticket
 - **Acceptance criteria**: how to verify the slice is complete.
 - **Blocked by**: a reference to each blocking ticket, or "None (can start immediately)".
 
-Record blocking edges as Linear blocking relations so the frontier is queryable. Apply the `ready-for-agent` triage label unless instructed otherwise; the tickets are agent-grabbable by construction.
+Record blocking edges as Linear blocking relations so the frontier is queryable.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
