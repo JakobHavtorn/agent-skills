@@ -1,6 +1,6 @@
 ---
 name: grill-me
-description: Use when the user explicitly asks for a relentless interview to sharpen a plan or design.
+description: This skill should be used when the user explicitly asks for a relentless interview to sharpen a plan or design.
 disable-model-invocation: true
 ---
 
