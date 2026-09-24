@@ -64,17 +64,15 @@ if [[ "$AGENT" == "opencode" ]] || $LINK_ALL; then
     echo "  WARNING: npx not found — skipping model init. Models will be bare stubs."
   fi
 
-  # tui.json and tui-preferences.jsonc: symlink (no generated content)
-  for cfg_file in config/tui.json config/tui-preferences.jsonc; do
-    source="$REPO_ROOT/$cfg_file"
-    target="$OPENCODE_CONFIG_DIR/$(basename "$cfg_file")"
-    if [[ -e "$target" && ! -L "$target" ]]; then
-      echo "  backing up existing $(basename "$cfg_file") -> $(basename "$cfg_file").bak"
-      mv "$target" "$target.bak"
-    fi
-    ln -sf "$source" "$target"
-    echo "  linked $(basename "$cfg_file")"
-  done
+  # tui-preferences.jsonc: symlink (no generated content)
+  prefs_source="$REPO_ROOT/config/tui-preferences.jsonc"
+  prefs_target="$OPENCODE_CONFIG_DIR/tui-preferences.jsonc"
+  if [[ -e "$prefs_target" && ! -L "$prefs_target" ]]; then
+    echo "  backing up existing tui-preferences.jsonc -> tui-preferences.jsonc.bak"
+    mv "$prefs_target" "$prefs_target.bak"
+  fi
+  ln -sf "$prefs_source" "$prefs_target"
+  echo "  linked tui-preferences.jsonc"
 
   # Link agents directory (e.g. title.md for session naming)
   if [[ -d "$REPO_ROOT/agents" ]]; then
