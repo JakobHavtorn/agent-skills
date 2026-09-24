@@ -76,6 +76,7 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
 | [skill-creator](plugins/coding/skills/skill-creator) | Create, evaluate, and iterate on agent skills |
 | [tdd](plugins/coding/skills/tdd) | Test-driven development — red-green-refactor with tests worth keeping |
+| [to-tickets](plugins/coding/skills/to-tickets) | Decompose a plan into tracer-bullet tickets with blocking edges, published to Linear |
 
 ### `finance`
 
