@@ -21,39 +21,34 @@ SPEC_FIELDS = {"allowed-tools", "compatibility", "description", "license", "meta
 # runtime — their semantics are the harness's, not ours to validate.
 HARNESS_EXTENSIONS = {"disable-model-invocation"}
 
+FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
 
-def validate(path):
+
+def run_skills_ref(path):
+    """Run skills-ref validate on a path and return its exit code."""
     return subprocess.run(["skills-ref", "validate", path]).returncode
 
 
-def main():
-    if len(sys.argv) != 2:
-        sys.exit("usage: validate-skill <skill_dir>")
-    skill_dir = pathlib.Path(sys.argv[1])
-    skill_md = skill_dir / "SKILL.md"
-    text = skill_md.read_text()
+def extract_frontmatter(text):
+    """Return the raw frontmatter block content, or None when absent."""
+    m = FRONTMATTER_RE.match(text)
+    return m.group(1) if m else None
 
-    m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
-    if not m:
-        sys.exit(f"Validation failed for {skill_dir}: no frontmatter block")
-    lines = m.group(1).splitlines()
 
-    # Top-level field keys (skip indented/nested lines).
+def unexpected_fields(lines):
+    """Top-level frontmatter fields outside the spec's allowed set."""
     keys = [l.split(":", 1)[0].strip() for l in lines if l and not l.startswith((" ", "\t", "-"))]
-    unexpected = [k for k in keys if k not in SPEC_FIELDS]
+    return [k for k in keys if k not in SPEC_FIELDS]
 
-    if not unexpected:
-        sys.exit(validate(str(skill_dir)))
 
-    illegal = [k for k in unexpected if k not in HARNESS_EXTENSIONS]
-    if illegal:
-        sys.exit(
-            f"Validation failed for {skill_dir}:\n"
-            f"  - Unexpected fields in frontmatter: {', '.join(illegal)}"
-        )
+def is_harness_extension(line):
+    """True when a frontmatter line declares a whitelisted harness extension."""
+    key = line.split(":", 1)[0].strip()
+    return key in HARNESS_EXTENSIONS and ":" in line
 
-    # Strip harness extensions (including any indented continuation lines)
-    # and validate the result.
+
+def strip_harness_extensions(lines):
+    """Drop whitelisted extension fields, including indented continuations."""
     kept = []
     skipping = False
     for l in lines:
@@ -61,17 +56,48 @@ def main():
             if l.startswith((" ", "\t")) or not l.strip():
                 continue
             skipping = False
-        if l.split(":", 1)[0].strip() in HARNESS_EXTENSIONS and ":" in l:
+        if is_harness_extension(l):
             skipping = True
             continue
         kept.append(l)
+    return kept
 
-    stripped = text.replace(m.group(1), "\n".join(kept), 1)
+
+def validate_stripped_copy(text, frontmatter, kept_lines, skill_dir):
+    """Validate a temp copy of the skill with harness extensions removed."""
+    stripped = text.replace(frontmatter, "\n".join(kept_lines), 1)
     with tempfile.TemporaryDirectory() as tmp:
         copy_dir = pathlib.Path(tmp) / skill_dir.name
         copy_dir.mkdir()
         copy_dir.joinpath("SKILL.md").write_text(stripped)
-        sys.exit(validate(str(copy_dir)))
+        sys.exit(run_skills_ref(str(copy_dir)))
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit("usage: validate-skill <skill_dir>")
+    skill_dir = pathlib.Path(sys.argv[1])
+    text = (skill_dir / "SKILL.md").read_text()
+
+    frontmatter = extract_frontmatter(text)
+    if frontmatter is None:
+        sys.exit(f"Validation failed for {skill_dir}: no frontmatter block")
+    lines = frontmatter.splitlines()
+
+    extra = unexpected_fields(lines)
+    if not extra:
+        # Spec-legal frontmatter: validate the skill as-is.
+        sys.exit(run_skills_ref(str(skill_dir)))
+
+    illegal = [k for k in extra if k not in HARNESS_EXTENSIONS]
+    if illegal:
+        sys.exit(
+            f"Validation failed for {skill_dir}:\n"
+            f"  - Unexpected fields in frontmatter: {', '.join(illegal)}"
+        )
+
+    # Only whitelisted harness extensions: validate a stripped copy.
+    validate_stripped_copy(text, frontmatter, strip_harness_extensions(lines), skill_dir)
 
 
 if __name__ == "__main__":
