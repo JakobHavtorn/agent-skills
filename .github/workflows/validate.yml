@@ -82,7 +82,7 @@ jobs:
               doc = yaml.safe_load(f.read().split('---')[1])
           desc = doc.get('description', '')
           if 'this skill should be used when' not in desc.lower():
-              print(f'ERROR: $skill_md description lacks a "This skill should be used when" clause')
+              print(f'ERROR: $skill_md description lacks a full use-when sentence')
               sys.exit(1)
           "; then exit 1; fi
           done
