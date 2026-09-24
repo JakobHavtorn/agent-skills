@@ -1,12 +1,12 @@
 ---
 name: taxhelper
 description: >-
-  This skill should be used when answering questions about Danish annual tax assessment notices
-  (årsopgørelse), Skattestyrelsen rubrikker/felter, TastSelv guidance,
-  Danish tax return review templates, or the taxhelper CLI/MCP server.
-  Prefer taxhelper for source-linked lookup, SQLite-backed search, rubric
-  tagging, PDF worksheet/fill flows, and agent retrieval context; do not
-  use it as tax advice or for filing a return.
+  This skill should be used when answering questions about Danish annual tax
+  assessment notices (årsopgørelse), Skattestyrelsen rubrikker/felter,
+  TastSelv guidance, Danish tax return review templates, or the taxhelper
+  CLI/MCP server. Prefer taxhelper for source-linked lookup, SQLite-backed
+  search, rubric tagging, PDF worksheet/fill flows, and agent retrieval
+  context; do not use it as tax advice or for filing a return.
 compatibility: Requires Python 3.11+, uv, and the taxhelper CLI installed locally
 allowed-tools: Bash(taxhelper:*) Bash(uv:*) Bash(python:*) Read
 ---
