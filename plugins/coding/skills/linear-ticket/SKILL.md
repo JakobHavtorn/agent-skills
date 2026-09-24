@@ -3,12 +3,13 @@ name: linear-ticket
 description: >-
   Create a Linear issue with proper template, fields, and metadata. Resolves
   team, labels, status, cycle, and project from workspace metadata before
-  creating the issue. This skill should be used when the user asks to create a Linear ticket, file a
-  bug, open a story, or add a task to Linear. Triggers: "create a linear
-  ticket", "create a linear issue", "add a ticket to linear", "file a bug in
-  linear", "make a linear ticket", "open a linear issue", "create a ticket",
-  "add a ticket", "file a ticket", "log a ticket in linear", "create a bug
-  ticket", "create a story in linear", "create a task in linear".
+  creating the issue. This skill should be used when the user asks to create
+  a Linear ticket, file a bug, open a story, or add a task to Linear.
+  Triggers: "create a linear ticket", "create a linear issue", "add a ticket
+  to linear", "file a bug in linear", "make a linear ticket", "open a linear
+  issue", "create a ticket", "add a ticket", "file a ticket", "log a ticket
+  in linear", "create a bug ticket", "create a story in linear", "create a
+  task in linear".
 allowed-tools: Bash(gh:*) Read
 ---
 

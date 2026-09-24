@@ -3,16 +3,17 @@ name: open-pr
 description: >-
   Create or update a pull request on the current branch. Lints and tests the
   change, commits and pushes, then opens or updates the PR with a
-  Linear-linked description. Prefers `gh pr` commands (simpler, auto-resolves
-  owner/repo), falls back to `gh api` (REST) if needed. This skill should be used when the user
-  asks to open a PR, create a pull request, submit for review, push and PR,
-  or ship a branch. Triggers: "open a pr", "create pull request", "submit for
-  review", "push and pr", "make a pr", "pr this", "pr my branch", "put up a
-  pr", "put this up", "send for review", "send it", "ready for review",
-  "ship this", "create pr", "update pr", "push my changes for review". Also
-  triggers when a user says "this is ready", "can you review this", "let's
-  get this merged", or "open a review". Auto-detects lint and test commands
-  for Go, Python, and JS/TS repos.
+  Linear-linked description. Prefers `gh pr` commands (simpler,
+  auto-resolves owner/repo), falls back to `gh api` (REST) if needed. This
+  skill should be used when the user asks to open a PR, create a pull
+  request, submit for review, push and PR, or ship a branch. Triggers: "open
+  a pr", "create pull request", "submit for review", "push and pr", "make a
+  pr", "pr this", "pr my branch", "put up a pr", "put this up", "send for
+  review", "send it", "ready for review", "ship this", "create pr", "update
+  pr", "push my changes for review". Also triggers when a user says "this is
+  ready", "can you review this", "let's get this merged", or "open a
+  review". Auto-detects lint and test commands for Go, Python, and JS/TS
+  repos.
 allowed-tools: Bash(gh:*) Bash(git:*) Bash(npm:*) Bash(ruff:*) Bash(golangci-lint:*) Read
 ---
 
