@@ -1,7 +1,7 @@
 ---
 name: taxhelper
 description: >-
-  Use when answering questions about Danish annual tax assessment notices
+  This skill should be used when answering questions about Danish annual tax assessment notices
   (årsopgørelse), Skattestyrelsen rubrikker/felter, TastSelv guidance,
   Danish tax return review templates, or the taxhelper CLI/MCP server.
   Prefer taxhelper for source-linked lookup, SQLite-backed search, rubric

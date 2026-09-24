@@ -3,7 +3,7 @@ name: standup-summary
 description: >-
   Summarize Linear activity and Slack messages since the last standup.
   Accepts a timespan (e.g. "since Monday", "last 2 days") or defaults to the
-  last 3 workdays. Use when the user asks for a standup summary, a recap of
+  last 3 workdays. This skill should be used when the user asks for a standup summary, a recap of
   recent work, or what they've been doing.
 allowed-tools: Bash(python:*) Bash(python3:*) Read
 ---

@@ -72,7 +72,7 @@ jobs:
           fi
           echo "All skill names are unique."
 
-      # ── 4. Description quality: must contain "use when" ──
+      # ── 4. Description quality: must contain the full sentence "This skill should be used when" ──
       - name: Check description quality
         run: |
           for skill_md in $(find plugins -mindepth 4 -maxdepth 4 -name SKILL.md); do
@@ -81,12 +81,12 @@ jobs:
           with open('$skill_md') as f:
               doc = yaml.safe_load(f.read().split('---')[1])
           desc = doc.get('description', '')
-          if 'use when' not in desc.lower():
-              print(f'ERROR: $skill_md description lacks a use-when clause')
+          if 'this skill should be used when' not in desc.lower():
+              print(f'ERROR: $skill_md description lacks a "This skill should be used when" clause')
               sys.exit(1)
           "; then exit 1; fi
           done
-          echo "All descriptions contain a use-when clause."
+          echo "All descriptions contain the full use-when sentence."
 
       # ── 5. Context budget: fail >500 lines, warn >300 ──
       - name: Check SKILL.md line counts
