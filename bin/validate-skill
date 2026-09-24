@@ -4,8 +4,9 @@ frontmatter fields that the Agent Skills spec does not define.
 
 skills-ref enforces the spec's field set; harnesses (Claude Code, Codex)
 define additional top-level fields for invocation policy. This wrapper
-validates a stripped copy when a SKILL.md only adds whitelisted extensions,
-and fails normally on anything else.
+validates a stripped copy when a SKILL.md only adds whitelisted extensions
+(each extension's value must have the expected shape), and fails normally
+on anything else.
 """
 import re
 import pathlib
@@ -15,9 +16,10 @@ import tempfile
 
 # Fields the spec validator allows.
 SPEC_FIELDS = {"allowed-tools", "compatibility", "description", "license", "metadata", "name"}
-# Known harness-extension fields, kept verbatim in the skill but stripped
-# for spec validation.
-HARNESS_EXTENSIONS = {"disable-model-invocation"}
+# Harness-extension fields we knowingly ignore for spec validation, with the
+# value shape each must have. Only add fields here deliberately: anything
+# outside this map still fails validation.
+HARNESS_EXTENSIONS = {"disable-model-invocation": ("true", "false")}
 
 
 def validate(path):
@@ -50,8 +52,9 @@ def main():
             f"  - Unexpected fields in frontmatter: {', '.join(illegal)}"
         )
 
-    # Strip harness extensions (including any indented continuation lines)
-    # and validate the result.
+    # Strip harness extensions (including any indented continuation lines),
+    # validating each value against the expected shape, and validate the
+    # result with skills-ref.
     kept = []
     skipping = False
     for l in lines:
@@ -59,7 +62,15 @@ def main():
             if l.startswith((" ", "\t")) or not l.strip():
                 continue
             skipping = False
-        if l.split(":", 1)[0].strip() in HARNESS_EXTENSIONS and ":" in l:
+        key, sep, raw = l.partition(":")
+        key = key.strip()
+        if key in HARNESS_EXTENSIONS and sep:
+            value = raw.strip().strip("'\"").lower()
+            if value not in HARNESS_EXTENSIONS[key]:
+                sys.exit(
+                    f"Validation failed for {skill_dir}:\n"
+                    f"  - Invalid value for {key}: {raw.strip()!r}"
+                )
             skipping = True
             continue
         kept.append(l)
