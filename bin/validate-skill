@@ -35,7 +35,7 @@ def main():
         sys.exit(f"Validation failed for {skill_dir}: no frontmatter block")
     lines = frontmatter.splitlines()
 
-    extra = unexpected_fields(lines)
+    extra = get_unexpected_fields(lines)
     if not extra:
         # Spec-legal frontmatter: validate the skill as-is.
         sys.exit(run_skills_ref_validate(str(skill_dir)))
@@ -57,7 +57,7 @@ def extract_frontmatter(text):
     return m.group(1) if m else None
 
 
-def unexpected_fields(lines):
+def get_unexpected_fields(lines):
     """Top-level frontmatter fields outside the spec's allowed set."""
     keys = [l.split(":", 1)[0].strip() for l in lines if l and not l.startswith((" ", "\t", "-"))]
     return [k for k in keys if k not in SPEC_FIELDS]
