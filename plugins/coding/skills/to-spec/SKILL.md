@@ -1,14 +1,14 @@
 ---
 name: to-spec
-description: "Turn the current conversation into a spec and publish it with the linear-ticket skill. This skill should be used when the user wants to synthesize what was already discussed into a written spec, without an interview."
+description: "Turn the current conversation into a spec written as a markdown document in the repo. This skill should be used when the user wants to synthesize what was already discussed into a written spec, without an interview."
 disable-model-invocation: true
 ---
 
 This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
 
-## Step 1: Detect the issue tracker
+## Step 1: Detect where the spec goes
 
-The issue tracker should have been provided to you. If no issue tracker is available, tell the user to connect one (this setup uses Linear via MCP).
+Look for an existing specs convention in the repo (a `docs/specs/` or `specs/` directory, or an existing spec file to follow). If none exists, default to `docs/specs/<feature-slug>.md` and confirm the location with the user.
 
 ## Step 2: Explore the repo
 
@@ -80,6 +80,6 @@ Any further notes about the feature.
 
 </spec-template>
 
-## Step 5: Publish the spec with the linear-ticket skill
+## Step 5: Save the spec
 
-Use the `linear-ticket` skill to create the issue with proper metadata (team, status, labels, cycle, project), drafting the body from the spec template above.
+Write the spec as a markdown document at the location from step 1. Mention the path to the user; it is the argument `to-tickets` takes to decompose the spec into tickets.
