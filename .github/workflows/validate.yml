@@ -19,7 +19,7 @@ jobs:
         run: |
           # Validate every SKILL.md at exactly depth 4 (plugins/<plugin>/skills/<skill>/SKILL.md)
           find plugins -mindepth 4 -maxdepth 4 -name SKILL.md -exec dirname {} \; \
-            | xargs -n1 skills-ref validate
+            | xargs -n1 bin/validate-skill
 
           # Fail if any SKILL.md exists at any other depth
           find plugins -name SKILL.md -not -path 'plugins/*/skills/*/SKILL.md' -print \
