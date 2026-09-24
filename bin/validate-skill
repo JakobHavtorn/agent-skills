@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Validate a skill with skills-ref, tolerating known harness-extension
+frontmatter fields that the Agent Skills spec does not define.
+
+skills-ref enforces the spec's field set; harnesses (Claude Code, Codex)
+define additional top-level fields for invocation policy. This wrapper
+validates a stripped copy when a SKILL.md only adds whitelisted extensions,
+and fails normally on anything else.
+"""
+import re
+import pathlib
+import subprocess
+import sys
+import tempfile
+
+# Fields the spec validator allows.
+SPEC_FIELDS = {"allowed-tools", "compatibility", "description", "license", "metadata", "name"}
+# Known harness-extension fields, kept verbatim in the skill but stripped
+# for spec validation.
+HARNESS_EXTENSIONS = {"disable-model-invocation"}
+
+
+def validate(path):
+    return subprocess.run(["skills-ref", "validate", path]).returncode
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit("usage: validate-skill <skill_dir>")
+    skill_dir = pathlib.Path(sys.argv[1])
+    skill_md = skill_dir / "SKILL.md"
+    text = skill_md.read_text()
+
+    m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+    if not m:
+        sys.exit(f"Validation failed for {skill_dir}: no frontmatter block")
+    lines = m.group(1).splitlines()
+
+    # Top-level field keys (skip indented/nested lines).
+    keys = [l.split(":", 1)[0].strip() for l in lines if l and not l.startswith((" ", "\t", "-"))]
+    unexpected = [k for k in keys if k not in SPEC_FIELDS]
+
+    if not unexpected:
+        sys.exit(validate(str(skill_dir)))
+
+    illegal = [k for k in unexpected if k not in HARNESS_EXTENSIONS]
+    if illegal:
+        sys.exit(
+            f"Validation failed for {skill_dir}:\n"
+            f"  - Unexpected fields in frontmatter: {', '.join(illegal)}"
+        )
+
+    # Strip harness extensions (including any indented continuation lines)
+    # and validate the result.
+    kept = []
+    skipping = False
+    for l in lines:
+        if skipping:
+            if l.startswith((" ", "\t")) or not l.strip():
+                continue
+            skipping = False
+        if l.split(":", 1)[0].strip() in HARNESS_EXTENSIONS and ":" in l:
+            skipping = True
+            continue
+        kept.append(l)
+
+    stripped = text.replace(m.group(1), "\n".join(kept), 1)
+    with tempfile.TemporaryDirectory() as tmp:
+        copy_dir = pathlib.Path(tmp) / skill_dir.name
+        copy_dir.mkdir()
+        copy_dir.joinpath("SKILL.md").write_text(stripped)
+        sys.exit(validate(str(copy_dir)))
+
+
+if __name__ == "__main__":
+    main()
