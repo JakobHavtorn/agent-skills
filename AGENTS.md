@@ -18,6 +18,10 @@ plugins/<plugin>/skills/<skill>/SKILL.md
 plugins/<plugin>/skills/<skill>/scripts/   # executable helpers
 plugins/<plugin>/skills/<skill>/references/  # loaded on demand
 plugins/<plugin>/skills/<skill>/assets/      # templates, lookup tables
+config/<harness>/                     # per-harness config (e.g. config/opencode/)
+config/<harness>/opencode.jsonc       # opencode project config (copied, not symlinked)
+config/<harness>/cli.json             # opencode CLI/TUI settings (symlinked)
+config/<harness>/tui-preferences.jsonc  # opencode TUI plugin preferences (symlinked)
 bin/skillctl                          # install / link / test / doctor
 tests/<skill>/cases.json              # trigger detection test cases
 tests/<skill>/results.json            # last test run output (gitignored)

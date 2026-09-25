@@ -42,7 +42,7 @@ if [[ "$AGENT" == "opencode" ]] || $LINK_ALL; then
   # opencode.jsonc: copy (not symlink) so corti models init can write model specs
   # into the live config without dirtying the repo. Model specs are generated at
   # install time via `corti models init` — never committed.
-  opencode_source="$REPO_ROOT/config/opencode.jsonc"
+  opencode_source="$REPO_ROOT/config/opencode/opencode.jsonc"
   opencode_target="$OPENCODE_CONFIG_DIR/opencode.jsonc"
   if [[ -e "$opencode_target" && ! -L "$opencode_target" ]]; then
     echo "  backing up existing opencode.jsonc -> opencode.jsonc.bak"
@@ -65,7 +65,7 @@ if [[ "$AGENT" == "opencode" ]] || $LINK_ALL; then
   fi
 
   # tui-preferences.jsonc: symlink (no generated content)
-  prefs_source="$REPO_ROOT/config/tui-preferences.jsonc"
+  prefs_source="$REPO_ROOT/config/opencode/tui-preferences.jsonc"
   prefs_target="$OPENCODE_CONFIG_DIR/tui-preferences.jsonc"
   if [[ -e "$prefs_target" && ! -L "$prefs_target" ]]; then
     echo "  backing up existing tui-preferences.jsonc -> tui-preferences.jsonc.bak"
@@ -73,6 +73,16 @@ if [[ "$AGENT" == "opencode" ]] || $LINK_ALL; then
   fi
   ln -sf "$prefs_source" "$prefs_target"
   echo "  linked tui-preferences.jsonc"
+
+  # cli.json: symlink (no generated content)
+  cli_source="$REPO_ROOT/config/opencode/cli.json"
+  cli_target="$OPENCODE_CONFIG_DIR/cli.json"
+  if [[ -e "$cli_target" && ! -L "$cli_target" ]]; then
+    echo "  backing up existing cli.json -> cli.json.bak"
+    mv "$cli_target" "$cli_target.bak"
+  fi
+  ln -sf "$cli_source" "$cli_target"
+  echo "  linked cli.json"
 
   # Link agents directory (e.g. title.md for session naming)
   if [[ -d "$REPO_ROOT/agents" ]]; then
