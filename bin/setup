@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# setup — bootstrap agent-skills on a new machine.
-# Links skills into harness directories and links opencode config.
+# setup — link agent-skills into harness directories.
+# Config management is handled by the dotfiles repo (chezmoi), not here.
 #
 # Usage:
-#   bin/setup                    # link all skills + config to opencode
-#   bin/setup --agent claude     # link to Claude Code instead (no config linking)
+#   bin/setup                    # link all skills to opencode
+#   bin/setup --agent claude     # link to Claude Code instead
 #   bin/setup --all              # link all plugins to all harnesses
 #   bin/setup --plugin coding    # link only a specific plugin
 
@@ -30,67 +30,6 @@ echo "=== agent-skills setup ==="
 echo "  repo:    $REPO_ROOT"
 echo "  agent:   $AGENT"
 echo ""
-
-# --- Link opencode config ----------------------------------------------
-
-if [[ "$AGENT" == "opencode" ]] || $LINK_ALL; then
-  OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}"
-  mkdir -p "$OPENCODE_CONFIG_DIR"
-
-  echo "installing opencode config..."
-
-  # opencode.jsonc: copy (not symlink) so corti models init can write model specs
-  # into the live config without dirtying the repo. Model specs are generated at
-  # install time via `corti models init` — never committed.
-  opencode_source="$REPO_ROOT/config/opencode/opencode.jsonc"
-  opencode_target="$OPENCODE_CONFIG_DIR/opencode.jsonc"
-  if [[ -e "$opencode_target" && ! -L "$opencode_target" ]]; then
-    echo "  backing up existing opencode.jsonc -> opencode.jsonc.bak"
-    mv "$opencode_target" "$opencode_target.bak"
-  elif [[ -L "$opencode_target" ]]; then
-    rm "$opencode_target"
-  fi
-  cp "$opencode_source" "$opencode_target"
-  echo "  copied opencode.jsonc"
-
-  # Generate model specs via corti CLI
-  if command -v npx &>/dev/null; then
-    echo "  running corti models init..."
-    npx @corti/cli@latest models init \
-      --tools opencode --scope global --yes --no-shell-rc \
-      --model corti-s1,corti-s1-instant,corti-s1-mini,corti-s1-mini-instant,corti-s1-beta,corti-s1-embedding,corti-s1-ultra-beta,corti-s1-tiny,corti-s1-tiny-instant \
-      2>&1 | sed 's/^/    /'
-  else
-    echo "  WARNING: npx not found — skipping model init. Models will be bare stubs."
-  fi
-
-  # cli.json: symlink (no generated content)
-  cli_source="$REPO_ROOT/config/opencode/cli.json"
-  cli_target="$OPENCODE_CONFIG_DIR/cli.json"
-  if [[ -e "$cli_target" && ! -L "$cli_target" ]]; then
-    echo "  backing up existing cli.json -> cli.json.bak"
-    mv "$cli_target" "$cli_target.bak"
-  fi
-  ln -sf "$cli_source" "$cli_target"
-  echo "  linked cli.json"
-
-  # Link agents directory (e.g. title.md for session naming)
-  if [[ -d "$REPO_ROOT/agents" ]]; then
-    agents_target="$OPENCODE_CONFIG_DIR/agents"
-    ln -sfh "$REPO_ROOT/agents" "$agents_target" 2>/dev/null || {
-      [[ -e "$agents_target" && ! -L "$agents_target" ]] && mv "$agents_target" "$agents_target.bak"
-      ln -sf "$REPO_ROOT/agents" "$agents_target"
-    }
-    echo "  linked agents/"
-  fi
-
-  echo ""
-  echo "Required env vars:"
-  echo "  CORTI_BEARER          Corti API key"
-  echo "  SLACK_CLIENT_ID       Slack MCP OAuth client ID"
-  echo "  SLACK_CLIENT_SECRET   Slack MCP OAuth client secret"
-  echo ""
-fi
 
 # --- Link skills -------------------------------------------------------
 
