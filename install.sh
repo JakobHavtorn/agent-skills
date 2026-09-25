@@ -4,7 +4,8 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/JakobHavtorn/agent-skills/main/install.sh | bash
 #
-# Clones (or updates) the repo and links skills into harness dirs.
+# Links skills into harness directories. Config management is handled
+# by the dotfiles repo (chezmoi).
 # All flags after the pipe are forwarded to bin/setup:
 #
 #   curl ... | bash -s -- --agent claude
