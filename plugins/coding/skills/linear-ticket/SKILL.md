@@ -47,18 +47,18 @@ Concise, imperative. Derive from the user's request.
 
 ### Body
 
-Use this template:
+Use this template. The section labels MUST be markdown `##` headers so the issue renders with real headings in Linear — do not write them as plain-text lines:
 
 ```
-What does this solve (and why)?
+## What does this solve (and why)?
 
 TODO
 
-How will this be solved?
+## How will this be solved?
 
 TODO
 
-Definition of done
+## Definition of done
 
 TODO
 ```
@@ -142,6 +142,7 @@ Call `linear_get_issue` on the returned issue ID to verify creation.
 ## Key facts
 
 - Priority `4` = Low (counter-intuitive — higher number = lower priority)
+- Issue body section labels must be markdown `##` headers (see Step 3 template) — plain-text section lines render flat in Linear
 - Omitting optional fields (`cycle`, `project`) is fine — do not pass `null`
 - The Linear MCP tools accept real newlines in markdown; do not use `\n` literals
 - `linear_save_issue` accepts names or IDs for `team`, `state`, `assignee`, `labels`, `cycle`, `project` — no need to resolve everything to IDs first
