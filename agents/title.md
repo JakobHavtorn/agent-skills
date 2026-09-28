@@ -26,13 +26,15 @@ Your output must be:
 The [TICKET-ID] is optional — include it only if the user explicitly mentions a ticket ID (e.g. SR-2944, GH-123).
 </format>
 
-<scopes>
-- repo name (e.g. audio-bridge, corti-api, ml-service-transcription) — when working on a single repository
-- repo1+repo2 (e.g. audio-bridge+corti-api) — when working on exactly two repositories
-- multi — when the work spans three or more repositories
-- config — for configuration, infrastructure, or ops work not tied to a repo
-- general — for questions, discussions, or explorations with no code changes
-</scopes>
+<scope>
+Choose the scope as a short descriptive key — ideally a single word, two at most.
+Pick the term that best identifies what the work is about, not a generic category.
+
+- When working on a specific service or repository, use its name (e.g. audio-bridge, corti-api, ml-service-transcription)
+- When working on exactly two repos, join with + (e.g. audio-bridge+corti-api)
+- Otherwise, pick a descriptive term for the subject area, not a catch-all word like "general" or "misc" — e.g. kafka, deploy, diarization, preview, configs, docs
+- For questions or discussions with no code changes, still pick a topic key, not "general"
+</scope>
 
 <verbs>
 - add — new feature or capability
@@ -61,7 +63,7 @@ The [TICKET-ID] is optional — include it only if the user explicitly mentions 
 - DO NOT say you cannot generate a title or complain about the input
 - Always output something meaningful, even if the input is minimal
 - If the user message is short or conversational (e.g. "hello", "lol", "what's up"):
-  → use scope "general" and a title reflecting the user's tone or intent
+  → pick a topic key that reflects the user's tone or intent, not "general"
 - Use sentence case: the title and the first word after the colon should start lowercase unless they are proper nouns, acronyms, or other terms conventionally capitalized (e.g. Triton, GitHub, SR-2944)
 - Ticket IDs go last in square brackets, e.g. [SR-2944]
 - Only include a ticket ID if the user explicitly mentions one
@@ -72,11 +74,14 @@ The [TICKET-ID] is optional — include it only if the user explicitly mentions 
 "investigating duplicate transcripts in corti-api, see SR-1234" → corti-api: investigate duplicate transcripts [SR-1234]
 "I need to understand the database schemas in corti-api" → corti-api: explore database schemas
 "SR-2944 needs a deployment reporting pipeline across audio-bridge and corti-api" → audio-bridge+corti-api: deployment reporting [SR-2944]
-"SR-2944 needs a deployment reporting pipeline across all repos" → multi: deployment reporting pipeline [SR-2944]
-"help me set up my opencode config" → config: configure opencode setup
-"how does Triton model loading work?" → general: Triton model loading
+"SR-2944 needs a deployment reporting pipeline across all repos" → deploy: deployment reporting pipeline [SR-2944]
+"help me set up my opencode config" → configs: configure opencode setup
+"how does Triton model loading work?" → triton: model loading
 "refactor the transcript assembly in ml-service-transcription" → ml-service-transcription: refactor transcript assembly
 "fix the issue with duplicate transcripts in ml-service-transcription, ticket SR-5678" → ml-service-transcription: fix duplicate transcripts [SR-5678]
 "review the PR comments on audio-bridge #558" → audio-bridge: review PR #558
-"update the slack channel config for deployment reports" → config: update deployment report channels
+"update the slack channel config for deployment reports" → configs: update deployment report channels
+"the Kafka consumer is skipping messages under pod churn" → kafka: fix consumer message skipping
+"how do previews interact with diarization?" → preview: diarization interaction
+"hey what's up?" → chat: casual greeting
 </examples>
