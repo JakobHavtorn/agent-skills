@@ -1,6 +1,6 @@
 # Agent Skills
 
-A version-controlled catalog of agent skills covering software engineering, personal finance, and project management. Installable into any `SKILL.md`-compatible harness (Claude Code, Codex CLI, OpenCode, Cursor, and others) without per-harness forks of the content.
+A version-controlled catalog of agent skills covering software engineering, personal finance, and project management. Installable into any `SKILL.md`-compatible harness (Claude Code, Codex CLI, OpenCode, Oh My Pi, Cursor, and others) without per-harness forks of the content.
 
 Conforms to the [Agent Skills](https://agentskills.io) and [Agent Plugins 1.0.0](https://agent-plugins.org) standards.
 
@@ -43,6 +43,7 @@ Verify your installation:
 | Codex CLI | `~/.codex/skills/<name>/` | `.agents/skills/` |
 | OpenCode | `~/.config/opencode/skills/<name>/` | `.opencode/skills/` |
 | Cursor | `~/.cursor/skills/<name>/` | `.cursor/skills/` |
+| Oh My Pi | `~/.omp/agent/skills/<name>/` | `.omp/skills/` |
 
 ### Commands
 
