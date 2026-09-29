@@ -38,6 +38,8 @@ C_RED = "\033[31m"
 C_RESET = "\033[0m"
 
 # Harness target paths (spec §7 — verify against client docs at implementation time)
+# omp: verified empirically via `omp skill list --json` — sources native:user
+# (~/.omp/agent/skills) and native:project (.omp/skills)
 HARNESS_PATHS = {
     "claude": {
         "user": Path.home() / ".claude" / "skills",
@@ -54,6 +56,10 @@ HARNESS_PATHS = {
     "cursor": {
         "user": Path.home() / ".cursor" / "skills",
         "project": Path.cwd() / ".cursor" / "skills",
+    },
+    "omp": {
+        "user": Path.home() / ".omp" / "agent" / "skills",
+        "project": Path.cwd() / ".omp" / "skills",
     },
 }
 
@@ -656,7 +662,7 @@ def main():
     # link
     p_link = sub.add_parser("link", help="Symlink a plugin's skills into a harness directory")
     p_link.add_argument("--plugin", help="Plugin name (coding, finance, pm). Omit to link all plugins.")
-    p_link.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor)")
+    p_link.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor, omp)")
     p_link.add_argument("--scope", choices=["user", "project"], default="user", help="User or project scope")
     p_link.add_argument("--copy", action="store_true", help="Copy instead of symlink (auto on Windows)")
     p_link.add_argument("--force", action="store_true", help="Overwrite existing targets (symlinks or copies)")
