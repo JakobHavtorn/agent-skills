@@ -8,6 +8,8 @@ Usage:
   skillctl link --plugin coding  --agent claude
   skillctl link --agent opencode
   skillctl unlink --plugin coding --agent claude
+  skillctl prune --agent opencode
+  skillctl prune --agent omp --apply
   skillctl doctor
   skillctl list
   skillctl test
@@ -232,6 +234,94 @@ def cmd_doctor(args):
                 else:
                     print(f"  {entry.name}  [unknown]")
             print()
+
+
+def _classify_target_entry(entry: Path, skill_root: Path, declared_names: set[str]) -> tuple[str, str]:
+    """Classify one entry of a harness target directory for maintenance.
+
+    Returns (cls, detail). cls is one of:
+      alive            symlink resolving to an existing target (any origin)
+      stale            symlink dangling, with target path inside the source repo —
+                       the linked skill was deleted or moved by a repo update
+      foreign-dangling symlink dangling with target outside the source repo
+      copy             real directory with SKILL.md whose name is a declared skill
+      orphan           real directory with SKILL.md whose name is not declared
+      stray            anything else (dirs without SKILL.md, plain files)
+    """
+    if entry.is_symlink():
+        try:
+            resolved = entry.resolve(strict=False)
+        except (OSError, RuntimeError):
+            return "stray", "unresolvable symlink"
+        if resolved.exists():
+            return "alive", str(resolved)
+        if resolved.is_relative_to(skill_root):
+            return "stale", str(resolved)
+        return "foreign-dangling", str(resolved)
+    if entry.is_dir():
+        if (entry / "SKILL.md").exists():
+            if entry.name in declared_names:
+                return "copy", "live copy of a declared skill"
+            return "orphan", "copy of a skill no longer in the source"
+        return "stray", "directory without SKILL.md"
+    return "stray", "file"
+
+
+def cmd_prune(args):
+    """Remove dangling links to deleted skills. Dry run unless --apply."""
+    target_dir = get_target_dir(args.agent, args.scope)
+    if not target_dir.exists():
+        print(f"Nothing to prune: {target_dir} does not exist")
+        return
+
+    declared: set[str] = set()
+    for skill_dirs in get_all_skills().values():
+        declared.update(s.name for s in skill_dirs)
+
+    counts = {"alive": 0, "stale": 0, "foreign-dangling": 0, "copy": 0, "orphan": 0, "stray": 0}
+    pruned = 0
+    would_prune = 0
+
+    for entry in sorted(target_dir.iterdir()):
+        cls, detail = _classify_target_entry(entry, REPO_ROOT, declared)
+        counts[cls] = counts.get(cls, 0) + 1
+
+        if cls == "stale":
+            if args.apply:
+                print(f"  PRUNED {entry.name} -> {detail} (target gone)")
+                entry.unlink()
+                pruned += 1
+            else:
+                print(f"  STALE {entry.name} -> {detail} (target gone; dry run — pass --apply)")
+                would_prune += 1
+        elif cls == "orphan":
+            if args.orphans and args.apply:
+                print(f"  PRUNED {entry.name} ({detail})")
+                shutil.rmtree(entry)
+                pruned += 1
+            elif args.orphans:
+                print(f"  ORPHAN {entry.name} ({detail}; dry run — pass --apply)")
+                would_prune += 1
+            else:
+                print(f"  ORPHAN {entry.name} ({detail}) — pass --orphans to prune")
+        elif cls == "foreign-dangling":
+            print(f"  FOREIGN {entry.name} -> {detail} (not managed by this repo, leaving)")
+        elif cls == "copy":
+            print(f"  KEEP {entry.name} ({detail})")
+        elif cls == "alive":
+            print(f"  KEEP {entry.name} -> {detail}")
+        else:
+            print(f"  KEEP {entry.name} (stray: {detail})")
+
+    counts_parts = (
+        f"{pruned} pruned" if args.apply else f"{would_prune} would be pruned",
+        f"{counts['alive']} alive",
+        f"{counts['copy']} copies",
+        f"{counts['orphan']} orphans",
+        f"{counts['foreign-dangling']} foreign dangling",
+        f"{counts['stray']} stray",
+    )
+    print("\nDone: " + ", ".join(counts_parts))
 
 
 def cmd_list(args):
@@ -645,6 +735,8 @@ def cmd_help(args, parser=None):
     print("  skillctl link --plugin pm --agent claude --scope project")
     print("  skillctl unlink --plugin coding --agent claude")
     print("  skillctl unlink --agent claude")
+    print("  skillctl prune --agent opencode")
+    print("  skillctl prune --agent omp --apply --orphans")
     print("  skillctl doctor")
     print("  skillctl test")
     print("  skillctl test --skill open-pr")
@@ -678,6 +770,15 @@ def main():
     # doctor
     p_doctor = sub.add_parser("doctor", help="Report linked skills, orphans, and broken links")
     p_doctor.set_defaults(func=cmd_doctor)
+
+    # prune
+    p_prune = sub.add_parser("prune", help="Remove dangling links to deleted skills (dry run unless --apply)")
+    p_prune.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor, omp)")
+    p_prune.add_argument("--scope", choices=["user", "project"], default="user", help="User or project scope")
+    p_prune.add_argument("--apply", action="store_true", help="Remove stale links (default: dry run)")
+    p_prune.add_argument("--orphans", action="store_true",
+                         help="Also prune stale copies of removed skills (--apply still required)")
+    p_prune.set_defaults(func=cmd_prune)
 
     # list
     p_list = sub.add_parser("list", help="List all plugins and their skills")
