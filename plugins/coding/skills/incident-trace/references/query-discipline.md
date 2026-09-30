@@ -24,31 +24,22 @@ sum by (service_name) (count_over_time({k8s_namespace_name="<ns>"} [1h]))
 {k8s_namespace_name="<ns>", service_name="<svc>"} |= "<id>"
 ```
 
-- Bound the window to the incident hour (or the local span).
-- Serialized, one or two services at a time. Fanned-out parallel queries
-  against a busy Loki have caused query-path failures in practice — keep
-  it observable, sequence queries, and back off briefly after failures.
+- Bound the window to the incident hour (or the local span). Serialize
+  and back off after failures — see "Query load discipline" below.
 - If identifiers appear in metadata but not message text, a text match
   misses; verify by inspecting one raw line's full structure (message +
   metadata fields) before trusting a text-only sweep.
 
 ## Anchored patterns
 
-Keyword matches must be anchored to the actual format, not optimistic:
-
-| Case | Wrong pattern | Bites via |
-|---|---|---|
-| Zero-word completions | `"0 words"` | substring-matches "260 words", "700 words" — inflated counts |
-| Anchored version | `"s audio, 0 words,"` | anchored on delimiters that exist in the real format |
-
 - Build anchors by copying the exact phrase from one real log line, then
   trimming only the most variable parts.
-- When a number can be adjacent to keywords ("0 words" in "360 words"), put
-  a delimiter from the format on both sides of the match.
-- Adjacent services in one project write the same fact in different word
-  orders ("Received 0.24s audio of shape ..." vs "Received audio of shape
-  (1, 4800) for 0.24s ..."). Anchor per service; a cross-service search on
-  one service's phrasing silently misses the other side.
+- When a number can be adjacent to keywords, put a delimiter from the
+  format on both sides of the match (worked case in SKILL.md Step 5).
+- Per-service anchoring guards against word-order drift (SKILL.md Step 5
+  rule 6): build each service's pattern from that service's own lines;
+  a shared pattern silently misses the variant phrasing on the other
+  side.
 
 ## Receipt counting and quantity parity
 
@@ -72,18 +63,18 @@ sum(count_over_time({k8s_namespace_name="<ns>", service_name="<svc>"}
 
 ## Negative-evidence recipe
 
-For a claim "X never happened at service S":
+The gate itself (unconditional emission; deployed version known) is
+SKILL.md Step 5. The procedure for passing it:
 
-1. Read S's source: find the specific log statement that would appear on
-   occurrence. Note its log level and whether anything can suppress it
-   (level filters, sampling, exception paths that bypass it).
-2. Check the deployed version's format against your local checkout —
-   startup/version logs or image tags in deployment config; be careful
-   interpreting differences in line numbers across versions.
-3. Only if the line is emitted unconditionally: absence over the id's
-   whole lifetime is proof. If conditional (only on error path, only for
-   a specific mode), absence in a specific mode is proof and absence in
-   general is not.
+1. Read S's source for the exact statement that would fire on
+   occurrence, then enumerate its suppressors: log-level filters,
+   sampling, exception paths that bypass the statement.
+2. Reconcile the deployed version against your local checkout: startup
+   or version logs, image tags in deployment config; beware line-number
+   drift when matching local code to deployed behavior.
+3. Only when the statement is unconditional (SKILL.md Step 5 rule 1) is
+   absence over the id's whole lifetime proof; a conditional line's
+   absence is proof only within the mode it fires in.
 4. Convert to an explicit claim: "no occurrence, PROVEN, because logger L
    (v<ver>, unconditional) never fired for <id> in <window>".
 

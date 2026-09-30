@@ -86,9 +86,9 @@ window with a limit high enough to cover peak traffic:
 {k8s_namespace_name="<tenant-namespace>", service_name="<svc>"} |= "<id>"
 ```
 
-- Bound by time; unbounded or time-only raw scans on busy production
-  streams can overload the query path and fail spuriously. One or two
-  queries at a time; serialize, never fan out.
+- Bound by time — unbounded or time-only raw scans on busy production
+  streams can overload the query path (serialization rules: "Query load
+  discipline" in the discipline reference).
 - Absence is not zero-proof (Step 5 gate before any "never reached this
   service" claim).
 - If an id should be on every message but appears nowhere, trace it via
