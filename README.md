@@ -86,6 +86,7 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [frontend-design](plugins/coding/skills/frontend-design) | Distinctive, intentional visual design for new or reshaped UI |
 | [grill-me](plugins/coding/skills/grill-me) | Relentless interview to sharpen a plan or design (user-invoked) |
 | [grilling](plugins/coding/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds |
+| [incident-trace](plugins/coding/skills/incident-trace) | Trace incidents through backend services from Loki logs — receipts, negative evidence, verdicts |
 | [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
 | [open-pr](plugins/coding/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, Linear-linked description |
 | [resolving-merge-conflicts](plugins/coding/skills/resolving-merge-conflicts) | Resolve merge/rebase conflicts hunk by hunk, traced to each side's intent |

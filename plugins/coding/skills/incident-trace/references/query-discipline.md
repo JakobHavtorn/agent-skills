@@ -1,0 +1,150 @@
+# Query discipline for Loki incident tracing
+
+Concrete recipes for the checks in SKILL.md steps 3-5. All examples assume
+a Grafana-backed Loki accessed through an MCP log-query tool that takes a
+LogQL expression, a datasource uid, and an explicit time window.
+
+## Stream discovery
+
+```logql
+# service list under a tenant namespace (never carry across sessions)
+sum by (service_name) (count_over_time({k8s_namespace_name="<ns>"} [1h]))
+```
+
+- Run this once per investigation; treat the result as the service
+  inventory for the stage map (Step 2 of SKILL.md).
+- Pick time windows relative to the incident; short, recent hours give a
+  quick inventory; widen only if a service is expected but absent.
+- The tenant namespace label may differ per cluster; confirm it from any
+  id-bearing line's labels, not from memory.
+
+## Bounded identifier sweep
+
+```logql
+{k8s_namespace_name="<ns>", service_name="<svc>"} |= "<id>"
+```
+
+- Bound the window to the incident hour (or the local span).
+- Serialized, one or two services at a time. Fanned-out parallel queries
+  against a busy Loki have caused query-path failures in practice — keep
+  it observable, sequence queries, and back off briefly after failures.
+- If identifiers appear in metadata but not message text, a text match
+  misses; verify by inspecting one raw line's full structure (message +
+  metadata fields) before trusting a text-only sweep.
+
+## Anchored patterns
+
+Keyword matches must be anchored to the actual format, not optimistic:
+
+| Case | Wrong pattern | Bites via |
+|---|---|---|
+| Zero-word completions | `"0 words"` | substring-matches "260 words", "700 words" — inflated counts |
+| Anchored version | `"s audio, 0 words,"` | anchored on delimiters that exist in the real format |
+
+- Build anchors by copying the exact phrase from one real log line, then
+  trimming only the most variable parts.
+- When a number can be adjacent to keywords ("0 words" in "360 words"), put
+  a delimiter from the format on both sides of the match.
+- Adjacent services in one project write the same fact in different word
+  orders ("Received 0.24s audio of shape ..." vs "Received audio of shape
+  (1, 4800) for 0.24s ..."). Anchor per service; a cross-service search on
+  one service's phrasing silently misses the other side.
+
+## Receipt counting and quantity parity
+
+Volume assertions are counts, not vibes:
+
+```logql
+sum(count_over_time({k8s_namespace_name="<ns>", service_name="<svc>"}
+      |= "<id>" |~ "<receipt-pattern>" [<window-s>]))   # instant query
+```
+
+- Expected count math: derive from the format itself (first-chunk size +
+  n × cadence == total duration; receipt lines include start/stop markers
+  that carry empty payloads — count them in or exclude them consistently).
+- Quantity parity: compare accumulated totals between adjacent services
+  (received-seconds at the consumer vs stored-seconds at the storage
+  service). Equal to measurement precision means no content was lost
+  between them; unequal means something was dropped/duplicated — that
+  difference is your lead.
+- Use per-stage counts rather than eyeballing timelines: counts turn "it
+  looked like it all arrived" into VERIFIED.
+
+## Negative-evidence recipe
+
+For a claim "X never happened at service S":
+
+1. Read S's source: find the specific log statement that would appear on
+   occurrence. Note its log level and whether anything can suppress it
+   (level filters, sampling, exception paths that bypass it).
+2. Check the deployed version's format against your local checkout —
+   startup/version logs or image tags in deployment config; be careful
+   interpreting differences in line numbers across versions.
+3. Only if the line is emitted unconditionally: absence over the id's
+   whole lifetime is proof. If conditional (only on error path, only for
+   a specific mode), absence in a specific mode is proof and absence in
+   general is not.
+4. Convert to an explicit claim: "no occurrence, PROVEN, because logger L
+   (v<ver>, unconditional) never fired for <id> in <window>".
+
+Never let absence of a *different* line stand in for direct checks; if no
+receipt line exists for what you want to know, the correct answer is that
+the service did not log it — say so instead of asserting the negative.
+
+## Id-less line attribution
+
+When the decisive line carries no session/id (internal trackers, batch
+utilities, aggregated markers do this even in the same service as lines
+that do carry ids), attribute with at least one and preferably two of:
+
+1. **Adjacency sandwich**: the line is emitted synchronously inside the
+   owning session's processing call, so it sits within a few milliseconds
+   between that session's receipt line and that session's subsequent
+   send/publish line from the same worker. Fetch a few lines around the
+   event line and confirm the is-sandwich.
+2. **Start-instant uniqueness**: enumerate ALL sessions whose first input
+   lands in ±1s of the event (the event's internal timestamp usually tracks
+   elapsed audio/elapsed business time since the start). If exactly one
+   session's start matches the event's implied start time, attribution
+   follows.
+3. **Timestamp fingerprint**: derive from the tracker's state machine what
+   event timestamps are possible for a given session shape (for instance:
+   an event only fires at a fixed threshold after zero prior of its own
+   kind, or only X seconds after its kind last occurred). Restrict which
+   sessions could produce the observed value.
+
+When the service exposes a downstream consumer (the event is re-emitted
+with ids somewhere), prefer verifying there; the sandwich is the fallback
+when only source-side logs exist.
+
+## Tool flake handling (query wrapper)
+
+Symptoms observed in the field with sub-second/very tight time windows:
+
+- Empty results although matching lines provably exist (verified by a
+  wider-window re-run).
+- Result set start earlier than the requested window start (window
+  silently broadened).
+
+Rules:
+
+1. Treat tight-window empties as suspect: widen (≥1s, then ≥couple of
+   seconds) and re-run. Only then conclude absence.
+2. Verify the window edges by checking the returned first/last timestamps
+   are inside the requested range; if not, re-run.
+3. Repeated empty re-runs on the same window deserve a different query
+   shape (session-filtered instead of all-lines, or a wider window with
+   client-side filtering) — the flake is window-boundary-sensitive.
+4. Result caps: many query tools cap results (~100). For counts use
+   count_over_time; for lists split windows; never assume a 100-row
+   return is the total.
+
+## Load discipline
+
+- Serialize production queries (1-2 at a time). Back off briefly after a
+  5xx rather than re-firing immediately — several back-to-back broad
+  queries have tripped transient query-path failures.
+- Prefer stream-filtered, time-bounded instant queries for counting, and
+  range queries only where line order matters (adjacency work).
+- The wider the window and the looser the filter, the more expensive:
+  add `service_name` and as tight a time range as the question allows.

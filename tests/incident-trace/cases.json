@@ -1,0 +1,16 @@
+{
+  "should_trigger": [
+    "We got a report of a session with no transcript produced — look into it",
+    "This dictation session shows zero words, trace it through the prod logs",
+    "Can you check whether the audio chunks reached the transcription service for interaction 3258cc29?",
+    "Which service is responsible for the dropped events this hour?",
+    "Look into this Slack thread about missing outputs yesterday morning",
+    "This log line has no session id — Long silence event at 10000ms — which session emitted it?"
+  ],
+  "should_not_trigger": [
+    "Open a PR with the current changes",
+    "Create a Linear ticket for the streaming bug",
+    "Summarize my recent work in a standup",
+    "Write a weekly project report for stakeholders"
+  ]
+}
