@@ -52,6 +52,8 @@ skillctl list                          # list all plugins and skills
 skillctl link --plugin <p> --agent <a> # symlink a plugin's skills into a harness
 skillctl link --all --agent <a>        # symlink every plugin into a harness
 skillctl unlink --plugin <p> --agent <a>  # remove a plugin's links
+skillctl prune --agent <a>             # dry-run: report stale links and orphans
+skillctl prune --agent <a> --apply     # remove links whose source skill was deleted
 skillctl test                          # run trigger detection tests for all skills
 skillctl test --skill <name> --verbose # test a single skill with per-case output
 skillctl doctor                        # report links, orphans, broken symlinks

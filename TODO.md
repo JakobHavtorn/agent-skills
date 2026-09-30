@@ -11,6 +11,8 @@ Future changes and improvements tracked in-repo. No external standard governs th
 - [ ] Verify `skillctl` target paths against current client docs (spec §7 notes they drift)
 - [ ] Consider `skillctl link --all` flag for installing every plugin at once
 - [ ] Add `skillctl doctor --json` output for CI integration
+- [x] Add `skillctl prune` — dry run by default; `--apply` removes dangling links whose
+  target was deleted from this repo; `--apply --orphans` also removes stale copies
 
 ## CI
 
