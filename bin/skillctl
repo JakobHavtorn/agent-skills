@@ -240,7 +240,8 @@ def _classify_target_entry(entry: Path, skill_root: Path, declared_names: set[st
     """Classify one entry of a harness target directory for maintenance.
 
     Returns (cls, detail). cls is one of:
-      alive            symlink resolving to an existing target (any origin)
+      alive            symlink resolving to an existing target inside the source repo
+      foreign-alive    symlink resolving to an existing target outside the source repo
       stale            symlink dangling, with target path inside the source repo —
                        the linked skill was deleted or moved by a repo update
       foreign-dangling symlink dangling with target outside the source repo
@@ -254,7 +255,9 @@ def _classify_target_entry(entry: Path, skill_root: Path, declared_names: set[st
         except (OSError, RuntimeError):
             return "stray", "unresolvable symlink"
         if resolved.exists():
-            return "alive", str(resolved)
+            if resolved.is_relative_to(skill_root):
+                return "alive", str(resolved)
+            return "foreign-alive", str(resolved)
         if resolved.is_relative_to(skill_root):
             return "stale", str(resolved)
         return "foreign-dangling", str(resolved)
@@ -278,7 +281,8 @@ def cmd_prune(args):
     for skill_dirs in get_all_skills().values():
         declared.update(s.name for s in skill_dirs)
 
-    counts = {"alive": 0, "stale": 0, "foreign-dangling": 0, "copy": 0, "orphan": 0, "stray": 0}
+    counts = {"alive": 0, "stale": 0, "foreign-alive": 0, "foreign-dangling": 0, "copy": 0,
+              "orphan": 0, "stray": 0}
     pruned = 0
     would_prune = 0
 
@@ -304,7 +308,7 @@ def cmd_prune(args):
                 would_prune += 1
             else:
                 print(f"  ORPHAN {entry.name} ({detail}) — pass --orphans to prune")
-        elif cls == "foreign-dangling":
+        elif cls in ("foreign-alive", "foreign-dangling"):
             print(f"  FOREIGN {entry.name} -> {detail} (not managed by this repo, leaving)")
         elif cls == "copy":
             print(f"  KEEP {entry.name} ({detail})")
@@ -318,7 +322,7 @@ def cmd_prune(args):
         f"{counts['alive']} alive",
         f"{counts['copy']} copies",
         f"{counts['orphan']} orphans",
-        f"{counts['foreign-dangling']} foreign dangling",
+        f"{counts['foreign-alive'] + counts['foreign-dangling']} foreign",
         f"{counts['stray']} stray",
     )
     print("\nDone: " + ", ".join(counts_parts))
