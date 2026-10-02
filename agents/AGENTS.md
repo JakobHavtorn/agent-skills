@@ -41,7 +41,7 @@ Prefer self-documenting code. Clear names reduce the need for comments. When you
 
 ## Config repositories
 
-Two repos manage agent and harness configuration.
+Two repos manage shell, agent, and harness configuration.
 
 - **agent-skills** (`github.com/JakobHavtorn/agent-skills`) — skills, plugins, and this file. `skillctl link --agent <harness> --force` symlinks skill directories and `agents/AGENTS.md` into each harness config dir (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.omp`). Symlinks mean a single `git pull` propagates to every harness instantly.
 - **dotfiles** (`github.com/JakobHavtorn/dotfiles`) — chezmoi-managed harness and shell config: fish, git, opencode base settings, omp config, brew bundle, SSH. Managed separately from agent-skills. Apply changes with `chezmoi diff && chezmoi apply`.
