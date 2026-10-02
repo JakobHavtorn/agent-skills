@@ -60,10 +60,22 @@ skillctl doctor                        # report links, orphans, broken symlinks
 skillctl help                          # show detailed help with examples
 ```
 
+
+## Context file
+
+`skillctl link` also symlinks `agents/AGENTS.md` into each harness's top-level config directory as `AGENTS.md`. This file contains high-level agent working rules (worktree policy, verification) that apply across all projects. It is linked at user scope only and lives alongside per-harness files like `~/.claude/CLAUDE.md` without replacing them.
+
+| Harness | Context file path |
+|---|---|
+| Claude Code | `~/.claude/AGENTS.md` |
+| Codex CLI | `~/.codex/AGENTS.md` |
+| OpenCode | `~/.config/opencode/AGENTS.md` |
+| Cursor | `~/.cursor/AGENTS.md` |
+| Oh My Pi | `~/.omp/AGENTS.md` |
+
+
 ## Plugins
-
 ### `coding`
-
 Software engineering skills — Linear tickets, pull requests, code review.
 
 | Skill | Description |

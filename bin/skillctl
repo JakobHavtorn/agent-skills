@@ -29,6 +29,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -42,28 +43,50 @@ C_RESET = "\033[0m"
 # Harness target paths (spec §7 — verify against client docs at implementation time)
 # omp: verified empirically via `omp skill list --json` — sources native:user
 # (~/.omp/agent/skills) and native:project (.omp/skills)
-HARNESS_PATHS = {
-    "claude": {
-        "user": Path.home() / ".claude" / "skills",
-        "project": Path.cwd() / ".claude" / "skills",
-    },
-    "codex": {
-        "user": Path.home() / ".codex" / "skills",
-        "project": Path.cwd() / ".agents" / "skills",
-    },
-    "opencode": {
-        "user": Path.home() / ".config" / "opencode" / "skills",
-        "project": Path.cwd() / ".opencode" / "skills",
-    },
-    "cursor": {
-        "user": Path.home() / ".cursor" / "skills",
-        "project": Path.cwd() / ".cursor" / "skills",
-    },
-    "omp": {
-        "user": Path.home() / ".omp" / "agent" / "skills",
-        "project": Path.cwd() / ".omp" / "skills",
-    },
+
+
+@dataclass
+class ScopePaths:
+    """Paths for one harness in one scope."""
+    skills: Path              # where SKILL.md dirs get symlinked
+    context: Path | None = None  # where AGENTS.md gets symlinked (user scope only)
+
+
+@dataclass
+class HarnessPaths:
+    """Per-harness paths for both user and project scope."""
+    user: ScopePaths
+    project: ScopePaths
+
+
+HARNESS_PATHS: dict[str, HarnessPaths] = {
+    "claude": HarnessPaths(
+        user=ScopePaths(Path.home() / ".claude" / "skills", Path.home() / ".claude"),
+        project=ScopePaths(Path.cwd() / ".claude" / "skills"),
+    ),
+    "codex": HarnessPaths(
+        user=ScopePaths(Path.home() / ".codex" / "skills", Path.home() / ".codex"),
+        project=ScopePaths(Path.cwd() / ".agents" / "skills"),
+    ),
+    "opencode": HarnessPaths(
+        user=ScopePaths(Path.home() / ".config" / "opencode" / "skills", Path.home() / ".config" / "opencode"),
+        project=ScopePaths(Path.cwd() / ".opencode" / "skills"),
+    ),
+    "cursor": HarnessPaths(
+        user=ScopePaths(Path.home() / ".cursor" / "skills", Path.home() / ".cursor"),
+        project=ScopePaths(Path.cwd() / ".cursor" / "skills"),
+    ),
+    "omp": HarnessPaths(
+        user=ScopePaths(Path.home() / ".omp" / "agent" / "skills", Path.home() / ".omp"),
+        project=ScopePaths(Path.cwd() / ".omp" / "skills"),
+    ),
 }
+
+# Shared context file — linked as AGENTS.md into each harness's top-level config dir.
+# Contains high-level agent working rules (worktree policy, verification, etc.).
+# Lives alongside per-harness files like ~/.claude/CLAUDE.md without replacing them.
+CONTEXT_FILE = REPO_ROOT / "agents" / "AGENTS.md"
+CONTEXT_TARGET_NAME = "AGENTS.md"
 
 # On Windows, Git defaults to core.symlinks=false — symlinks become dead text files.
 FORCE_COPY = platform.system() == "Windows" or os.environ.get("SKILLCTL_FORCE_COPY", "")
@@ -98,7 +121,7 @@ def get_target_dir(agent: str, scope: str) -> Path:
     if scope not in ("user", "project"):
         print(f"error: scope must be 'user' or 'project', got '{scope}'", file=sys.stderr)
         sys.exit(1)
-    return HARNESS_PATHS[agent][scope]
+    return getattr(HARNESS_PATHS[agent], scope).skills
 
 
 def link_skill(skill_dir: Path, target_dir: Path, copy: bool = False, force: bool = False) -> str:
@@ -129,6 +152,47 @@ def link_skill(skill_dir: Path, target_dir: Path, copy: bool = False, force: boo
         os.symlink(skill_dir, link_path)
         return "linked"
 
+
+def link_context_file(agent: str, scope: str, copy: bool = False, force: bool = False) -> str:
+    """Link agents/AGENTS.md into the harness config dir. Returns 'linked', 'copied', 'exists', or 'error'."""
+    if not CONTEXT_FILE.exists():
+        return "error"
+
+    target_dir = getattr(HARNESS_PATHS[agent], scope).context
+    target_dir.mkdir(parents=True, exist_ok=True)
+    link_path = target_dir / CONTEXT_TARGET_NAME
+
+    if link_path.exists() or link_path.is_symlink():
+        if link_path.is_symlink() and link_path.resolve() == CONTEXT_FILE.resolve():
+            return "exists"
+        if not force:
+            if link_path.is_symlink():
+                actual = link_path.resolve()
+                print(f"  SKIP {CONTEXT_TARGET_NAME}: target exists, points to {actual}", file=sys.stderr)
+            else:
+                print(f"  SKIP {CONTEXT_TARGET_NAME}: target exists and is not a symlink", file=sys.stderr)
+            return "error"
+        link_path.unlink()
+        print(f"  OVERWRITE {CONTEXT_TARGET_NAME} (replaced existing target)", file=sys.stderr)
+
+    if copy or FORCE_COPY:
+        shutil.copy2(CONTEXT_FILE, link_path)
+        return "copied"
+    else:
+        os.symlink(CONTEXT_FILE, link_path)
+        return "linked"
+
+
+def unlink_context_file(agent: str, scope: str) -> bool:
+    """Remove the AGENTS.md symlink from the harness config dir. Returns True if removed."""
+    link_path = getattr(HARNESS_PATHS[agent], scope).context / CONTEXT_TARGET_NAME
+    if link_path.is_symlink():
+        link_path.unlink()
+        return True
+    elif link_path.exists():
+        print(f"  SKIP {CONTEXT_TARGET_NAME}: not a symlink, leaving in place", file=sys.stderr)
+        return False
+    return False
 
 def cmd_link(args):
     """Link all skills from a plugin into a harness target directory."""
@@ -168,6 +232,19 @@ def cmd_link(args):
 
     print(f"\nDone: {linked} linked, {copied} copied, {exists} already existed, {errors} skipped")
 
+    # Link the shared context file (user scope only).
+    if args.scope == "user" and CONTEXT_FILE.exists():
+        result = link_context_file(args.agent, args.scope, copy=args.copy, force=args.force)
+        ctx_dir = getattr(HARNESS_PATHS[args.agent], args.scope).context
+        if result == "linked":
+            print(f"  LINKED {CONTEXT_TARGET_NAME} -> {ctx_dir / CONTEXT_TARGET_NAME}")
+        elif result == "copied":
+            print(f"  COPIED {CONTEXT_TARGET_NAME} -> {ctx_dir / CONTEXT_TARGET_NAME}")
+        elif result == "exists":
+            print(f"  EXISTS {CONTEXT_TARGET_NAME} (already linked)")
+        else:
+            print(f"  SKIP {CONTEXT_TARGET_NAME} (see warnings above)", file=sys.stderr)
+
 
 def cmd_unlink(args):
     """Remove symlinks for a plugin's skills from a harness target directory."""
@@ -199,6 +276,11 @@ def cmd_unlink(args):
 
     print(f"\nDone: {removed} removed")
 
+    # Unlink the shared context file (user scope only).
+    if args.scope == "user":
+        if unlink_context_file(args.agent, args.scope):
+            print(f"  REMOVED {CONTEXT_TARGET_NAME}")
+
 
 def cmd_doctor(args):
     """Report what is linked where, plus orphans and broken links."""
@@ -214,8 +296,9 @@ def cmd_doctor(args):
             print(f"  {skill_dir.name}")
 
     print()
-    for agent, scopes in HARNESS_PATHS.items():
-        for scope_name, target in scopes.items():
+    for agent, harness in HARNESS_PATHS.items():
+        for scope_name in ("user", "project"):
+            target = getattr(harness, scope_name).skills
             if not target.exists():
                 continue
             print(f"=== {agent} ({scope_name}) -> {target} ===")
@@ -233,8 +316,21 @@ def cmd_doctor(args):
                     print(f"  {entry.name}  [{tag}]")
                 else:
                     print(f"  {entry.name}  [unknown]")
-            print()
-
+    # Report context file link status.
+    if CONTEXT_FILE.exists():
+        print(f"=== Context file: {CONTEXT_FILE.relative_to(REPO_ROOT)} ===")
+        for agent in HARNESS_PATHS:
+            ctx_dir = HARNESS_PATHS[agent].user.context
+            link_path = ctx_dir / CONTEXT_TARGET_NAME
+            if link_path.is_symlink():
+                resolved = link_path.resolve()
+                status = "[OK]" if resolved.exists() else "[BROKEN]"
+                print(f"  {agent:<10} {link_path} -> {resolved}  {status}")
+            elif link_path.exists():
+                print(f"  {agent:<10} {link_path}  [not a symlink]")
+            else:
+                print(f"  {agent:<10} {link_path}  [absent]")
+        print()
 
 def _classify_target_entry(entry: Path, skill_root: Path, declared_names: set[str]) -> tuple[str, str]:
     """Classify one entry of a harness target directory for maintenance.
@@ -727,9 +823,9 @@ def cmd_help(args, parser=None):
     print("\nHARNESS TARGET PATHS\n")
     home = str(Path.home())
     cwd = str(Path.cwd())
-    for agent, scopes in HARNESS_PATHS.items():
-        user_path = str(scopes["user"]).replace(home, "~")
-        proj_path = str(scopes["project"]).replace(cwd, ".")
+    for agent, harness in HARNESS_PATHS.items():
+        user_path = str(harness.user.skills).replace(home, "~")
+        proj_path = str(harness.project.skills).replace(cwd, ".")
         print(f"  {agent:<10} user: {user_path:<30} project: {proj_path}")
 
     print("\nEXAMPLES\n")
