@@ -47,3 +47,5 @@ Two repos manage shell, agent, and harness configuration.
 - **dotfiles** (`github.com/JakobHavtorn/dotfiles`) — chezmoi-managed harness and shell config: fish, git, opencode base settings, omp config, brew bundle, SSH. Managed separately from agent-skills. Apply changes with `chezmoi diff && chezmoi apply`.
 
 After pulling agent-skills, symlinks update immediately — nothing to re-run. After pulling dotfiles, run `chezmoi diff && chezmoi apply` to materialize templated configs and run scripts. Both repos use PRs to `main`.
+
+After making material changes to config files or agent skills that you think might be relevant to persist, ask the user whether they want to reflect the changes in **agent-skills** and/or **dotfiles**, whichever is relevant.
