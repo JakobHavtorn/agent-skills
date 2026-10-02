@@ -38,3 +38,12 @@ Prefer self-documenting code. Clear names reduce the need for comments. When you
 - Use inline comments for decisions, constraints, business rules, workarounds, and external dependencies. Explain why, not what. Don't restate the code.
 - Keep comments concise and current. Update or delete when the code changes. Stale comments mislead.
 - Skip trivial or self-explanatory code. Don't comment the obvious.
+
+## Config repositories
+
+Two repos manage agent and harness configuration.
+
+- **agent-skills** (`github.com/JakobHavtorn/agent-skills`) — skills, plugins, and this file. `skillctl link --agent <harness> --force` symlinks skill directories and `agents/AGENTS.md` into each harness config dir (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.omp`). Symlinks mean a single `git pull` propagates to every harness instantly.
+- **dotfiles** (`github.com/JakobHavtorn/dotfiles`) — chezmoi-managed harness and shell config: fish, git, opencode base settings, omp config, brew bundle, SSH. Managed separately from agent-skills. Apply changes with `chezmoi diff && chezmoi apply`.
+
+After pulling agent-skills, symlinks update immediately — nothing to re-run. After pulling dotfiles, run `chezmoi diff && chezmoi apply` to materialize templated configs and run scripts. Both repos use PRs to `main`.
