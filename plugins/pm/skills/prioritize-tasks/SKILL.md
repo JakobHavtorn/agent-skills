@@ -79,7 +79,7 @@ Search Slack for what the user sent, then mine it for commitments.
 **Overflow handling:** if the search result overflows (the MCP returns an error pointing to a file under `tool-results/mcp-claude_ai_Slack-slack_search_public_and_private-*.txt`), do **not** `Read` the file directly — run the bundled parser:
 
 ```bash
-python3 ~/.config/opencode/skills/prioritize-tasks/parse_slack_overflow.py <dumped-file-path> --max-text 280
+python3 ~/.config/opencode/skills/prioritize-tasks/scripts/parse_slack_overflow.py <dumped-file-path> --max-text 280
 ```
 
 It strips bot noise and prints one compact line per message (time, channel, author, text) so the whole window fits in context.

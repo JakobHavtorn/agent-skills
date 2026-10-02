@@ -119,17 +119,7 @@ For each comment the user confirms, implement the requested change:
 
 ## Step 6: Run the linter
 
-Pick the linter that matches the repo's language and tooling. If the repo has multiple languages, run each linter that applies to the changed files.
-
-| Language | Detection signal | Lint command |
-|---|---|---|
-| Go | `go.mod` present, or `*.go` files changed | `golangci-lint run ./...` (or scope to changed packages) |
-| Python | `pyproject.toml` / `setup.py` present | `ruff check .` (or `ruff check <changed files>`) |
-| Python (uv) | `uv.lock` present | `uv run ruff check .` |
-| Python (poetry) | `poetry.lock` present | `poetry run ruff check .` |
-| JS/TS | `package.json` present | Check for `lint`, `format.fix`, `typecheck` scripts. Typical: `npm run format.fix && npm run typecheck` |
-| JS/TS (pnpm) | `pnpm-lock.yaml` present | `pnpm run lint && pnpm run typecheck` |
-| JS/TS (yarn) | `yarn.lock` present | `yarn lint && yarn typecheck` |
+Pick the linter that matches the repo's language and tooling. If the repo has multiple languages, run each linter that applies to the changed files. See `references/lint-test-commands.md` for the full detection table and test commands.
 
 **Gate:** Fix every reported issue before moving on. Do not silence rules to make the linter pass. If the linter is not installed, surface this to the user — do not skip linting silently.
 
@@ -197,3 +187,7 @@ Do not commit or push changes — prepare the code locally for the user to revie
 - **Only change what's necessary** to address each comment — avoid unrelated refactors.
 - **Preserve existing code style** and formatting.
 - **Present all assessments before implementing** — let the user confirm which comments to address.
+
+## Reference Files
+
+- `references/lint-test-commands.md` — lint and test auto-detection table for multiple languages
