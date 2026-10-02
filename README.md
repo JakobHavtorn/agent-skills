@@ -1,6 +1,6 @@
 # Agent Skills
 
-A version-controlled catalog of agent skills covering software engineering, personal finance, and project management. Installable into any `SKILL.md`-compatible harness (Claude Code, Codex CLI, OpenCode, Oh My Pi, Cursor, and others) without per-harness forks of the content.
+A version-controlled catalog of agent skills covering software engineering and project management. Installable into any `SKILL.md`-compatible harness (Claude Code, Codex CLI, OpenCode, Oh My Pi, Cursor, and others) without per-harness forks of the content.
 
 Conforms to the [Agent Skills](https://agentskills.io) and [Agent Plugins 1.0.0](https://agent-plugins.org) standards.
 
@@ -63,7 +63,7 @@ skillctl help                          # show detailed help with examples
 
 ## Context file
 
-`skillctl link` also symlinks `agents/AGENTS.md` into each harness's top-level config directory as `AGENTS.md`. This file contains high-level agent working rules (worktree policy, verification) that apply across all projects. It is linked at user scope only and lives alongside per-harness files like `~/.claude/CLAUDE.md` without replacing them.
+`skillctl link` also symlinks `global/AGENTS.md` into each harness's top-level config directory as `AGENTS.md`. This file contains high-level agent working rules (worktree policy, verification) that apply across all projects. It is linked at user scope only and lives alongside per-harness files like `~/.claude/CLAUDE.md` without replacing them.
 
 | Harness | Context file path |
 |---|---|
@@ -95,14 +95,6 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [tdd](plugins/coding/skills/tdd) | Test-driven development — red-green-refactor with tests worth keeping |
 | [to-spec](plugins/coding/skills/to-spec) | Turn the current conversation into a spec as a markdown document |
 | [to-tickets](plugins/coding/skills/to-tickets) | Decompose a plan into tracer-bullet tickets with blocking edges, published to Linear |
-
-### `finance`
-
-Personal finance skills.
-
-| Skill | Description |
-|---|---|
-| [taxhelper](plugins/finance/skills/taxhelper) | Danish tax assessment lookup, rubric search, and PDF worksheet flows |
 
 ### `pm`
 

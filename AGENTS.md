@@ -19,8 +19,13 @@ plugins/<plugin>/skills/<skill>/scripts/   # executable helpers
 plugins/<plugin>/skills/<skill>/references/  # loaded on demand
 plugins/<plugin>/skills/<skill>/assets/      # templates, lookup tables
 bin/skillctl                          # install / link / test / doctor
+bin/validate-skill                    # spec validation wrapper
+bin/setup                              # convenience wrapper for skillctl link
+global/AGENTS.md                      # shared context file — symlinked into harnesses by skillctl link
+agents/title.md                       # hidden omp-specific title generator agent
 tests/<skill>/cases.json              # trigger detection test cases
 tests/<skill>/results.json            # last test run output (gitignored)
+tests/test_skillctl.py                # unit tests for skillctl pure functions
 ```
 
 When adding or changing features tracked in `TODO.md`, update the corresponding checklist item before opening the PR.
@@ -33,7 +38,7 @@ For frontmatter rules, detection flows, step structure, reference file organizat
 
 ## README.md
 
-When adding a new skill, update `README.md` to include it in the relevant plugin's skill table. When adding a new agent to `agents/`, update `README.md` to document it.
+When adding a new skill, update `README.md` to include it in the relevant plugin's skill table. The `global/` directory holds the shared `AGENTS.md` context file symlinked into harnesses by `skillctl link`; the `agents/` directory holds standalone agent definitions (e.g. `title.md`). When adding a new agent to `agents/`, update `README.md` to document it.
 
 ## Skill name uniqueness
 
