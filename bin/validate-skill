@@ -10,6 +10,7 @@ validate their values on the harnesses' behalf.
 """
 import re
 import pathlib
+import yaml
 import subprocess
 import sys
 import tempfile
@@ -35,7 +36,7 @@ def main():
         sys.exit(f"Validation failed for {skill_dir}: no frontmatter block")
     lines = frontmatter.splitlines()
 
-    extra = get_unexpected_fields(lines)
+    extra = get_unexpected_fields(frontmatter)
     if not extra:
         # Spec-legal frontmatter: validate the skill as-is.
         sys.exit(run_skills_ref_validate(str(skill_dir)))
@@ -57,10 +58,15 @@ def extract_frontmatter(text):
     return m.group(1) if m else None
 
 
-def get_unexpected_fields(lines):
+def get_unexpected_fields(frontmatter):
     """Top-level frontmatter fields outside the spec's allowed set."""
-    keys = [l.split(":", 1)[0].strip() for l in lines if l and not l.startswith((" ", "\t", "-"))]
-    return [k for k in keys if k not in SPEC_FIELDS]
+    try:
+        data = yaml.safe_load(frontmatter)
+    except yaml.YAMLError:
+        return []
+    if not isinstance(data, dict):
+        return []
+    return [k for k in data if k not in SPEC_FIELDS]
 
 
 def run_skills_ref_validate(path):
