@@ -23,7 +23,6 @@ Standup canvas uses Slack user IDs. Map them to names:
 |---|---|
 | `<@U04G8U5SVJL>` | Michael |
 | `<@U04TXHY5MMJ>` | Simas |
-| `<@U067BQ11M7A>` | Jerome |
 | `<@U074ZNDHQTV>` | Lana |
 | `<@U07JMB1EHRD>` | Robert |
 | `<@U082WUUQQAV>` | Chit |
@@ -33,7 +32,7 @@ Standup canvas uses Slack user IDs. Map them to names:
 | `<@UBCF2ADNE>` | Jakob |
 | `<@UHEN7TDNG>` | Gedas |
 | `<@U0BKBBYK3ME>` | Maha |
-| `<@U0C4NF49QKS>` | Sindri Pétur Ingimundarson |
+| `<@U0C4NF49QKS>` | Sindri |
 
 ## Status Message Recipients
 
