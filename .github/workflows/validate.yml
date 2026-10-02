@@ -148,16 +148,20 @@ jobs:
 
           echo "No personal data patterns detected."
 
-      # ── 8. Script lint: shellcheck + ruff ──
-      - name: Install ruff
-        run: pip install ruff
-
+      # ── 8. Script lint: shellcheck + syntax check ──
       - name: Lint scripts
         run: |
-          # Shellcheck for shell scripts
-          find plugins -path '*/scripts/*.sh' -exec shellcheck {} + 2>/dev/null || true
+          # Shellcheck for shell scripts (hard fail)
+          find plugins bin -name '*.sh' -exec shellcheck {} +
+          shellcheck bin/setup
 
-          # Ruff for Python scripts
-          find plugins -path '*/scripts/*.py' -print0 | xargs -0 ruff check --exit-zero || true
-          # Hard fail on syntax errors only
-          find plugins -path '*/scripts/*.py' -print0 | xargs -0 ruff check --select E999 || true
+          # Python syntax check (hard fail on syntax errors)
+          python3 -m py_compile bin/skillctl bin/validate-skill
+          find plugins -path '*/scripts/*.py' -exec python3 -m py_compile {} +
+
+      # ── 9. Drift check: duplicated scripts must stay in sync ──
+      - name: Check duplicated scripts are in sync
+        run: |
+          diff -q \
+            plugins/pm/skills/standup-summary/scripts/parse_slack_overflow.py \
+            plugins/pm/skills/prioritize-tasks/scripts/parse_slack_overflow.py

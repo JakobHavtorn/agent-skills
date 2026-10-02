@@ -73,7 +73,7 @@ Before writing SKILL.md, plan the structure. Read `references/architecture-patte
 
 Write out the step names before writing content. Every skill should have:
 
-1. **Detection flow** (Step 1) -- dynamically detect available tools, auth state, and runtime environment; build a decision tree for which method to use
+1. **Detection flow** (Step 1) -- when the skill touches external tools, dynamically detect available tools, auth state, and runtime environment; build a decision tree for which method to use. Skills that are pure reasoning or don't touch external tools may skip this and start with the core workflow.
 2. **Core methodology** (Steps 2-N) -- the actual work, with pass/fail gates; each step that calls an external tool should have method alternatives based on what Step 1 detected
 3. **Respond to user** (Final step) -- structured output template
 
@@ -81,7 +81,7 @@ Target **5-9 steps** total. More than 9 means the skill should be split or use a
 
 ### Plan the Detection Flow
 
-Every skill that touches external tools MUST start with a runtime detection flow. Read `references/dynamic-calling.md` for all patterns. The detection flow answers:
+Every skill that touches external tools MUST start with a runtime detection flow. Skills that are pure reasoning or don't touch external tools may skip this. Read `references/dynamic-calling.md` for all patterns. The detection flow answers:
 
 | Question | How to detect | Decision |
 |---|---|---|
@@ -115,11 +115,11 @@ Read `references/writing-guide.md` for detailed instructions on writing each sec
 
 1. **Frontmatter first**: `name` (lowercase-hyphenated, max 64 chars) and `description` (exhaustive trigger list, max 1024 chars) are required. Description needs 5+ triggers including sideways entry points.
 
-2. **Step 1 = detection flow**: Use `!`command`` with fallbacks to detect available tools, auth state, and runtime. Build a decision tree with multiple method paths (e.g., CLI preferred, Python fallback, built-in tools last resort). Never hardcode a single tool — always detect and adapt. See `references/dynamic-calling.md`.
+2. **Step 1 = detection flow (when external tools are involved)**: If the skill touches external tools, use `!`command`` with fallbacks to detect available tools, auth state, and runtime. Build a decision tree with multiple method paths (e.g., CLI preferred, Python fallback, built-in tools last resort). Never hardcode a single tool — always detect and adapt. See `references/dynamic-calling.md`. Skills that are pure reasoning or don't touch external tools may start directly with the core workflow.
 
 3. **Core steps with method alternatives**: Each step that calls an external tool should offer at least 2 paths based on what Step 1 detected. Use pattern: "If `TOOL_A` detected → Method 1, otherwise → Method 2." Each step gets `## Step N: [Verb] [Object]`, a decision table if routing, a pass/fail gate if evaluative, and a reference pointer for deep content.
 
-4. **Defaults table**: Every parameter MUST have an explicit default. No skill should ever stall waiting for input.
+4. **Defaults table**: Every parameter SHOULD have an explicit default. If a parameter has no sensible default, the skill MUST include instructions to ask the user for that input rather than stalling silently. No skill should ever stall waiting for input without the user knowing what's needed.
 
 5. **Final step = output template**: Number every output section. Specify exactly what data goes in each. Include a verdict/grade system if evaluative.
 
@@ -150,14 +150,14 @@ Run the skill through the quality rubric in `references/quality-rubric.md`. Scor
 - [ ] Description has 5+ distinct trigger phrases
 - [ ] Description includes sideways entry points
 - [ ] SKILL.md is under 300 lines (ideally under 250)
-- [ ] Every parameter has an explicit default
+- [ ] Every parameter has an explicit default, or instructions to ask the user if no default exists
 - [ ] Steps are numbered (## Step N: ...)
 - [ ] Each step has a clear exit condition or deliverable
 - [ ] Final step specifies exact output structure with numbered sections
 - [ ] Complex content is in reference files, not inline
 - [ ] Reference file pointers use backtick paths
-- [ ] Step 1 has a detection flow with `!`command`` checks and fallbacks (`|| echo "..."`)
-- [ ] Detection flow produces a decision tree with 2+ method paths
+- [ ] Step 1 has a detection flow with `!`command`` checks and fallbacks (`|| echo "..."`) — if the skill touches external tools
+- [ ] Detection flow produces a decision tree with 2+ method paths — if the skill touches external tools
 - [ ] Core steps adapt behavior based on detection results (not hardcoded to one tool)
 - [ ] Separate runtimes treated as separate environments (terminal vs execute_code)
 - [ ] Legal/ethical disclaimers included where appropriate

@@ -104,18 +104,7 @@ It parses the JSON dump, splits the canvas markdown on `## ![](slack_date:YYYY-M
 - Items still in progress and their current state
 - Blockers, questions, and follow-up items
 
-User ID → name mappings:
-- `<@U04G8U5SVJL>` = Michael
-- `<@U04TXHY5MMJ>` = Simas
-- `<@U067BQ11M7A>` = Jerome
-- `<@U074ZNDHQTV>` = Lana
-- `<@U07JMB1EHRD>` = Robert
-- `<@U082WUUQQAV>` = Chit
-- `<@U086V4A6JB0>` = Dan Engel
-- `<@U08BGBWSWU8>` = Arne
-- `<@U09LZ64UL5P>` = Anna
-- `<@UBCF2ADNE>` = Jakob
-- `<@UHEN7TDNG>` = Gedas
+User ID → name mappings: see `references/slack.md` for the full mapping table.
 
 ---
 
@@ -182,3 +171,7 @@ Once the message is composed, send it to the user as a Slack DM.
 ## Step 5 — Follow up
 
 Report any issues encountered during the process of executing this skill (e.g. missing context, fetch errors).
+
+## Reference Files
+
+- `references/slack.md` — Slack channel IDs, canvas IDs, and user-ID-to-name mappings for the Speech Recognition team

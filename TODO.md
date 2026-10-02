@@ -13,12 +13,13 @@ Future changes and improvements tracked in-repo. No external standard governs th
 - [ ] Add `skillctl doctor --json` output for CI integration
 - [x] Add `skillctl prune` — dry run by default; `--apply` removes dangling links whose
   target was deleted from this repo; `--apply --orphans` also removes stale copies
+- [ ] Standardize harness-spill JSON envelope unwrapping across plugin scripts (each handles `[{type, text}]` differently)
 
 ## CI
 
 - [ ] Pin `skills-ref` version in `validate.yml` instead of `npm install -g @anthropic/skills-ref`
-- [ ] Add `shellcheck` as a hard fail (currently `|| true` in validate.yml)
-- [ ] Add `ruff` as a hard fail for `scripts/` (currently only syntax errors fail)
+- [x] Add `shellcheck` as a hard fail (currently `|| true` in validate.yml)
+- [x] Add `py_compile` syntax check as a hard fail for `scripts/` and `bin/` (was `|| true` in validate.yml)
 
 ## New skills
 
