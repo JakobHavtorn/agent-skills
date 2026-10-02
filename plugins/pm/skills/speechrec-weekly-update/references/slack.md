@@ -25,7 +25,6 @@ Standup canvas uses Slack user IDs. Map them to names:
 | `<@U04TXHY5MMJ>` | Simas |
 | `<@U074ZNDHQTV>` | Lana |
 | `<@U07JMB1EHRD>` | Robert |
-| `<@U082WUUQQAV>` | Chit |
 | `<@U086V4A6JB0>` | Dan Engel |
 | `<@U08BGBWSWU8>` | Arne |
 | `<@U09LZ64UL5P>` | Anna |
