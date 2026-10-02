@@ -35,7 +35,7 @@ echo ""
 
 if $LINK_ALL; then
   echo "linking all plugins to all harnesses..."
-  for a in claude codex opencode cursor omp; do
+  for a in $(python3 "$SCRIPT_DIR/skillctl" list-agents); do
     python3 "$SCRIPT_DIR/skillctl" link --agent "$a" --force || true
   done
 elif [[ ${#PLUGINS[@]} -gt 0 ]]; then

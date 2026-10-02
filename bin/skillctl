@@ -85,7 +85,7 @@ HARNESS_PATHS: dict[str, HarnessPaths] = {
 # Shared context file — linked as AGENTS.md into each harness's top-level config dir.
 # Contains high-level agent working rules (worktree policy, verification, etc.).
 # Lives alongside per-harness files like ~/.claude/CLAUDE.md without replacing them.
-CONTEXT_FILE = REPO_ROOT / "agents" / "AGENTS.md"
+CONTEXT_FILE = REPO_ROOT / "global" / "AGENTS.md"
 CONTEXT_TARGET_NAME = "AGENTS.md"
 
 # On Windows, Git defaults to core.symlinks=false — symlinks become dead text files.
@@ -112,75 +112,68 @@ def get_all_skills() -> dict[str, list[Path]]:
                 result[plugin_dir.name] = skills
     return result
 
+class SkillctlError(Exception):
+    """Error in skillctl that should print to stderr and exit(1)."""
+
 
 def get_target_dir(agent: str, scope: str) -> Path:
     """Resolve the target directory for a given harness and scope."""
     if agent not in HARNESS_PATHS:
-        print(f"error: unknown agent '{agent}'. Choose from: {', '.join(HARNESS_PATHS)}", file=sys.stderr)
-        sys.exit(1)
+        raise SkillctlError(f"unknown agent '{agent}'. Choose from: {', '.join(HARNESS_PATHS)}")
     if scope not in ("user", "project"):
-        print(f"error: scope must be 'user' or 'project', got '{scope}'", file=sys.stderr)
-        sys.exit(1)
+        raise SkillctlError(f"scope must be 'user' or 'project', got '{scope}'")
     return getattr(HARNESS_PATHS[agent], scope).skills
 
 
-def link_skill(skill_dir: Path, target_dir: Path, copy: bool = False, force: bool = False) -> str:
-    """Link or copy a single skill into target_dir. Returns 'linked', 'copied', 'exists', or 'error'."""
-    skill_name = skill_dir.name
-    link_path = target_dir / skill_name
+def _link_entry(source: Path, target: Path, copy_fn, force: bool) -> str:
+    """Shared link-or-copy logic for one filesystem entry.
 
-    if link_path.exists() or link_path.is_symlink():
-        if link_path.is_symlink() and link_path.resolve() == skill_dir.resolve():
+    When *copy_fn* is None the entry is symlinked; otherwise *copy_fn* is
+    the callable used to copy (shutil.copytree for directories, shutil.copy2
+    for files).  Returns 'linked', 'copied', or 'exists'.  Raises
+    SkillctlError on a conflict that cannot be resolved (target exists,
+    not a matching symlink, and force=False).
+    """
+    name = target.name
+
+    if target.exists() or target.is_symlink():
+        if target.is_symlink() and target.resolve() == source.resolve():
             return "exists"
         if not force:
-            if link_path.is_symlink():
-                actual = link_path.resolve()
-                print(f"  SKIP {skill_name}: target exists, points to {actual}", file=sys.stderr)
+            if target.is_symlink():
+                actual = target.resolve()
+                print(f"  SKIP {name}: target exists, points to {actual}", file=sys.stderr)
             else:
-                print(f"  SKIP {skill_name}: target exists and is not a symlink", file=sys.stderr)
-            return "error"
-        if link_path.is_symlink():
-            link_path.unlink()
+                print(f"  SKIP {name}: target exists and is not a symlink", file=sys.stderr)
+            raise SkillctlError(f"cannot link {name}: target exists")
+        if target.is_symlink():
+            target.unlink()
         else:
-            shutil.rmtree(link_path)
-        print(f"  OVERWRITE {skill_name} (replaced existing target)", file=sys.stderr)
+            shutil.rmtree(target)
+        print(f"  OVERWRITE {name} (replaced existing target)", file=sys.stderr)
 
-    if copy or FORCE_COPY:
-        shutil.copytree(skill_dir, link_path)
+    if copy_fn is not None:
+        copy_fn(source, target)
         return "copied"
-    else:
-        os.symlink(skill_dir, link_path)
-        return "linked"
+    os.symlink(source, target)
+    return "linked"
+
+
+def link_skill(skill_dir: Path, target_dir: Path, copy: bool = False, force: bool = False) -> str:
+    """Link or copy a single skill into target_dir. Returns 'linked', 'copied', or 'exists'."""
+    copy_fn = shutil.copytree if (copy or FORCE_COPY) else None
+    return _link_entry(skill_dir, target_dir / skill_dir.name, copy_fn, force)
 
 
 def link_context_file(agent: str, scope: str, copy: bool = False, force: bool = False) -> str:
-    """Link agents/AGENTS.md into the harness config dir. Returns 'linked', 'copied', 'exists', or 'error'."""
+    """Link global/AGENTS.md into the harness config dir. Returns 'linked', 'copied', 'exists', or 'error'."""
     if not CONTEXT_FILE.exists():
         return "error"
 
     target_dir = getattr(HARNESS_PATHS[agent], scope).context
     target_dir.mkdir(parents=True, exist_ok=True)
-    link_path = target_dir / CONTEXT_TARGET_NAME
-
-    if link_path.exists() or link_path.is_symlink():
-        if link_path.is_symlink() and link_path.resolve() == CONTEXT_FILE.resolve():
-            return "exists"
-        if not force:
-            if link_path.is_symlink():
-                actual = link_path.resolve()
-                print(f"  SKIP {CONTEXT_TARGET_NAME}: target exists, points to {actual}", file=sys.stderr)
-            else:
-                print(f"  SKIP {CONTEXT_TARGET_NAME}: target exists and is not a symlink", file=sys.stderr)
-            return "error"
-        link_path.unlink()
-        print(f"  OVERWRITE {CONTEXT_TARGET_NAME} (replaced existing target)", file=sys.stderr)
-
-    if copy or FORCE_COPY:
-        shutil.copy2(CONTEXT_FILE, link_path)
-        return "copied"
-    else:
-        os.symlink(CONTEXT_FILE, link_path)
-        return "linked"
+    copy_fn = shutil.copy2 if (copy or FORCE_COPY) else None
+    return _link_entry(CONTEXT_FILE, target_dir / CONTEXT_TARGET_NAME, copy_fn, force)
 
 
 def unlink_context_file(agent: str, scope: str) -> bool:
@@ -193,31 +186,39 @@ def unlink_context_file(agent: str, scope: str) -> bool:
         print(f"  SKIP {CONTEXT_TARGET_NAME}: not a symlink, leaving in place", file=sys.stderr)
         return False
     return False
+def resolve_plugins(args) -> dict[str, list[Path]]:
+    """Resolve the plugin→skills map from args.
+
+    If args.plugin is set, return just that plugin (error if it has no
+    skills).  Otherwise return all plugins (error if none found).
+    """
+    if args.plugin:
+        skills = get_plugin_skills(args.plugin)
+        if not skills:
+            raise SkillctlError(f"no skills found in plugin '{args.plugin}'")
+        return {args.plugin: skills}
+    plugins = get_all_skills()
+    if not plugins:
+        raise SkillctlError("no plugins or skills found")
+    return plugins
 
 def cmd_link(args):
     """Link all skills from a plugin into a harness target directory."""
     target_dir = get_target_dir(args.agent, args.scope)
     target_dir.mkdir(parents=True, exist_ok=True)
-
-    if args.plugin:
-        plugins = {args.plugin: get_plugin_skills(args.plugin)}
-        if not plugins[args.plugin]:
-            print(f"error: no skills found in plugin '{args.plugin}'", file=sys.stderr)
-            sys.exit(1)
-    else:
-        plugins = get_all_skills()
-        if not plugins:
-            print("error: no plugins or skills found", file=sys.stderr)
-            sys.exit(1)
+    plugins = resolve_plugins(args)
 
     linked = 0
     copied = 0
     exists = 0
     errors = 0
-
     for plugin_name, skills in plugins.items():
         for skill_dir in skills:
-            result = link_skill(skill_dir, target_dir, copy=args.copy, force=args.force)
+            try:
+                result = link_skill(skill_dir, target_dir, copy=args.copy, force=args.force)
+            except SkillctlError:
+                errors += 1
+                continue
             if result == "linked":
                 print(f"  LINKED {skill_dir.name} -> {target_dir / skill_dir.name}")
                 linked += 1
@@ -227,8 +228,6 @@ def cmd_link(args):
             elif result == "exists":
                 print(f"  EXISTS {skill_dir.name} (already linked)")
                 exists += 1
-            else:
-                errors += 1
 
     print(f"\nDone: {linked} linked, {copied} copied, {exists} already existed, {errors} skipped")
 
@@ -249,17 +248,7 @@ def cmd_link(args):
 def cmd_unlink(args):
     """Remove symlinks for a plugin's skills from a harness target directory."""
     target_dir = get_target_dir(args.agent, args.scope)
-
-    if args.plugin:
-        plugins = {args.plugin: get_plugin_skills(args.plugin)}
-        if not plugins[args.plugin]:
-            print(f"error: no skills found in plugin '{args.plugin}'", file=sys.stderr)
-            sys.exit(1)
-    else:
-        plugins = get_all_skills()
-        if not plugins:
-            print("error: no plugins or skills found", file=sys.stderr)
-            sys.exit(1)
+    plugins = resolve_plugins(args)
 
     removed = 0
     for plugin_name, skills in plugins.items():
@@ -437,6 +426,12 @@ def cmd_list(args):
             print(f"  {skill_dir.name}/")
 
 
+def cmd_list_agents(args):
+    """Print supported agent/harness names, one per line."""
+    for agent in HARNESS_PATHS:
+        print(agent)
+
+
 # ---------------------------------------------------------------------------
 # skillctl test — trigger detection testing
 # ---------------------------------------------------------------------------
@@ -456,8 +451,13 @@ def _claude_args(prompt: str, model: str | None) -> list[str]:
     if model:
         args += ["--model", model]
     args.append(prompt)
-    return args
 
+def _omp_args(prompt: str, model: str | None) -> list[str]:
+    args = ["-p", "--mode", "json"]
+    if model:
+        args += ["--model", model]
+    args.append(prompt)
+    return args
 
 RUNNERS = {
     "opencode": {
@@ -469,6 +469,11 @@ RUNNERS = {
         "cmd": "claude",
         "args_fn": _claude_args,
         "extract": lambda output: output,
+    },
+    "omp": {
+        "cmd": "omp",
+        "args_fn": _omp_args,
+        "extract": lambda output: _extract_omp_text(output),
     },
 }
 
@@ -544,19 +549,45 @@ def _extract_opencode_text(json_output: str) -> str:
     return "\n".join(text_parts)
 
 
+def _extract_omp_text(json_output: str) -> str:
+    """Extract assistant text from omp --mode json output (NDJSON).
+
+    OMP is a Pi fork and emits the same NDJSON event schema.  Completed
+    messages arrive in ``message_end`` events whose ``content`` field
+    holds the full text.
+    """
+    text_parts = []
+    for line in json_output.strip().splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "message_end":
+            content = event.get("content")
+            if isinstance(content, str) and content:
+                text_parts.append(content)
+            elif isinstance(content, list):
+                for part in content:
+                    if isinstance(part, dict) and part.get("text"):
+                        text_parts.append(part["text"])
+                    elif isinstance(part, str):
+                        text_parts.append(part)
+    return "\n".join(text_parts)
+
+
 def run_runner(runner: str, prompt: str, model: str | None) -> tuple[str, str]:
     """Execute the LLM runner and return (text_output, model_identifier)."""
     if runner not in RUNNERS:
-        print(f"error: unknown runner '{runner}'. Choose from: {', '.join(RUNNERS)}", file=sys.stderr)
-        sys.exit(1)
+        raise SkillctlError(f"unknown runner '{runner}'. Choose from: {', '.join(RUNNERS)}")
 
     cfg = RUNNERS[runner]
     cmd = cfg["cmd"]
     args = cfg["args_fn"](prompt, model)
 
     if not shutil.which(cmd):
-        print(f"error: '{cmd}' not found on PATH", file=sys.stderr)
-        sys.exit(1)
+        raise SkillctlError(f"'{cmd}' not found on PATH")
 
     try:
         proc = subprocess.run(
@@ -628,6 +659,50 @@ def execute_case(runner: str, model: str | None, skills: list[dict],
     }
 
 
+class ProgressRenderer:
+    """Encapsulates ANSI cursor math for test progress display."""
+
+    def __init__(self, total: int):
+        self.total = total
+
+    def update(self, completed: int):
+        """Print the progress line."""
+        print(f"\r\033[2K{C_BLUE}  {completed}/{self.total} cases complete...{C_RESET}",
+              end="", flush=True)
+
+    def flush_block(self, block_lines: int):
+        """Insert blank lines before a skill block."""
+        print(f"\r\033[{block_lines}L", end="", flush=True)
+
+    def clear(self):
+        """Clear the progress line."""
+        print(f"\r\033[2K")
+
+    def interrupt(self, completed: int):
+        """Print interruption message."""
+        print(f"\r\033[2K{C_RED}\n  Interrupted at {completed}/{self.total} cases — cancelling...{C_RESET}",
+              file=sys.stderr)
+
+
+class NullProgressRenderer:
+    """No-op renderer for testing/non-interactive use."""
+
+    def __init__(self, total: int):
+        self.total = total
+
+    def update(self, completed: int):
+        pass
+
+    def flush_block(self, block_lines: int):
+        pass
+
+    def clear(self):
+        pass
+
+    def interrupt(self, completed: int):
+        pass
+
+
 def _count_block_lines(raw_results: list[dict], args) -> int:
     """Count lines _flush_skill_block will print for these results."""
     cases_sorted = sorted(raw_results,
@@ -695,18 +770,15 @@ def cmd_test(args):
     """Run trigger detection tests for skills."""
     skills = collect_skill_descriptions()
     if not skills:
-        print("error: no skills found in plugins/", file=sys.stderr)
-        sys.exit(1)
+        raise SkillctlError("no skills found in plugins/")
 
     skill_names = find_test_skills()
     if not skill_names:
-        print("error: no tests/*/cases.json found", file=sys.stderr)
-        sys.exit(1)
+        raise SkillctlError("no tests/*/cases.json found")
 
     if args.skill:
         if args.skill not in skill_names:
-            print(f"error: no tests/{args.skill}/cases.json found", file=sys.stderr)
-            sys.exit(1)
+            raise SkillctlError(f"no tests/{args.skill}/cases.json found")
         skill_names = [args.skill]
 
     all_jobs = []
@@ -723,8 +795,7 @@ def cmd_test(args):
             all_jobs.append((skill_name, "should_not_trigger", prompt, i))
 
     if not all_jobs:
-        print("error: no test cases found", file=sys.stderr)
-        sys.exit(1)
+        raise SkillctlError("no test cases found")
 
     remaining = {}
     for job in all_jobs:
@@ -736,8 +807,9 @@ def cmd_test(args):
     total_pass = 0
     total_fail = 0
     results_all = []
+    renderer = ProgressRenderer(total_cases)
 
-    print(f"{C_BLUE}  0/{total_cases} cases complete...{C_RESET}", end="", flush=True)
+    renderer.update(0)
 
     executor = ThreadPoolExecutor(max_workers=args.jobs)
     futures = {
@@ -765,19 +837,16 @@ def cmd_test(args):
 
             if remaining[skill_name] == 0:
                 block_lines = _count_block_lines(skill_results[skill_name], args)
-                print(f"\r\033[{block_lines}L", end="", flush=True)
+                renderer.flush_block(block_lines)
                 total_pass, total_fail = _flush_skill_block(
                     skill_name, skill_results[skill_name],
                     args, total_pass, total_fail, results_all)
                 if completed < total_cases:
-                    print(f"\r\033[2K{C_BLUE}  {completed}/{total_cases} cases complete...{C_RESET}",
-                          end="", flush=True)
+                    renderer.update(completed)
             else:
-                print(f"\r\033[2K{C_BLUE}  {completed}/{total_cases} cases complete...{C_RESET}",
-                      end="", flush=True)
+                renderer.update(completed)
     except KeyboardInterrupt:
-        print(f"\r\033[2K{C_RED}\n  Interrupted at {completed}/{total_cases} cases — cancelling...{C_RESET}",
-              file=sys.stderr)
+        renderer.interrupt(completed)
         for f in futures:
             f.cancel()
         executor.shutdown(wait=False, cancel_futures=True)
@@ -787,13 +856,13 @@ def cmd_test(args):
     else:
         executor.shutdown(wait=True)
 
-    print(f"\r\033[2K")
+    renderer.clear()
     print(f"\n{'=' * 60}")
     print(f"Total: {C_GREEN}{total_pass} passed{C_RESET}, {C_RED}{total_fail} failed{C_RESET}")
     print(f"{'=' * 60}")
 
     if total_fail > 0:
-        sys.exit(1)
+        raise SkillctlError(f"{total_fail} test case(s) failed")
 
 
 def cmd_help(args, parser=None):
@@ -853,7 +922,7 @@ def main():
 
     # link
     p_link = sub.add_parser("link", help="Symlink a plugin's skills into a harness directory")
-    p_link.add_argument("--plugin", help="Plugin name (coding, finance, pm). Omit to link all plugins.")
+    p_link.add_argument("--plugin", help="Plugin name (coding, pm). Omit to link all plugins.")
     p_link.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor, omp)")
     p_link.add_argument("--scope", choices=["user", "project"], default="user", help="User or project scope")
     p_link.add_argument("--copy", action="store_true", help="Copy instead of symlink (auto on Windows)")
@@ -884,11 +953,15 @@ def main():
     p_list = sub.add_parser("list", help="List all plugins and their skills")
     p_list.set_defaults(func=cmd_list)
 
+    # list-agents
+    p_list_agents = sub.add_parser("list-agents", help="Print supported agent names, one per line")
+    p_list_agents.set_defaults(func=cmd_list_agents)
+
     # test
     p_test = sub.add_parser("test", help="Run trigger detection tests for skills")
     p_test.add_argument("--skill", help="Test a single skill (by test directory name)")
     p_test.add_argument("--runner", default="opencode", choices=list(RUNNERS.keys()),
-                        help="LLM runner to use (default: opencode)")
+                        help="LLM runner to use: opencode, claude, or omp (default: opencode)")
     p_test.add_argument("--model", help="Model identifier (e.g. corti/corti-s1, claude-sonnet-4-20250514)")
     p_test.add_argument("--verbose", action="store_true", help="Show per-case details, not just failures")
     p_test.add_argument("--jobs", "-j", type=int, default=8,
@@ -900,10 +973,14 @@ def main():
     p_help.set_defaults(func=cmd_help)
 
     args = parser.parse_args()
-    if args.command == "help":
-        cmd_help(args, parser)
-    else:
-        args.func(args)
+    try:
+        if args.command == "help":
+            cmd_help(args, parser)
+        else:
+            args.func(args)
+    except SkillctlError as e:
+        print(f"error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
