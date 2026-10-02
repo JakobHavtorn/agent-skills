@@ -74,8 +74,10 @@ Run the following two Linear fetches in parallel:
 **Part 1 - Tickets:** Call `list_issues` for the Speech Recognition team, filtered to issues updated in the last 7 days (`updatedAt: "-P7D"`), ordered by `updatedAt` descending, limit 200. The result might exceed the token budget and spill to disk. In that case, run the bundled summarizer to get a categorized listing:
 
 ```bash
-python3 ~/.config/opencode/skills/speechrec-weekly-update/scripts/summarize_linear_issues.py <FILE_PATH>
+python3 <skill-dir>/scripts/summarize_linear_issues.py <FILE_PATH>
 ```
+
+Resolve `<skill-dir>` from this skill's installed location (the directory containing this `SKILL.md`).
 
 It groups issues into Recently Completed (last 7 days; override with `--days N`), In Progress, and In Review, with one line per issue (`updatedAt | status | SR-id | title | [project]`).
 
@@ -94,8 +96,10 @@ The canvas is too large to fit in context, so Claude Code's harness automaticall
 **Part 2**: Run the extractor script that ships with this skill, passing the file path from the error:
 
 ```bash
-python3 ~/.config/opencode/skills/speechrec-weekly-update/scripts/extract_recent_standups.py <FILE_PATH>
+python3 <skill-dir>/scripts/extract_recent_standups.py <FILE_PATH>
 ```
+
+Resolve `<skill-dir>` from this skill's installed location (the directory containing this `SKILL.md`).
 
 It parses the JSON dump, splits the canvas markdown on `## ![](slack_date:YYYY-MM-DD)` headers, and prints only the sections from the last 10 days.
 

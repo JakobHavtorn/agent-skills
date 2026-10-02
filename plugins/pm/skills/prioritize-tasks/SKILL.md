@@ -76,11 +76,13 @@ Search Slack for what the user sent, then mine it for commitments.
 - For a message that reads like a commitment *and* sits in a thread (it's a reply, or it has replies), follow up with `slack_read_thread` on that message's `ts` to recover the surrounding ask, any **deadline**, and whether it was later resolved. Run these thread reads in parallel. Deadlines and "actually nevermind" resolutions usually live in the thread, not the standalone line.
 - For each surviving commitment capture: a short task title (imperative, paraphrased from the message), any deadline mentioned, the channel/thread permalink, and the date committed. Drop anything already clearly done or rescinded.
 
-**Overflow handling:** if the search result overflows (the MCP returns an error pointing to a file under `tool-results/mcp-claude_ai_Slack-slack_search_public_and_private-*.txt`), do **not** `Read` the file directly — run the bundled parser:
+**Overflow handling:** if the search result overflows (the MCP returns an error pointing to a file under `tool-results/mcp-claude_ai_Slack-slack_search_public_and_private-*.txt`), do **not** `Read` the file directly — run the bundled parser from this skill's `scripts/` directory:
 
 ```bash
-python3 ~/.config/opencode/skills/prioritize-tasks/scripts/parse_slack_overflow.py <dumped-file-path> --max-text 280
+python3 <skill-dir>/scripts/parse_slack_overflow.py <dumped-file-path> --max-text 280
 ```
+
+Resolve `<skill-dir>` from this skill's installed location (the directory containing this `SKILL.md` — e.g. `~/.claude/skills/prioritize-tasks/`, `~/.omp/agent/skills/prioritize-tasks/`, `~/.config/opencode/skills/prioritize-tasks/`).
 
 It strips bot noise and prints one compact line per message (time, channel, author, text) so the whole window fits in context.
 

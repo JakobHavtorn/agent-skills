@@ -55,11 +55,13 @@ Search Slack for messages the user sent or was mentioned in during the time wind
 - Prefer `response_format: "concise"` and `include_context: false` to keep the payload small.
 - Ignore automated bot messages or noise (CI notifications, etc.).
 
-If the Slack tool result overflows (returns an error pointing to a file under `tool-results/mcp-claude_ai_Slack-slack_search_public_and_private-*.txt`), do not read the file directly with `Read` — it will blow context. Instead, run the helper script:
+If the Slack tool result overflows (returns an error pointing to a file under `tool-results/mcp-claude_ai_Slack-slack_search_public_and_private-*.txt`), do not read the file directly with `Read` — it will blow context. Instead, run the helper script that ships with this skill:
 
 ```bash
-python3 ~/.config/opencode/skills/standup-summary/scripts/parse_slack_overflow.py <dumped-file-path> --max-text 240
+python3 <skill-dir>/scripts/parse_slack_overflow.py <dumped-file-path> --max-text 240
 ```
+
+Resolve `<skill-dir>` from this skill's installed location (the directory containing this `SKILL.md` — e.g. `~/.claude/skills/standup-summary/`, `~/.omp/agent/skills/standup-summary/`, `~/.config/opencode/skills/standup-summary/`).
 
 The script strips bot noise by default, keeps only the fields needed for a standup (time, channel, author, text), and prints one compact line per message so the whole window fits in context. Add `--include-bots` only if bot messages are relevant; use `--raw` to fall back to the full unparsed `results` blob.
 
