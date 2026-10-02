@@ -119,7 +119,7 @@ Read `references/writing-guide.md` for detailed instructions on writing each sec
 
 3. **Core steps with method alternatives**: Each step that calls an external tool should offer at least 2 paths based on what Step 1 detected. Use pattern: "If `TOOL_A` detected → Method 1, otherwise → Method 2." Each step gets `## Step N: [Verb] [Object]`, a decision table if routing, a pass/fail gate if evaluative, and a reference pointer for deep content.
 
-4. **Defaults table**: Every parameter SHOULD have an explicit default. If a parameter has no sensible default, the skill MUST include instructions to ask the user for that input rather than stalling silently. No skill should ever stall waiting for input without the user knowing what's needed.
+4. **Defaults table**: Every parameter SHOULD have an explicit default. If a parameter has no sensible default, the skill MUST include instructions to ask the user for that input rather than guessing.
 
 5. **Final step = output template**: Number every output section. Specify exactly what data goes in each. Include a verdict/grade system if evaluative.
 
