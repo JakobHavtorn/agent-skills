@@ -11,7 +11,7 @@ git worktree add "../$(basename "$(pwd)")-work-$(git rev-parse --abbrev-ref HEAD
   -b "agent/$(date +%Y%m%d-%H%M%S)-<descriptive-slug>"
 ```
 
-Include a ticket reference in the slug when available, e.g. `agent/20261003-205039-fix-worktree-policy-ENG-123`. When no ticket exists, omit it.
+Include a ticket reference in the slug when available, e.g. `agent/20261003-205039-fix-worktree-policy-SR-1234`. When no ticket exists, omit it.
 
 Work in the worktree, not the main checkout. Commit there, push from there, open the PR from there.
 
@@ -24,10 +24,6 @@ git worktree remove "../$(basename "$(pwd)")-work-$(git rev-parse --abbrev-ref H
 ```
 
 If the worktree's branch has been merged, delete it as well:
-
-```bash
-git branch -d "<branch-name>"
-```
 
 ## Code verification
 
