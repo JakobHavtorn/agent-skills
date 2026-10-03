@@ -165,3 +165,7 @@ jobs:
           diff -q \
             plugins/pm/skills/standup-summary/scripts/parse_slack_overflow.py \
             plugins/pm/skills/prioritize-tasks/scripts/parse_slack_overflow.py
+
+      # ── 10. Run skillctl unit tests ──
+      - name: Run skillctl tests
+        run: python3 tests/test_skillctl.py
