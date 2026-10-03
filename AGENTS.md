@@ -18,6 +18,7 @@ plugins/<plugin>/skills/<skill>/SKILL.md
 plugins/<plugin>/skills/<skill>/scripts/   # executable helpers
 plugins/<plugin>/skills/<skill>/references/  # loaded on demand
 plugins/<plugin>/skills/<skill>/assets/      # templates, lookup tables
+plugins/<plugin>/skills/<skill>/agents/     # per-skill sub-agent definitions (e.g. openai.yaml)
 bin/skillctl                          # install / link / test / doctor
 bin/validate-skill                    # spec validation wrapper
 bin/setup                              # convenience wrapper for skillctl link

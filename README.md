@@ -50,7 +50,7 @@ Verify your installation:
 ```bash
 skillctl list                          # list all plugins and skills
 skillctl link --plugin <p> --agent <a> # symlink a plugin's skills into a harness
-skillctl link --all --agent <a>        # symlink every plugin into a harness
+skillctl link --agent <a>              # symlink every plugin into a harness
 skillctl unlink --plugin <p> --agent <a>  # remove a plugin's links
 skillctl prune --agent <a>             # dry-run: report stale links and orphans
 skillctl prune --agent <a> --apply     # remove links whose source skill was deleted
@@ -106,6 +106,14 @@ Project management and team productivity skills.
 | [standup-summary](plugins/pm/skills/standup-summary) | Standup recap from Linear activity and Slack messages |
 | [speechrec-weekly-update](plugins/pm/skills/speechrec-weekly-update) | Pre-read status update for the weekly Speech Recognition sync call |
 | [speechrec-sprint-goals](plugins/pm/skills/speechrec-sprint-goals) | Draft SR team sprint goals from Notion, Linear, and Slack |
+
+## Agents
+
+The `agents/` directory holds standalone agent definitions that are not tied to a specific skill.
+
+| Agent | Description |
+|---|---|
+| [title.md](agents/title.md) | Hidden omp-specific title generator — produces short session titles from conversation content |
 
 ## License
 
