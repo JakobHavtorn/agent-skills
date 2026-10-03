@@ -4,16 +4,30 @@ High-level instructions for all coding agents. Installed by `agent-skills` via `
 
 ## Git worktree policy
 
-Before making any file edits, create a git worktree for your changes:
+Before making any file edits, create a git worktree for your changes. The branch name must include a short descriptive slug for the work, and a project-management or issue-tracking ticket reference if one is available:
 
 ```bash
 git worktree add "../$(basename "$(pwd)")-work-$(git rev-parse --abbrev-ref HEAD)" \
-  -b "agent/$(date +%Y%m%d-%H%M%S)"
+  -b "agent/$(date +%Y%m%d-%H%M%S)-<descriptive-slug>"
 ```
+
+Include a ticket reference in the slug when available, e.g. `agent/20261003-205039-fix-worktree-policy-ENG-123`. When no ticket exists, omit it.
 
 Work in the worktree, not the main checkout. Commit there, push from there, open the PR from there.
 
 Never edit files in the main checkout directly. The only exception is read-only investigation — `read`, `grep`, `glob`, `bash` for inspection — which stays in the original directory, or when explicitly instructed by the user to do so.
+
+Remove the worktree once the work is finished — PR merged, effort abandoned, or no longer needed. From the main checkout:
+
+```bash
+git worktree remove "../$(basename "$(pwd)")-work-$(git rev-parse --abbrev-ref HEAD)"
+```
+
+If the worktree's branch has been merged, delete it as well:
+
+```bash
+git branch -d "<branch-name>"
+```
 
 ## Code verification
 
