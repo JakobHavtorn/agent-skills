@@ -77,7 +77,7 @@ HARNESS_PATHS: dict[str, HarnessPaths] = {
         project=ScopePaths(Path.cwd() / ".cursor" / "skills"),
     ),
     "omp": HarnessPaths(
-        user=ScopePaths(Path.home() / ".omp" / "agent" / "skills", Path.home() / ".omp"),
+        user=ScopePaths(Path.home() / ".omp" / "agent" / "skills", Path.home() / ".omp" / "agent"),
         project=ScopePaths(Path.cwd() / ".omp" / "skills"),
     ),
 }
