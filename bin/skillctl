@@ -88,8 +88,8 @@ HARNESS_PATHS: dict[str, HarnessPaths] = {
 CONTEXT_FILE = REPO_ROOT / "global" / "AGENTS.md"
 CONTEXT_TARGET_NAME = "AGENTS.md"
 
-# Standalone agent definitions (e.g. title.md) — linked per-file into each
-# harness's agents/ directory, like the context file. User scope only.
+# Standalone agent definitions (e.g. title.md) — linked as a whole agents/
+# directory symlink into each harness's config tree. User scope only.
 AGENTS_DIR = REPO_ROOT / "agents"
 
 # On Windows, Git defaults to core.symlinks=false — symlinks become dead text files.
@@ -193,92 +193,36 @@ def unlink_context_file(agent: str, scope: str) -> bool:
     return False
 
 
-def get_agent_specs() -> list[Path]:
-    """Return standalone agent definition files (agents/*.md)."""
-    if not AGENTS_DIR.is_dir():
-        return []
-    return sorted(p for p in AGENTS_DIR.iterdir() if p.is_file() and p.suffix == ".md")
+def link_agents_dir(agent: str, copy: bool = False, force: bool = False) -> str:
+    """Link the agents/ directory into the harness's config dir (user scope only).
 
-
-def _agents_target_dir(agent: str) -> Path:
-    """Target agents/ directory for a harness (user scope only)."""
-    ctx = getattr(HARNESS_PATHS[agent], "user").context
-    if ctx is None:
-        raise SkillctlError(f"no user context path for agent '{agent}'")
-    return ctx / "agents"
-
-
-def link_agents_dir(agent: str, copy: bool = False, force: bool = False):
-    """Link each agents/*.md into the harness's agents/ directory (user scope only).
-
-    Returns (linked, copied, exists, errors).  When *force* is set and the
-    existing target is a whole-directory symlink (legacy bespoke install),
-    it is removed before per-file linking — without it, force would rmtree
-    the real source reached through the symlink.
+    Returns 'linked', 'copied', 'exists', or 'error'.  Uses _link_entry, so
+    --force replaces an existing target and copies are used on Windows.
     """
-    specs = get_agent_specs()
-    if not specs:
-        return 0, 0, 0, 0
+    if not AGENTS_DIR.is_dir():
+        return "error"
 
-    target_dir = _agents_target_dir(agent)
-
-    # Legacy bespoke installs linked the whole agents/ directory as one
-    # symlink.  Remove it so per-file links can take over; otherwise
-    # _link_entry(force=True) would rmtree through the symlink into the
-    # source repo.
-    if target_dir.is_symlink():
-        if not force:
-            print(f"  SKIP agents/: whole-dir symlink — re-run with --force to migrate", file=sys.stderr)
-            return 0, 0, 0, len(specs)
-        target_dir.unlink()
-        print("  OVERWRITE agents/ (replaced legacy whole-dir symlink)", file=sys.stderr)
-
+    target_dir = getattr(HARNESS_PATHS[agent], "user").context
+    if target_dir is None:
+        return "error"
     target_dir.mkdir(parents=True, exist_ok=True)
-    copy_fn = shutil.copy2 if (copy or FORCE_COPY) else None
-
-    linked = copied = exists = errors = 0
-    for spec in specs:
-        try:
-            result = _link_entry(spec, target_dir / spec.name, copy_fn, force)
-        except SkillctlError:
-            errors += 1
-            continue
-        if result == "linked":
-            print(f"  LINKED agents/{spec.name} -> {target_dir / spec.name}")
-            linked += 1
-        elif result == "copied":
-            print(f"  COPIED agents/{spec.name} -> {target_dir / spec.name}")
-            copied += 1
-        elif result == "exists":
-            print(f"  EXISTS agents/{spec.name} (already linked)")
-            exists += 1
-    return linked, copied, exists, errors
+    copy_fn = shutil.copytree if (copy or FORCE_COPY) else None
+    return _link_entry(AGENTS_DIR, target_dir / "agents", copy_fn, force)
 
 
-def unlink_agents_dir(agent: str) -> int:
-    """Remove per-file agents/*.md symlinks (user scope only). Returns count removed."""
-    target_dir = _agents_target_dir(agent)
-    if not target_dir.exists():
-        return 0
-
-    specs = get_agent_specs()
-
-    # Legacy whole-dir symlink: remove it.
-    if target_dir.is_symlink():
-        target_dir.unlink()
-        print("  REMOVED agents/ (legacy whole-dir symlink)")
-        return 1
-
-    removed = 0
-    for spec in specs:
-        link_path = target_dir / spec.name
-        if link_path.is_symlink():
-            link_path.unlink()
-            print(f"  REMOVED agents/{spec.name}")
-            removed += 1
-        elif link_path.exists():
-            print(f"  SKIP agents/{spec.name}: not a symlink, leaving in place", file=sys.stderr)
-    return removed
+def unlink_agents_dir(agent: str) -> bool:
+    """Remove the agents/ symlink from the harness config dir. Returns True if removed."""
+    target_dir = getattr(HARNESS_PATHS[agent], "user").context
+    if target_dir is None:
+        return False
+    link_path = target_dir / "agents"
+    if link_path.is_symlink():
+        link_path.unlink()
+        return True
+    elif link_path.exists():
+        print("  SKIP agents/: not a symlink, leaving in place", file=sys.stderr)
+        return False
+    return False
 
 
 def resolve_plugins(args) -> dict[str, list[Path]]:
@@ -340,11 +284,18 @@ def cmd_link(args):
         else:
             print(f"  SKIP {CONTEXT_TARGET_NAME} (see warnings above)", file=sys.stderr)
 
-    # Link standalone agent specs (user scope only).
+    # Link the agents/ directory (user scope only).
     if args.scope == "user" and AGENTS_DIR.is_dir():
-        a_linked, a_copied, a_exists, a_errors = link_agents_dir(args.agent, copy=args.copy, force=args.force)
-        if a_errors and not (a_linked or a_copied or a_exists):
-            print(f"  SKIP agents/ (see warnings above)", file=sys.stderr)
+        result = link_agents_dir(args.agent, copy=args.copy, force=args.force)
+        agents_dir = getattr(HARNESS_PATHS[args.agent], "user").context / "agents"
+        if result == "linked":
+            print(f"  LINKED agents/ -> {agents_dir}")
+        elif result == "copied":
+            print(f"  COPIED agents/ -> {agents_dir}")
+        elif result == "exists":
+            print("  EXISTS agents/ (already linked)")
+        else:
+            print("  SKIP agents/ (see warnings above)", file=sys.stderr)
 
 
 def cmd_unlink(args):
@@ -371,7 +322,8 @@ def cmd_unlink(args):
     if args.scope == "user":
         if unlink_context_file(args.agent, args.scope):
             print(f"  REMOVED {CONTEXT_TARGET_NAME}")
-        unlink_agents_dir(args.agent)  # per-file removal messages already printed
+        if unlink_agents_dir(args.agent):
+            print("  REMOVED agents/")
 
 
 def cmd_doctor(args):
@@ -423,26 +375,19 @@ def cmd_doctor(args):
             else:
                 print(f"  {agent:<10} {link_path}  [absent]")
         print()
-    # Report standalone agent spec link status.
+    # Report agents/ directory link status.
     if AGENTS_DIR.is_dir():
-        specs = get_agent_specs()
         print(f"=== Agent specs: {AGENTS_DIR.relative_to(REPO_ROOT)} ===")
         for agent in HARNESS_PATHS:
-            agents_dir = HARNESS_PATHS[agent].user.context / "agents"
-            if agents_dir.is_symlink():
-                print(f"  {agent:<10} {agents_dir} -> {agents_dir.resolve()}  [legacy whole-dir]")
-                continue
-            if not agents_dir.exists():
-                print(f"  {agent:<10} {agents_dir}  [absent]")
-                continue
-            for spec in specs:
-                link_path = agents_dir / spec.name
-                if link_path.is_symlink():
-                    resolved = link_path.resolve()
-                    status = "[OK]" if resolved.exists() else "[BROKEN]"
-                    print(f"  {agent:<10} {link_path.name} -> {resolved}  {status}")
-                elif link_path.exists():
-                    print(f"  {agent:<10} {link_path.name}  [not a symlink]")
+            link_path = HARNESS_PATHS[agent].user.context / "agents"
+            if link_path.is_symlink():
+                resolved = link_path.resolve()
+                status = "[OK]" if resolved.exists() else "[BROKEN]"
+                print(f"  {agent:<10} {link_path} -> {resolved}  {status}")
+            elif link_path.exists():
+                print(f"  {agent:<10} {link_path}  [not a symlink]")
+            else:
+                print(f"  {agent:<10} {link_path}  [absent]")
         print()
 
 

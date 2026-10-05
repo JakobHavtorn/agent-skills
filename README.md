@@ -85,7 +85,7 @@ skillctl help                          # show detailed help with examples
 
 ## Agents
 
-The `agents/` directory holds standalone agent definitions that are not tied to a specific skill. `skillctl link` symlinks each `agents/*.md` into the harness's `agents/` directory (user scope only), alongside the context file.
+The `agents/` directory holds standalone agent definitions that are not tied to a specific skill. `skillctl link` symlinks the entire `agents/` directory into each harness's config tree (user scope only), alongside the context file.
 
 | Harness | Agents path |
 |---|---|
