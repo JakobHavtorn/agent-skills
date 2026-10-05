@@ -40,6 +40,10 @@ Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless w
 - Fragments are fine when clearer than a full sentence.
 - Cut ceremony, hedging, and recaps. The reader is technical.
 
+## Diagrams
+
+Prefer [Mermaid](https://mermaid.js/) for diagrams and flowcharts where a visual structure genuinely aids understanding; skip it for trivial or purely linear content. Use the `mermaid` skill when available for up-to-date syntax across all diagram types.
+
 ## Code comments
 
 Prefer self-documenting code. Clear names reduce the need for comments. When you do comment:
