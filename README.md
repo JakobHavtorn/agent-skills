@@ -35,6 +35,16 @@ Verify your installation:
 ~/.agent-skills/bin/skillctl doctor   # check links, orphans, broken symlinks
 ```
 
+### Developer setup
+
+For local development (installs pre-commit hooks for ruff, formatting, and file checks):
+
+```bash
+make install    # installs pre-commit, ruff, and wires git hooks
+make test       # runs skillctl unit tests
+make pre-commit # runs all hooks on all files
+```
+
 ### Supported harnesses
 
 | Harness | User scope | Project scope |
