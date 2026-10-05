@@ -228,8 +228,7 @@ def link_agents_dir(agent: str, copy: bool = False, force: bool = False):
     # source repo.
     if target_dir.is_symlink():
         if not force:
-            print(f"  SKIP agents/: whole-dir symlink — re-run with --force to migrate",
-                  file=sys.stderr)
+            print(f"  SKIP agents/: whole-dir symlink — re-run with --force to migrate", file=sys.stderr)
             return 0, 0, 0, len(specs)
         target_dir.unlink()
         print("  OVERWRITE agents/ (replaced legacy whole-dir symlink)", file=sys.stderr)
@@ -280,6 +279,8 @@ def unlink_agents_dir(agent: str) -> int:
         elif link_path.exists():
             print(f"  SKIP agents/{spec.name}: not a symlink, leaving in place", file=sys.stderr)
     return removed
+
+
 def resolve_plugins(args) -> dict[str, list[Path]]:
     """Resolve the plugin→skills map from args.
 
@@ -341,8 +342,7 @@ def cmd_link(args):
 
     # Link standalone agent specs (user scope only).
     if args.scope == "user" and AGENTS_DIR.is_dir():
-        a_linked, a_copied, a_exists, a_errors = link_agents_dir(
-            args.agent, copy=args.copy, force=args.force)
+        a_linked, a_copied, a_exists, a_errors = link_agents_dir(args.agent, copy=args.copy, force=args.force)
         if a_errors and not (a_linked or a_copied or a_exists):
             print(f"  SKIP agents/ (see warnings above)", file=sys.stderr)
 
