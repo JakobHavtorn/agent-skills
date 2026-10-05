@@ -7,10 +7,12 @@ description: >-
   Gantt chart, pie chart, mindmap, timeline, git graph, quadrant chart,
   requirement diagram, C4 diagram, Sankey diagram, XY chart, block diagram,
   packet diagram, kanban, architecture diagram, radar chart, treemap, user
-  journey, or ZenUML diagram. Triggers: "mermaid", "draw a diagram",
-  "flowchart", "sequence diagram", "class diagram", "ER diagram",
-  "state machine diagram", "Gantt chart", "architecture diagram",
-  "C4 diagram", "visualize this", "diagram of", "make a diagram".
+  journey, use case diagram, swimlane diagram, railroad diagram, or ZenUML
+  diagram. Triggers: "mermaid", "draw a diagram", "flowchart",
+  "sequence diagram", "class diagram", "ER diagram", "state machine
+  diagram", "Gantt chart", "architecture diagram", "C4 diagram",
+  "visualize this", "diagram of", "make a diagram", "use case diagram",
+  "swimlane", "railroad diagram", "Venn diagram", "Wardley map".
 allowed-tools: Read Write Edit
 metadata:
   argument-hint: "[diagram description or requirements]"
@@ -18,62 +20,38 @@ metadata:
 
 # Mermaid Diagram Generator
 
-Generate high-quality Mermaid diagram code based on user requirements.
+Generate high-quality Mermaid diagram code from user requirements. The skill references the official Mermaid documentation for accurate, current syntax rather than vendoring stale copies.
 
-## Workflow
+## Step 1: Identify the Diagram Type
 
-1. **Understand Requirements**: Analyze user description to determine the most suitable diagram type
-2. **Read Documentation**: Read the corresponding syntax reference for the diagram type
-3. **Generate Code**: Generate Mermaid code following the specification
-4. **Apply Styling**: Apply appropriate themes and style configurations
+Read `references/diagram-types.md` — the canonical lookup of every Mermaid diagram type, its keyword, use cases, and a link to the official syntax documentation. The "Use Cases" column routes user intent to the right type; the table covers all 32 types plus configuration topics.
 
-## Diagram Type Reference
+Pick the most suitable type based on the user's description. When the user names a type that does not appear in the table, it is not a supported Mermaid diagram type.
 
-Select the appropriate diagram type and read the corresponding documentation:
+## Step 2: Read the Official Syntax Documentation
 
-| Type | Documentation | Use Cases |
-| ---- | ------------- | --------- |
-| Flowchart | [flowchart.md](references/flowchart.md) | Processes, decisions, steps |
-| Sequence Diagram | [sequenceDiagram.md](references/sequenceDiagram.md) | Interactions, messaging, API calls |
-| Class Diagram | [classDiagram.md](references/classDiagram.md) | Class structure, inheritance, associations |
-| State Diagram | [stateDiagram.md](references/stateDiagram.md) | State machines, state transitions |
-| ER Diagram | [entityRelationshipDiagram.md](references/entityRelationshipDiagram.md) | Database design, entity relationships |
-| Gantt Chart | [gantt.md](references/gantt.md) | Project planning, timelines |
-| Pie Chart | [pie.md](references/pie.md) | Proportions, distributions |
-| Mindmap | [mindmap.md](references/mindmap.md) | Hierarchical structures, knowledge graphs |
-| Timeline | [timeline.md](references/timeline.md) | Historical events, milestones |
-| Git Graph | [gitgraph.md](references/gitgraph.md) | Branches, merges, versions |
-| Quadrant Chart | [quadrantChart.md](references/quadrantChart.md) | Four-quadrant analysis |
-| Requirement Diagram | [requirementDiagram.md](references/requirementDiagram.md) | Requirements traceability |
-| C4 Diagram | [c4.md](references/c4.md) | System architecture (C4 model) |
-| Sankey Diagram | [sankey.md](references/sankey.md) | Flow, conversions |
-| XY Chart | [xyChart.md](references/xyChart.md) | Line charts, bar charts |
-| Block Diagram | [block.md](references/block.md) | System components, modules |
-| Packet Diagram | [packet.md](references/packet.md) | Network protocols, data structures |
-| Kanban | [kanban.md](references/kanban.md) | Task management, workflows |
-| Architecture Diagram | [architecture.md](references/architecture.md) | System architecture |
-| Radar Chart | [radar.md](references/radar.md) | Multi-dimensional comparison |
-| Treemap | [treemap.md](references/treemap.md) | Hierarchical data visualization |
-| User Journey | [userJourney.md](references/userJourney.md) | User experience flows |
-| ZenUML | [zenuml.md](references/zenuml.md) | Sequence diagrams (code style) |
+Once the diagram type is chosen, read the linked official documentation page for exact, current syntax. Every entry in `references/diagram-types.md` links to `https://mermaid.ai/open-source/syntax/<chart_type>.html` (or `/config/<topic>.html` for styling).
 
-## Configuration & Themes
+This ensures generated code matches the latest Mermaid syntax — the lookup table stays current because it links to live docs rather than vendoring markdown that drifts.
 
-- [Theming](references/config-theming.md) - Custom colors and styles
-- [Directives](references/config-directives.md) - Diagram-level configuration
-- [Layouts](references/config-layouts.md) - Layout direction and spacing
-- [Configuration](references/config-configuration.md) - Global settings
-- [Math](references/config-math.md) - LaTeX math support
+## Step 3: Generate Diagram Code
 
-## Output Specification
+Generate Mermaid code following the official specification read in Step 2:
 
-Generated Mermaid code should:
-
-1. Be wrapped in ```mermaid code blocks
+1. Be wrapped in ` ```mermaid ` code blocks
 2. Have correct syntax that renders directly
 3. Have clear structure with proper line breaks and indentation
 4. Use semantic node naming
 5. Include styling when needed to improve visual appearance
+
+## Step 4: Apply Styling (optional)
+
+If the user requests themes, colors, or layout configuration, read the relevant configuration page:
+
+- [Theming](https://mermaid.ai/open-source/config/theming.html) — custom colors, themes, looks
+- [Directives](https://mermaid.ai/open-source/config/directives.html) — diagram-level configuration
+- [Layouts](https://mermaid.ai/open-source/config/layouts.html) — layout direction and spacing
+- [Math](https://mermaid.ai/open-source/config/math.html) — LaTeX math support
 
 ## Example Output
 
@@ -84,6 +62,10 @@ flowchart TD
     B -->|No| D[End]
     C --> D
 ```
+
+## Reference Files
+
+- `references/diagram-types.md` — Canonical lookup: every diagram type, its keyword, use cases, and a link to the official syntax documentation
 
 ---
 
