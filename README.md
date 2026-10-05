@@ -85,11 +85,19 @@ skillctl help                          # show detailed help with examples
 
 ## Agents
 
-The `agents/` directory holds standalone agent definitions that are not tied to a specific skill.
+The `agents/` directory holds standalone agent definitions that are not tied to a specific skill. `skillctl link` symlinks each `agents/*.md` into the harness's `agents/` directory (user scope only), alongside the context file.
+
+| Harness | Agents path |
+|---|---|
+| Claude Code | `~/.claude/agents/<name>.md` |
+| Codex CLI | `~/.codex/agents/<name>.md` |
+| OpenCode | `~/.config/opencode/agents/<name>.md` |
+| Cursor | `~/.cursor/agents/<name>.md` |
+| Oh My Pi | `~/.omp/agent/agents/<name>.md` |
 
 | Agent | Description |
 |---|---|
-| [title.md](agents/title.md) | Hidden omp-specific title generator — produces short session titles from conversation content |
+| [title.md](agents/title.md) | Hidden title generator — produces short session titles from conversation content |
 
 ## Plugins
 ### `coding`

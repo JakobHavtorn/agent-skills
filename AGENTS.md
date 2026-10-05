@@ -23,7 +23,7 @@ bin/skillctl                          # install / link / test / doctor
 bin/validate-skill                    # spec validation wrapper
 bin/setup                              # convenience wrapper for skillctl link
 global/AGENTS.md                      # shared context file — symlinked into harnesses by skillctl link
-agents/title.md                       # hidden omp-specific title generator agent
+agents/title.md                       # standalone agent specs — symlinked into harnesses by skillctl link
 tests/<skill>/cases.json              # trigger detection test cases
 tests/<skill>/results.json            # last test run output (gitignored)
 tests/test_skillctl.py                # unit tests for skillctl pure functions
