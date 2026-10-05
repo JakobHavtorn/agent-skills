@@ -43,7 +43,7 @@ Before diving into a specific diagram type, read the [general syntax reference](
 | Wardley | `wardley` | Strategic mapping, value-chain evolution | [wardley.html](https://mermaid.ai/open-source/syntax/wardley.html) |
 | Cynefin | `cynefin` | Decision frameworks, sense-making contexts | [cynefin.html](https://mermaid.ai/open-source/syntax/cynefin.html) |
 | TreeView | `treeview-beta` | Expandable tree hierarchies, file/folder views | [treeView.html](https://mermaid.ai/open-source/syntax/treeView.html) |
-| Railroad | `railroad-ebnf-beta` / `railroad-abnf-beta` / `railroad-peg-beta` / `railroad-beta` | Grammar diagrams, syntax notation (EBNF/ABNF/PEG) (v11.16.0+) | [railroad.html](https://mermaid.ai/open-source/syntax/railroad.html) |
+| Railroad | `railroad-ebnf-beta` / `railroad-abnf-beta` / `railroad-peg-beta` / `railroad-beta` | Grammar diagrams, syntax notation (EBNF/ABNF/PEG) | [railroad.html](https://mermaid.ai/open-source/syntax/railroad.html) |
 
 ## Configuration & Styling
 
