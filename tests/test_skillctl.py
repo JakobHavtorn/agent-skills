@@ -3,6 +3,7 @@
 
 Runnable standalone (``python3 tests/test_skillctl.py``) or via pytest.
 """
+
 import os
 import sys
 import tempfile
@@ -32,6 +33,7 @@ build_classification_prompt = skillctl.build_classification_prompt
 # ---------------------------------------------------------------------------
 # _classify_target_entry — all 7 categories
 # ---------------------------------------------------------------------------
+
 
 def test_alive_symlink():
     """alive: symlink resolving to an existing dir inside the source repo."""
@@ -122,6 +124,7 @@ def test_stray_file():
 # parse_skill_names
 # ---------------------------------------------------------------------------
 
+
 def test_parse_known_skill_names():
     """Parses known skill names from LLM response."""
     skills = [{"name": "open-pr"}, {"name": "code-review"}, {"name": "tdd"}]
@@ -156,6 +159,7 @@ def test_parse_strips_dashes():
 # ---------------------------------------------------------------------------
 # build_classification_prompt
 # ---------------------------------------------------------------------------
+
 
 def test_prompt_includes_skill_names():
     """Prompt lists all skill names."""

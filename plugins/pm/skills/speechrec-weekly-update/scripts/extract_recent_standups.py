@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Print Slack canvas standup sections from the last 10 days, given a harness-spilled JSON dump."""
+
 import json
 import re
 import sys

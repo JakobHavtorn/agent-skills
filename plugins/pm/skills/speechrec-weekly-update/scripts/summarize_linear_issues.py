@@ -7,6 +7,7 @@ returns (e.g. `project`/`status` may be a string, a dict, or null).
 
 Usage: summarize_linear_issues.py <json-file> [--days N]
 """
+
 import json
 import sys
 from datetime import datetime, timedelta, timezone
@@ -69,8 +70,7 @@ def main():
     )
     section(
         "IN PROGRESS",
-        lambda i: i.get("statusType") == "started"
-        and "review" not in field_name(i.get("status")).lower(),
+        lambda i: i.get("statusType") == "started" and "review" not in field_name(i.get("status")).lower(),
     )
     section(
         "IN REVIEW",

@@ -169,3 +169,9 @@ jobs:
       # ── 10. Run skillctl unit tests ──
       - name: Run skillctl tests
         run: python3 tests/test_skillctl.py
+
+      # ── 11. Pre-commit hooks (ruff, format, yesqa, file checks) ──
+      - name: Run pre-commit
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files
