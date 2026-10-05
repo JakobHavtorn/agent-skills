@@ -23,13 +23,11 @@ import os
 import platform
 import re
 import shutil
-import stat
 import subprocess
 import sys
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -48,13 +46,15 @@ C_RESET = "\033[0m"
 @dataclass
 class ScopePaths:
     """Paths for one harness in one scope."""
-    skills: Path              # where SKILL.md dirs get symlinked
+
+    skills: Path  # where SKILL.md dirs get symlinked
     context: Path | None = None  # where AGENTS.md gets symlinked (user scope only)
 
 
 @dataclass
 class HarnessPaths:
     """Per-harness paths for both user and project scope."""
+
     user: ScopePaths
     project: ScopePaths
 
@@ -111,6 +111,7 @@ def get_all_skills() -> dict[str, list[Path]]:
             if skills:
                 result[plugin_dir.name] = skills
     return result
+
 
 class SkillctlError(Exception):
     """Error in skillctl that should print to stderr and exit(1)."""
@@ -186,6 +187,8 @@ def unlink_context_file(agent: str, scope: str) -> bool:
         print(f"  SKIP {CONTEXT_TARGET_NAME}: not a symlink, leaving in place", file=sys.stderr)
         return False
     return False
+
+
 def resolve_plugins(args) -> dict[str, list[Path]]:
     """Resolve the plugin→skills map from args.
 
@@ -201,6 +204,7 @@ def resolve_plugins(args) -> dict[str, list[Path]]:
     if not plugins:
         raise SkillctlError("no plugins or skills found")
     return plugins
+
 
 def cmd_link(args):
     """Link all skills from a plugin into a harness target directory."""
@@ -321,6 +325,7 @@ def cmd_doctor(args):
                 print(f"  {agent:<10} {link_path}  [absent]")
         print()
 
+
 def _classify_target_entry(entry: Path, skill_root: Path, declared_names: set[str]) -> tuple[str, str]:
     """Classify one entry of a harness target directory for maintenance.
 
@@ -366,8 +371,7 @@ def cmd_prune(args):
     for skill_dirs in get_all_skills().values():
         declared.update(s.name for s in skill_dirs)
 
-    counts = {"alive": 0, "stale": 0, "foreign-alive": 0, "foreign-dangling": 0, "copy": 0,
-              "orphan": 0, "stray": 0}
+    counts = {"alive": 0, "stale": 0, "foreign-alive": 0, "foreign-dangling": 0, "copy": 0, "orphan": 0, "stray": 0}
     pruned = 0
     would_prune = 0
 
@@ -438,6 +442,7 @@ def cmd_list_agents(args):
 
 TESTS_DIR = REPO_ROOT / "tests"
 
+
 def _opencode_args(prompt: str, model: str | None) -> list[str]:
     args = ["run", "--format", "json"]
     if model:
@@ -452,12 +457,14 @@ def _claude_args(prompt: str, model: str | None) -> list[str]:
         args += ["--model", model]
     args.append(prompt)
 
+
 def _omp_args(prompt: str, model: str | None) -> list[str]:
     args = ["-p", "--mode", "json"]
     if model:
         args += ["--model", model]
     args.append(prompt)
     return args
+
 
 RUNNERS = {
     "opencode": {
@@ -528,7 +535,7 @@ def build_classification_prompt(skills: list[dict], user_message: str) -> str:
         'If none apply, reply "none".'
     )
     lines.append("")
-    lines.append(f"User message: \"{user_message}\"")
+    lines.append(f'User message: "{user_message}"')
     return "\n".join(lines)
 
 
@@ -633,14 +640,12 @@ def find_test_skills() -> list[str]:
     """Return skill names that have tests/*/cases.json."""
     if not TESTS_DIR.is_dir():
         return []
-    return sorted(
-        d.name for d in TESTS_DIR.iterdir()
-        if d.is_dir() and (d / "cases.json").exists()
-    )
+    return sorted(d.name for d in TESTS_DIR.iterdir() if d.is_dir() and (d / "cases.json").exists())
 
 
-def execute_case(runner: str, model: str | None, skills: list[dict],
-                 skill_name: str, case_type: str, prompt: str, index: int) -> dict:
+def execute_case(
+    runner: str, model: str | None, skills: list[dict], skill_name: str, case_type: str, prompt: str, index: int
+) -> dict:
     """Run a single trigger-detection case and return a result dict."""
     classification_prompt = build_classification_prompt(skills, prompt)
     response, model_id = run_runner(runner, classification_prompt, model)
@@ -667,8 +672,7 @@ class ProgressRenderer:
 
     def update(self, completed: int):
         """Print the progress line."""
-        print(f"\r\033[2K{C_BLUE}  {completed}/{self.total} cases complete...{C_RESET}",
-              end="", flush=True)
+        print(f"\r\033[2K{C_BLUE}  {completed}/{self.total} cases complete...{C_RESET}", end="", flush=True)
 
     def flush_block(self, block_lines: int):
         """Insert blank lines before a skill block."""
@@ -676,12 +680,14 @@ class ProgressRenderer:
 
     def clear(self):
         """Clear the progress line."""
-        print(f"\r\033[2K")
+        print("\r\033[2K")
 
     def interrupt(self, completed: int):
         """Print interruption message."""
-        print(f"\r\033[2K{C_RED}\n  Interrupted at {completed}/{self.total} cases — cancelling...{C_RESET}",
-              file=sys.stderr)
+        print(
+            f"\r\033[2K{C_RED}\n  Interrupted at {completed}/{self.total} cases — cancelling...{C_RESET}",
+            file=sys.stderr,
+        )
 
 
 class NullProgressRenderer:
@@ -705,21 +711,20 @@ class NullProgressRenderer:
 
 def _count_block_lines(raw_results: list[dict], args) -> int:
     """Count lines _flush_skill_block will print for these results."""
-    cases_sorted = sorted(raw_results,
-                          key=lambda r: (r["type"] != "should_trigger", r["index"]))
+    cases_sorted = sorted(raw_results, key=lambda r: (r["type"] != "should_trigger", r["index"]))
     case_lines = sum(1 for r in cases_sorted if args.verbose or not r["passed"])
     summary_line = 0 if args.verbose else 1
     return 5 + case_lines + summary_line
 
 
-def _flush_skill_block(skill_name: str, raw_results: list[dict], args,
-                       total_pass: int, total_fail: int, results_all: list):
+def _flush_skill_block(
+    skill_name: str, raw_results: list[dict], args, total_pass: int, total_fail: int, results_all: list
+):
     """Print a skill's test block and write results.json.
 
     Returns updated (total_pass, total_fail).
     """
-    cases_sorted = sorted(raw_results,
-                          key=lambda r: (r["type"] != "should_trigger", r["index"]))
+    cases_sorted = sorted(raw_results, key=lambda r: (r["type"] != "should_trigger", r["index"]))
 
     print(f"\n{'=' * 60}")
     print(f"Testing: {skill_name}")
@@ -727,11 +732,16 @@ def _flush_skill_block(skill_name: str, raw_results: list[dict], args,
 
     case_results = []
     for r in cases_sorted:
-        case_results.append({
-            "type": r["type"], "prompt": r["prompt"],
-            "expected": r["expected"], "actual": r["actual"],
-            "passed": r["passed"], "matched_skills": r["matched_skills"],
-        })
+        case_results.append(
+            {
+                "type": r["type"],
+                "prompt": r["prompt"],
+                "expected": r["expected"],
+                "actual": r["actual"],
+                "passed": r["passed"],
+                "matched_skills": r["matched_skills"],
+            }
+        )
         if r["passed"]:
             total_pass += 1
         else:
@@ -813,8 +823,7 @@ def cmd_test(args):
 
     executor = ThreadPoolExecutor(max_workers=args.jobs)
     futures = {
-        executor.submit(execute_case, args.runner, args.model,
-                        skills, job[0], job[1], job[2], job[3]): job
+        executor.submit(execute_case, args.runner, args.model, skills, job[0], job[1], job[2], job[3]): job
         for job in all_jobs
     }
 
@@ -825,9 +834,14 @@ def cmd_test(args):
             except Exception:
                 job = futures[future]
                 result = {
-                    "skill": job[0], "type": job[1], "prompt": job[2],
-                    "index": job[3], "expected": job[1] == "should_trigger",
-                    "actual": False, "passed": False, "matched_skills": [],
+                    "skill": job[0],
+                    "type": job[1],
+                    "prompt": job[2],
+                    "index": job[3],
+                    "expected": job[1] == "should_trigger",
+                    "actual": False,
+                    "passed": False,
+                    "matched_skills": [],
                 }
 
             skill_name = result["skill"]
@@ -839,8 +853,8 @@ def cmd_test(args):
                 block_lines = _count_block_lines(skill_results[skill_name], args)
                 renderer.flush_block(block_lines)
                 total_pass, total_fail = _flush_skill_block(
-                    skill_name, skill_results[skill_name],
-                    args, total_pass, total_fail, results_all)
+                    skill_name, skill_results[skill_name], args, total_pass, total_fail, results_all
+                )
                 if completed < total_cases:
                     renderer.update(completed)
             else:
@@ -945,8 +959,9 @@ def main():
     p_prune.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor, omp)")
     p_prune.add_argument("--scope", choices=["user", "project"], default="user", help="User or project scope")
     p_prune.add_argument("--apply", action="store_true", help="Remove stale links (default: dry run)")
-    p_prune.add_argument("--orphans", action="store_true",
-                         help="Also prune stale copies of removed skills (--apply still required)")
+    p_prune.add_argument(
+        "--orphans", action="store_true", help="Also prune stale copies of removed skills (--apply still required)"
+    )
     p_prune.set_defaults(func=cmd_prune)
 
     # list
@@ -960,12 +975,15 @@ def main():
     # test
     p_test = sub.add_parser("test", help="Run trigger detection tests for skills")
     p_test.add_argument("--skill", help="Test a single skill (by test directory name)")
-    p_test.add_argument("--runner", default="opencode", choices=list(RUNNERS.keys()),
-                        help="LLM runner to use: opencode, claude, or omp (default: opencode)")
+    p_test.add_argument(
+        "--runner",
+        default="opencode",
+        choices=list(RUNNERS.keys()),
+        help="LLM runner to use: opencode, claude, or omp (default: opencode)",
+    )
     p_test.add_argument("--model", help="Model identifier (e.g. corti/corti-s1, claude-sonnet-4-20250514)")
     p_test.add_argument("--verbose", action="store_true", help="Show per-case details, not just failures")
-    p_test.add_argument("--jobs", "-j", type=int, default=8,
-                        help="Number of parallel LLM calls (default: 8)")
+    p_test.add_argument("--jobs", "-j", type=int, default=8, help="Number of parallel LLM calls (default: 8)")
     p_test.set_defaults(func=cmd_test)
 
     # help
