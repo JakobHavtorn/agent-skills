@@ -89,11 +89,11 @@ The `agents/` directory holds standalone agent definitions that are not tied to 
 
 | Harness | Agents path |
 |---|---|
-| Claude Code | `~/.claude/agents/<name>.md` |
-| Codex CLI | `~/.codex/agents/<name>.md` |
-| OpenCode | `~/.config/opencode/agents/<name>.md` |
-| Cursor | `~/.cursor/agents/<name>.md` |
-| Oh My Pi | `~/.omp/agent/agents/<name>.md` |
+| Claude Code | `~/.claude/agents/` |
+| Codex CLI | `~/.codex/agents/` |
+| OpenCode | `~/.config/opencode/agents/` |
+| Cursor | `~/.cursor/agents/` |
+| Oh My Pi | `~/.omp/agent/agents/` |
 
 | Agent | Description |
 |---|---|
