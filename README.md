@@ -95,6 +95,7 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [grilling](plugins/coding/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds |
 | [incident-trace](plugins/coding/skills/incident-trace) | Trace incidents through backend services from Loki logs — receipts, negative evidence, verdicts |
 | [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
+| [mermaid](plugins/coding/skills/mermaid) | Generate Mermaid diagrams — 23 types with full syntax references |
 | [open-pr](plugins/coding/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, Linear-linked description |
 | [resolving-merge-conflicts](plugins/coding/skills/resolving-merge-conflicts) | Resolve merge/rebase conflicts hunk by hunk, traced to each side's intent |
 | [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
