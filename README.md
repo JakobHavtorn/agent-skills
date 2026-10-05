@@ -71,7 +71,7 @@ skillctl help                          # show detailed help with examples
 | Codex CLI | `~/.codex/AGENTS.md` |
 | OpenCode | `~/.config/opencode/AGENTS.md` |
 | Cursor | `~/.cursor/AGENTS.md` |
-| Oh My Pi | `~/.omp/AGENTS.md` |
+| Oh My Pi | `~/.omp/agent/AGENTS.md` |
 
 ## Agents
 
