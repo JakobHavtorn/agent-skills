@@ -4,7 +4,6 @@
 Runnable standalone (``python3 tests/test_skillctl.py``) or via pytest.
 """
 
-import os
 import sys
 import tempfile
 import types
