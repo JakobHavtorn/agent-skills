@@ -19,7 +19,6 @@ import re
 import sys
 from pathlib import Path
 
-
 MESSAGE_SEPARATOR = re.compile(r"^---\s*$", re.MULTILINE)
 
 
@@ -64,9 +63,7 @@ def parse_message(block: str) -> dict[str, str] | None:
         elif line.startswith("Text:"):
             text_lines: list[str] = []
             i += 1
-            while i < len(lines) and not lines[i].startswith(
-                ("Context before:", "Context after:", "### Result")
-            ):
+            while i < len(lines) and not lines[i].startswith(("Context before:", "Context after:", "### Result")):
                 text_lines.append(lines[i])
                 i += 1
             fields["text"] = "\n".join(text_lines).strip()
@@ -130,8 +127,7 @@ def main() -> int:
         printed += 1
 
     print(
-        f"\n-- {printed} message(s) shown "
-        f"({total - printed} bot/noise skipped, {total} total) --",
+        f"\n-- {printed} message(s) shown ({total - printed} bot/noise skipped, {total} total) --",
         file=sys.stderr,
     )
     return 0
