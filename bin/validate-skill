@@ -8,12 +8,14 @@ runtime. Those fields are exempt from spec validation here — their semantics
 belong to the harnesses, so we strip them for spec validation and do not
 validate their values on the harnesses' behalf.
 """
-import re
+
 import pathlib
-import yaml
+import re
 import subprocess
 import sys
 import tempfile
+
+import yaml
 
 # Fields the spec validator allows.
 SPEC_FIELDS = {"allowed-tools", "compatibility", "description", "license", "metadata", "name"}
@@ -43,10 +45,7 @@ def main():
 
     illegal = [k for k in extra if k not in HARNESS_EXTENSIONS]
     if illegal:
-        sys.exit(
-            f"Validation failed for {skill_dir}:\n"
-            f"  - Unexpected fields in frontmatter: {', '.join(illegal)}"
-        )
+        sys.exit(f"Validation failed for {skill_dir}:\n  - Unexpected fields in frontmatter: {', '.join(illegal)}")
 
     # Only whitelisted harness extensions: validate a stripped copy.
     validate_stripped_copy(text, frontmatter, strip_harness_extensions(lines), skill_dir)
@@ -78,15 +77,15 @@ def strip_harness_extensions(lines):
     """Drop whitelisted extension fields, including indented continuations."""
     kept = []
     skipping = False
-    for l in lines:
+    for line in lines:
         if skipping:
-            if l.startswith((" ", "\t")) or not l.strip():
+            if line.startswith((" ", "\t")) or not line.strip():
                 continue
             skipping = False
-        if is_harness_extension(l):
+        if is_harness_extension(line):
             skipping = True
             continue
-        kept.append(l)
+        kept.append(line)
     return kept
 
 
