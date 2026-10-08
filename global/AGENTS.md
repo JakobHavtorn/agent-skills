@@ -25,6 +25,13 @@ git worktree remove "../$(basename "$(pwd)")-work-$(git rev-parse --abbrev-ref H
 
 If the worktree's branch has been merged, delete it as well:
 
+## Worktree cwd discipline
+
+The shell's working directory resets between tool calls, and `cd` inside one command does not carry into the next. File edits, `git commit`, and commands like `gh pr create` silently resolve against the session's original checkout — not the worktree — so a relative-path edit or an un-prefixed `git`/`gh` call can land on `main` instead of the worktree branch.
+
+- Prefer absolute worktree paths everywhere: `[/path/to/repo-work-slug/file#tag]` for edits, `git -C /path/to/repo-work-slug …` for git, and explicit `cd /path/to/repo-work-slug && gh …` chaining for tools that read cwd.
+- Verify before committing: `pwd` must be the worktree (or every path fully qualified), and `git -C /path/to/repo-work-slug status --short` must list exactly the intended files. A commit showing one file instead of two is the tell-tale of an edit that landed in the wrong checkout.
+
 ## Code verification
 
 Before reporting work complete, run the project's test suite or linter on changed files. If no suite exists, smoke-test the changed path directly. Never claim "done" without exercising the change.
