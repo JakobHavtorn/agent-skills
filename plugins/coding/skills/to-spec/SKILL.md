@@ -1,7 +1,8 @@
 ---
 name: to-spec
 description: "Turn the current conversation into a spec written as a markdown document in the repo. This skill should be used when the user wants to synthesize what was already discussed into a written spec, without an interview."
-disable-model-invocation: true
+metadata:
+  disable-model-invocation: true
 ---
 
 This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.

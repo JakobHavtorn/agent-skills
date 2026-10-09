@@ -1,7 +1,8 @@
 ---
 name: to-tickets
 description: Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges. This skill should be used when the user wants to decompose a plan, spec, or conversation into a set of tickets to work through.
-disable-model-invocation: true
+metadata:
+  disable-model-invocation: true
 ---
 
 # To Tickets
