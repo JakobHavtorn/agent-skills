@@ -13,7 +13,7 @@ allowed-tools: Bash(python:*) Bash(python3:*) Read
 
 ## Overview
 
-Generate a pre-read status update for the weekly Speech Recognition sync call, ready to post in the team Slack channel. The message covers: status on cycle items in progress, goals for the next cycle, and priority topics for discussion.
+Generate a pre-read status update for the weekly Speech Recognition sync call, ready to post in the team Slack channel. The message covers: a combined status & goals section (current in-progress items annotated with their forward-looking goal), priority topics for discussion, and other notes.
 
 ---
 
@@ -49,7 +49,7 @@ Run the following steps to gather context for the status update. Run each step (
 
 ### 2b. Current and upcoming cycle goals (Notion)
 
-**Used for:** primary source for the **forward-looking goals** section, and frames which items count as "this cycle" for the status section.
+**Used for:** primary source for the **forward-looking goals** that annotate each in-progress item in the consolidated status & goals section, and frames which items count as "this cycle" for the status portion.
 
 Fetch the Sprint Planning page and find the relevant cycle entries:
 - Sprint Planning page: `https://www.notion.so/cortihome/Sprint-Planning-20dbef65b3ab800c85dbd99368164e20`
@@ -57,17 +57,17 @@ Fetch the Sprint Planning page and find the relevant cycle entries:
 
 **Pick which cycle's goals are "forward-looking" using this heuristic:**
 - Compute `days_elapsed` (today − current cycle start) and `days_remaining` (current cycle end − today) for the current cycle.
-- If `days_remaining > days_elapsed` (today is in the **first half** of the current cycle) → forward-looking goals = **current cycle's** goals. The step-3 section header is **`Goals for this cycle ([CYCLE NAME], ending [DATE])`**.
-- Otherwise (today is in the **second half** of the current cycle) → forward-looking goals = **next cycle's** goals. The step-3 section header is **`Goals for next cycle — [CYCLE NAME] (starting [DATE])`**.
-- Always surface a forward-looking goals section — never drop it. If today is in the second half but no next cycle is planned in Notion, fall back to the current cycle's still-open goals and label the section **`Goals for the rest of this cycle ([CYCLE NAME], ending [DATE])`**.
+- If `days_remaining > days_elapsed` (today is in the **first half** of the current cycle) → forward-looking goals = **current cycle's** goals. The section header is **`Status & goals — [CURRENT CYCLE NAME], ending [DATE]`**.
+- Otherwise (today is in the **second half** of the current cycle) → forward-looking goals = **next cycle's** goals. The section header is **`Status & goals — [CURRENT CYCLE NAME] (goals for next cycle: [NEXT CYCLE NAME], starting [DATE])`**.
+- Always surface forward-looking goals — never drop them. If today is in the second half but no next cycle is planned in Notion, fall back to the current cycle's still-open goals and label the section **`Status & goals — [CURRENT CYCLE NAME], ending [DATE] (remaining goals)`**.
 
-The cycle name in the **status update** section header (step 3) is always the **current cycle**, independent of which cycle's goals are being surfaced as forward-looking.
+The cycle name in the **status & goals** section header (step 3) is always the **current cycle**, independent of which cycle's goals are being surfaced as forward-looking.
 
 Echo back to the user: both cycles' names + dates, which cycle was chosen as forward-looking (and why, in one line), and the goals for both cycles.
 
 ### 2c. Fetch selected Linear projects and tickets:
 
-**Used for:** primary source of truth for the **Status update on key items in progress** section — project `get_status_updates` give the authoritative current state, and recent tickets surface concrete progress, blockers, and candidates for **Priority topics**.
+**Used for:** primary source of truth for the **status portion** of the consolidated status & goals section — project `get_status_updates` give the authoritative current state, and recent tickets surface concrete progress, blockers, and candidates for **Priority topics**.
 
 Run the following two Linear fetches in parallel:
 
@@ -87,7 +87,7 @@ Note any items representing meaningful progress, blockers, or newly completed wo
 
 ### 2d. Fetch standup notes (Slack Canvas)
 
-**Used for:** granular ground truth — adds week-level detail (what shipped, what's still in flight) to the status section and surfaces blockers and follow-ups that become **Priority topics** or **Other notes**.
+**Used for:** granular ground truth — adds week-level detail (what shipped, what's still in flight) to the status portion of the consolidated section and surfaces blockers and follow-ups that become **Priority topics** or **Other notes**.
 
 The canvas is too large to fit in context, so Claude Code's harness automatically saves the full result to a temp file instead. This is expected — not an error. Follow these steps:
 
@@ -116,7 +116,7 @@ User ID → name mappings: see `references/slack.md` for the full mapping table.
 
 Here you will synthesize the information gathered in Step 2 into a concise status update message for the team Slack channel. Follow the exact structure and formatting rules outlined below to ensure consistency with prior messages.
 
-**Part 1**: Review all the gathered context and identify the most important updates, progress, and discussion topics to include in the message. Prioritize clarity and brevity. Think about how items relate to each other. Focus on what the team needs to know for the upcoming sync meeting.
+**Part 1**: Review all the gathered context and identify the most important updates, progress, and discussion topics to include in the message. Think about how items from steps 2c–2d (current status) relate to the forward-looking goals from step 2b — each in-progress item should be paired with its goal where one exists. Prioritize clarity and brevity. Focus on what the team needs to know for the upcoming sync meeting.
 
 **Part 2**: Write the Slack message using this exact structure:
 
@@ -127,14 +127,8 @@ Here you will synthesize the information gathered in Step 2 into a concise statu
 
 ——————————————————————————
 
-**Status update on key items in progress this cycle ([CURRENT CYCLE NAME], ending [DATE]):**
-1. **[Item name](Linear URL)** – [concise status: what's done, what's in progress, what's next]
-2. ...
-
-——————————————————————————
-
-**[FORWARD-LOOKING GOALS HEADER — pick the exact form from step 2b based on cycle position]:**
-1. **[Item name](Linear URL)** – [one-line goal]
+**[STATUS & GOALS HEADER — pick the exact form from step 2b based on cycle position]:**
+1. **[Item name](Linear URL)** – [concise current status: what's done, what's in progress, what's blocked]; → [forward-looking goal from step 2b if one applies, else omit]
 2. ...
 
 ——————————————————————————
@@ -150,6 +144,7 @@ Here you will synthesize the information gathered in Step 2 into a concise statu
 ```
 
 Rules:
+- Each item in the status & goals list combines a concise current status (from steps 2c–2d) with the matching forward-looking goal from step 2b, separated by `; →`. If an item has no forward-looking goal, omit the arrow and goal portion — just state the status. If a forward-looking goal has no corresponding in-progress item (new initiative not yet started), list it with the goal text alone, prefixed with `→`.
 - Keep each status line to 1–2 sentences. Be specific about state: what shipped, what's in flight, what's blocked.
 - Discussion topics should be actionable: things that need a decision, alignment, or visibility — not general FYIs.
 - Each enumerated list item's bold name should itself be a hyperlink to the relevant Linear project or ticket when one exists. Use the format `**[Item name](URL)**`. Only omit the link if no directly relevant Linear URL is available.
@@ -160,7 +155,7 @@ Message formatting:
 - Use numbered lists for items and topics, not bullet points.
 - Use markdown links (e.g. `[text](url)`) for any references to Notion pages, Linear tickets, or other resources.
 - Use ticks `` for any inline code references (e.g. tool names, service names, endpoints, specific commands, language codes, or data source identifiers).
-- Add a `——————————————————————————` line (em-dashes) between each major section (after the preamble, after the status update list, after the goals list, after the topics list).
+- Add a `——————————————————————————` line (em-dashes) between each major section (after the preamble, after the status & goals list, after the topics list).
 
 ---
 
