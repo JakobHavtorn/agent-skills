@@ -116,7 +116,7 @@ User ID → name mappings: see `references/slack.md` for the full mapping table.
 
 Here you will synthesize the information gathered in Step 2 into a concise status update message for the team Slack channel. Follow the exact structure and formatting rules outlined below to ensure consistency with prior messages.
 
-**Part 1**: Review all the gathered context and identify the most important updates, progress, and discussion topics to include in the message. Think about how items from steps 2c–2d (current status) relate to the forward-looking goals from step 2b — each in-progress item should be paired with its goal where one exists. Prioritize clarity and brevity. Focus on what the team needs to know for the upcoming sync meeting.
+**Part 1**: Review all the gathered context and identify the most important updates, progress, and discussion topics to include in the message. Use the cycle goals from step 2b as the backbone for the status & goals list — walk every cycle goal and annotate each with its current status from steps 2c–2d. This ensures no active goal is silently dropped due to low Linear activity or missing standup mentions. Think about how items from steps 2c–2d (current status) relate to the forward-looking goals from step 2b — each in-progress item should be paired with its goal where one exists. Prioritize clarity and brevity. Focus on what the team needs to know for the upcoming sync meeting.
 
 **Part 2**: Write the Slack message using this exact structure:
 
@@ -145,6 +145,7 @@ Here you will synthesize the information gathered in Step 2 into a concise statu
 
 Rules:
 - Each item in the status & goals list combines a concise current status (from steps 2c–2d) with the matching forward-looking goal from step 2b, separated by `; →`. If an item has no forward-looking goal, omit the arrow and goal portion — just state the status. If a forward-looking goal has no corresponding in-progress item (new initiative not yet started), list it with the goal text alone, prefixed with `→`.
+- When a project or item has been completed since the previous weekly update, include it in the status & goals list and append ` :done:` after the item's hyperlink, separated by a single whitespace on either side (e.g. `**[Item name](URL)** :done: – [status summary]`). Do not drop completed projects until they have appeared in a weekly update message stating that they are completed — the team needs explicit closure confirmation.
 - Keep each status line to 1–2 sentences. Be specific about state: what shipped, what's in flight, what's blocked.
 - Discussion topics should be actionable: things that need a decision, alignment, or visibility — not general FYIs.
 - Each enumerated list item's bold name should itself be a hyperlink to the relevant Linear project or ticket when one exists. Use the format `**[Item name](URL)**`. Only omit the link if no directly relevant Linear URL is available.
