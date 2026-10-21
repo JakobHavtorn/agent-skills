@@ -35,14 +35,13 @@ Run the following steps to gather context for the status update. Run each step (
 
 **Part 1:** Read the most recent status update thread from the public Speech Recognition team channel using MCPs `slack_search_public_and_private` and `slack_read_thread`:
 - `channel_id`: `C08SF3A0B4L`
-- Run a single search with `slack_search_public_and_private`, sorted by `timestamp` descending, limit 3:
-  - `Preparation Weekly SpeechRec in:#team-speech-recognition`
-- From the results, pick the single most recent message that reads like a weekly pre-read (contains a status update section and discussion topics). Fetch that thread with `slack_read_thread`. Echo the thread back to the user as well as a link to the message.
+- Run a single search with `slack_search_public_and_private` using structured parameters (not a single query string): `keywords: ["Preparation", "Weekly", "SpeechRec"]`, `filters: "in:<#C08SF3A0B4L>"`, `natural_language_query: ""`.
+- From the results, pick the single most recent message that reads like a weekly pre-read (contains a status update section and discussion topics). Fetch that thread with `slack_read_thread` using the `message_ts` parameter (NOT `thread_ts`). Echo the thread back to the user as well as a link to the message.
 - If no results are found, stop the job and return to the user letting them know and asking them to provide the status message content directly, or continue without the message.
 
 **Part 2:** Read messages posted in the internal Speech Recognition team channel since the last sync meeting using MCP `slack_read_channel`:
 - `channel_id`: `C08S4B4H5DL`
-- `oldest`: Unix timestamp of last Tuesday 00:00 (compute from `currentDate`; if today is Tuesday, use last week's Tuesday). Compute it with the shell rather than guessing: `date -j -f "%Y-%m-%d %H:%M:%S" "YYYY-MM-DD 00:00:00" "+%s"` on macOS.
+- `oldest`: Unix timestamp of last Tuesday 00:00 (compute from `currentDate`; if today is Tuesday, use last week's Tuesday). Compute it with the shell rather than guessing: `date -j -f "%Y-%m-%d %H:%M:%S" "YYYY-MM-DD 00:00:00" "+%s"` on macOS. **Pass it as a string** (e.g. `"1791237600"`), not a number — the parameter type is string.
 - `limit`: 100 (the channel rarely exceeds this between syncs)
 - Skim for: customer issues raised, blockers surfaced, decisions made, PR/release announcements — anything that should appear in the status update or as a discussion topic. Skip the previous status thread itself (already fetched in Part 1).
 - For any parent message that has replies (`reply_count > 0`) and looks substantive (customer feedback, bug reports, blockers, decisions, anything you might cite), follow up with `slack_read_thread` on that message's `ts` to read the replies. Run these thread fetches in parallel where possible. Resolutions, additional context, and decisions often live in the thread rather than the parent message.
@@ -53,7 +52,7 @@ Run the following steps to gather context for the status update. Run each step (
 
 Fetch the Sprint Planning page and find the relevant cycle entries:
 - Sprint Planning page: `https://www.notion.so/cortihome/Sprint-Planning-20dbef65b3ab800c85dbd99368164e20`
-- Query the data source `collection://20dbef65-b3ab-8076-8351-000b245ea82b` using MCP `notion-query-data-sources` with `mode: "rows"`, `limit: 5`, sorted by `Dates` descending. This returns the 5 most recent cycle entries — enough to cover the current and next cycle plus a few for context. From the returned rows, identify the **current cycle** (today's date is between its `Dates` start and end) and the **next cycle** (start date is after the current cycle's end). Extract each cycle's `Goals` property.
+- Query the data source `collection://20dbef65-b3ab-8076-8351-000b245ea82b` using MCP `notion-query-data-sources` with `mode: "rows"`, `limit: 5`, sorted by `Dates` descending. All parameters must be nested inside a single `data` object (see `references/mcp-tool-params.md` for exact shape). **Filter for cycles on or before today** — sorting by `Dates` descending with limit 5 alone returns the 5 *upcoming* cycles, which often have empty goals. Add a filter: `{"type": "group", "operator": "and", "filters": [{"type": "property", "property": "Dates", "propertyType": "date", "operator": "date_is_on_or_before", "value": {"type": "relative", "value": "today"}}]}`. This returns the 5 most recent cycles up to and including today — enough to cover the current and previous cycles plus context. From the returned rows, identify the **current cycle** (today's date is between its `Dates` start and end) and the **next cycle** (start date is after the current cycle's end). Extract each cycle's `Goals` property.
 
 **Pick which cycle's goals are "forward-looking" using this heuristic:**
 - Compute `days_elapsed` (today − current cycle start) and `days_remaining` (current cycle end − today) for the current cycle.
@@ -71,7 +70,7 @@ Echo back to the user: both cycles' names + dates, which cycle was chosen as for
 
 Run the following two Linear fetches in parallel:
 
-**Part 1 - Tickets:** Call `list_issues` for the Speech Recognition team, filtered to issues updated in the last 7 days (`updatedAt: "-P7D"`), ordered by `updatedAt` descending, limit 200. The result might exceed the token budget and spill to disk. In that case, run the bundled summarizer to get a categorized listing:
+**Part 1 - Tickets:** Call `list_issues` for the Speech Recognition team, filtered to issues updated in the last 7 days, ordered by `updatedAt` descending, limit 200. Use flat top-level parameters: `team: "Speech Recognition"`, `updatedAt: "-P7D"`, `orderBy: "updatedAt"`, `limit: 200`. Do NOT use a nested `filter` object — the Linear MCP rejects additional properties. The result might exceed the token budget and spill to disk. In that case, run the bundled summarizer to get a categorized listing:
 
 ```bash
 python3 <skill-dir>/scripts/summarize_linear_issues.py <FILE_PATH>
@@ -83,7 +82,7 @@ It groups issues into Recently Completed (last 7 days; override with `--days N`)
 
 Note any items representing meaningful progress, blockers, or newly completed work for the status update.
 
-**Part 2 - Projects:** Call MCP `list_projects` for the Speech Recognition team with `state: "in_progress"`, plus a second call with no state filter but `updatedAt: "-P14D"` to catch projects recently moved to paused, blocked, or completed. Deduplicate. For each project returned, call MCP `get_status_updates` to retrieve the two most recent project updates and read them. Use these updates (not just the project name) as the source of truth for current project status (if it is recent). If a project has no status updates or they are stale (>14 days old), fall back to inferring status from the issue activity fetched in Part 1 — look for issues in that project among recently completed, in-progress, and in-review items.
+**Part 2 - Projects:** Call MCP `list_projects` for the Speech Recognition team with `state: "in_progress"`, plus a second call with no state filter but `updatedAt: "-P14D"` to catch projects recently moved to paused, blocked, or completed. Use flat top-level parameters (same shape as `list_issues`): `team: "Speech Recognition"`, `state: "in_progress"`, `limit: 50`. Deduplicate. For each project returned, call MCP `get_status_updates` with `type: "project"` (required), `project: "P-SR-XXXX"`, `limit: 2` to retrieve the two most recent project updates and read them. Use these updates (not just the project name) as the source of truth for current project status (if it is recent). If a project has no status updates or they are stale (>14 days old), fall back to inferring status from the issue activity fetched in Part 1 — look for issues in that project among recently completed, in-progress, and in-review items. Note: `tool_call` accepts only one tool invocation per call for MCP tools — issue multiple `tool_call` calls in parallel within the same assistant turn.
 
 ### 2d. Fetch standup notes (Slack Canvas)
 
@@ -144,11 +143,12 @@ Here you will synthesize the information gathered in Step 2 into a concise statu
 ```
 
 Rules:
-- Each item in the status & goals list combines a concise current status (from steps 2c–2d) with the matching forward-looking goal from step 2b, separated by `; →`. If an item has no forward-looking goal, omit the arrow and goal portion — just state the status. If a forward-looking goal has no corresponding in-progress item (new initiative not yet started), list it with the goal text alone, prefixed with `→`.
+- Each item in the status & goals list combines a concise current status (from steps 2c–2d) with the matching forward-looking goal from step 2b, separated by `; →`. The goal after the arrow must be a **full descriptive sentence** (e.g. `→ Match English model with German/French quality and update Symphony whitepaper numbers`), not a numbered reference or shorthand (e.g. do NOT write `→ 1b. Model patch - English`). Rewrite the Notion cycle goal text into a self-contained sentence the reader can understand without cross-referencing the cycle goals list. If an item has no forward-looking goal, omit the arrow and goal portion — just state the status. If a forward-looking goal has no corresponding in-progress item (new initiative not yet started), list it with the goal text alone as a full sentence, prefixed with `→`.
 - When a project or item has been completed since the previous weekly update, include it in the status & goals list and append `:done:` after the item's hyperlink, separated by a single whitespace on either side (e.g. `**[Item name](URL)** :done: – [status summary]`). Do not drop completed projects until they have appeared in a weekly update message stating that they are completed — the team needs explicit closure confirmation.
 - Keep each status line to 1–2 sentences. Be specific about state: what shipped, what's in flight, what's blocked.
 - Discussion topics should be actionable: things that need a decision, alignment, or visibility — not general FYIs.
 - Each enumerated list item's bold name should itself be a hyperlink to the relevant Linear project or ticket when one exists. Use the format `**[Item name](URL)**`. Only omit the link if no directly relevant Linear URL is available.
+- When referencing a Linear ticket inline within a status description (e.g. `SR-3341`, `SR-3090`), always embed it as a markdown hyperlink to the ticket URL — e.g. `[SR-3341](https://linear.app/corti/issue/SR-3341/...)`. Construct the URL from the ticket's `url` field in the `list_issues` results (the full slug URL, not just the bare ID). Never leave a bare `SR-XXXX` reference without a link.
 
 Message formatting:
 - The @mention format uses `<@USERID|name>` — preserve the user IDs from the previous message.
@@ -175,3 +175,4 @@ Report any issues encountered during the process of executing this skill (e.g. m
 ## Reference Files
 
 - `references/slack.md` — Slack channel IDs, canvas IDs, and user-ID-to-name mappings for the Speech Recognition team
+- `references/mcp-tool-params.md` — Exact MCP tool parameter shapes (Slack, Notion, Linear) with validation pitfalls
