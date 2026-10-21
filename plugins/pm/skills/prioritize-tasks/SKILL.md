@@ -3,12 +3,12 @@ name: prioritize-tasks
 description: >-
   Builds a single prioritized task list for the user by combining their
   active Linear tickets, tasks they've committed to in Slack, and their
-  Slack To-do doc. Output is grouped into Now/Next/Later tiers, continuously
-  numbered so any item can be referred to by number, and ticket-less tasks
-  can be turned into Linear issues via the linear-ticket skill. Delivered in
-  the terminal and as a Slack DM to the user. This skill should be used when
-  the user asks to prioritize tasks, wants to know what to work on, or needs
-  a task list.
+  Obsidian task dashboard. Output is grouped into Now/Next/Later tiers,
+  continuously numbered so any item can be referred to by number, and
+  ticket-less tasks can be turned into Linear issues via the linear-ticket
+  skill. Delivered in the terminal and as a Slack DM to the user. This skill
+  should be used when the user asks to prioritize tasks, wants to know what
+  to work on, or needs a task list.
 allowed-tools: Bash(python:*) Bash(python3:*) Read
 ---
 
@@ -20,7 +20,7 @@ Produce one ranked, deduplicated list of the things the user should be working o
 
 1. **Linear** — the user's currently *active* tickets (statuses `Todo`, `In Progress`, `In Review`, `In QA` — never `Backlog`, `Triage`, `Done`, or `Canceled`).
 2. **Slack messages** — tasks the user has committed to in messages they sent or threads they engaged in.
-3. **Slack To-do doc** — the user's personal To-do canvas, which captures what they currently have conscious focus on.
+3. **Obsidian vault** — the user's personal task management system using the Obsidian Tasks plugin. Tasks are captured as `- [ ]` checkboxes in daily notes, project notes, and other notes across the vault, with due dates (`📅 YYYY-MM-DD`), priority (`⏫`/`🔼`/`🔽`), and recurrence (`🔁 every day`) as Tasks-plugin emoji metadata. The `Task dashboard.md` at the vault root is a query view — the actual task data lives in the individual notes.
 
 Every task in the output is an enumerated line. If a Linear ticket exists for the task, the line links to it; if not, the task is listed plainly and tagged `(no ticket)` so it can later be refined into a ticket with the **`linear-ticket`** skill.
 
@@ -34,7 +34,7 @@ Today's date is available as `currentDate` in the system context.
 
 The Slack search for committed tasks needs a lookback window. If the user gave one (e.g. "last week", "since Monday"), parse it into an absolute ISO 8601 date. Otherwise default to **the last 14 days** — long enough to catch standing commitments without dredging up stale ones. Compute the `after:` date from `currentDate` (skip the weekend-counting logic; a plain 14-day calendar lookback is fine).
 
-Linear and the To-do doc are *not* time-windowed — fetch the full current state of both.
+Linear and the Obsidian vault are *not* time-windowed — fetch the full current state of both.
 
 ---
 
@@ -65,7 +65,7 @@ The fields come back under `status` (name, e.g. `In Review`), `statusType` (e.g.
 
 If a fetch still overflows to a file, that file is JSON with an `issues` array; slice it with `python3 -c "import json; d=json.load(open(PATH)); ..."` rather than `Read`-ing it.
 
-> **Heads-up on due dates:** in practice these tickets carry **no `dueDate`** and Slack rarely contains a hard calendar deadline. When that's the case, "commitments and deadlines first" (Step 4) leans on **open PRs / in-review work** and the To-do doc rather than dates — see Step 4b.
+> **Heads-up on due dates:** in practice these tickets carry **no `dueDate`** and Slack rarely contains a hard calendar deadline. When that's the case, "commitments and deadlines first" (Step 4) leans on **open PRs / in-review work** and the Obsidian vault rather than dates — see Step 4b.
 
 ### 3b. Committed tasks from Slack messages
 
@@ -86,30 +86,29 @@ Resolve `<skill-dir>` from this skill's installed location (the directory contai
 
 It strips bot noise and prints one compact line per message (time, channel, author, text) so the whole window fits in context.
 
-### 3c. The Slack To-do doc
+### 3c. Obsidian vault tasks
 
-This is the user's personal To-do canvas — the source for what they have *conscious focus* on right now.
+This is the user's personal task management system — the source for what they have *conscious focus* on right now. Tasks live as `- [ ]` checkboxes across notes in the Obsidian vault, annotated with Tasks-plugin emoji metadata: `📅 YYYY-MM-DD` (due date), `⏫`/`🔼`/`🔽` (high/medium/low priority), `🔁` (recurrence), `✅` (done date). The `Task dashboard.md` at the vault root is a query view aggregating these tasks via Dataview/Tasks queries — the actual task data lives in the individual notes (daily notes, project notes, etc.).
 
-**The canvas is a dated daily-snapshot doc.** It is organised newest-first into per-day sections headed `## ![](slack_date:YYYY-MM-DD)`, each section being that day's to-do list (largely carried forward from the day before with items added/checked off). The full doc is large (100KB+) and mostly history. **Only the single most recent dated section is the current focus** — ignore all earlier sections.
+**Vault location:** `/Users/jdh/Library/Mobile Documents/iCloud~md~obsidian/Documents/Zettelkasten`
 
-- Call `slack_read_canvas` with `canvas_id: F0AJGTXJ1EE`. It will almost certainly overflow ("result exceeds maximum allowed tokens, output saved to `<FILE_PATH>`"). The dump is a JSON object with a `markdown_content` field (the whole canvas as markdown) and a `section_id_mapping`. **Do not `Read` the dump** — extract just the latest section with the shell:
+Run the extractor script that ships with this skill:
 
 ```bash
-python3 - "$FILE_PATH" <<'PY'
-import json, re, sys
-md = json.load(open(sys.argv[1]))["markdown_content"]
-lines = md.split("\n")
-hdr = [i for i, l in enumerate(lines) if "slack_date:" in l]      # date-section headers, newest first
-start, end = hdr[0], (hdr[1] if len(hdr) > 1 else len(lines))     # first section = most recent
-print(re.search(r"slack_date:([0-9-]+)", lines[start]).group(1))  # the section date
-for l in lines[start + 1:end]:                                    # its items
-    if l.strip().startswith("* ["):
-        print(l.rstrip())
-PY
+python3 <skill-dir>/scripts/extract_obsidian_tasks.py "/Users/jdh/Library/Mobile Documents/iCloud~md~obsidian/Documents/Zettelkasten"
 ```
 
-- From that latest section, take only the **open** items (`* [ ]`); **skip checked ones** (`* [x]`). Indented sub-items (e.g. per-language PRs under a parent) belong to their parent task.
-- Each item may already name a Linear ticket (`SR-####` / a `linear.app/...` link), a GitHub PR, or be free text. Capture the text plus any linked ticket/PR and inline note — these feed the dedup and the PR-as-commitment signal in Step 4.
+Resolve `<skill-dir>` from this skill's installed location (the directory containing this `SKILL.md`).
+
+It walks the vault, skips `.obsidian`/`.trash`/`templates` directories and the `Task dashboard.md` query view, parses all `- [ ]` checkbox lines with their Tasks-plugin metadata (due date, priority, recurrence), and prints a compact listing grouped by note. Only open tasks are included by default; pass `--include-completed` to also surface recently completed tasks.
+
+From the extracted output, capture for each task:
+- The task text (with any inline links to Linear tickets, GitHub PRs, or Slack threads preserved)
+- The due date if present (`📅 YYYY-MM-DD`)
+- The priority if present (`⏫` high / `🔼` medium / `🔽` low)
+- The note file it lives in (for source attribution in Step 4)
+
+Each item may already name a Linear ticket (`SR-####` / a `linear.app/...` link), a GitHub PR, or be free text. Capture the text plus any linked ticket/PR — these feed the dedup and the PR-as-commitment signal in Step 4.
 
 ---
 
@@ -119,7 +118,7 @@ PY
 
 Pool the items from 3a + 3b + 3c into one list, then **deduplicate** — the same task often appears in more than one source:
 
-- A Slack commitment or To-do item that names or clearly maps to a Linear ticket → merge into that ticket's entry; record the extra source(s) and any deadline the Slack/canvas side added.
+- A Slack commitment or Obsidian task that names or clearly maps to a Linear ticket → merge into that ticket's entry; record the extra source(s) and any deadline the Slack/Obsidian side added.
 - Match on explicit ticket IDs (`SR-2621`), linked Linear URLs, GitHub PR links shared in both places, and clear title/topic overlap. When unsure whether two items are the same, keep them separate — a false merge hides a task; a false split is just mild redundancy.
 - The result is one entry per real task, each carrying: title, Linear ticket (or none), current status, deadline (if any), the set of sources it came from, and a one-line rationale.
 
@@ -127,16 +126,16 @@ Pool the items from 3a + 3b + 3c into one list, then **deduplicate** — the sam
 
 Sort the unified set with this precedence (earlier criteria dominate):
 
-1. **Hard deadlines / explicit promises, by urgency.** A task with an explicit deadline (a Linear `dueDate`, a date in Slack or the To-do doc) or an explicit promise to a named person ranks by how soon it's due: overdue → today/tomorrow → this week → later. Reputation-affecting promises to named people rank above un-promised work of the same urgency.
+1. **Hard deadlines / explicit promises, by urgency.** A task with an explicit deadline (a Linear `dueDate`, a date in Slack, or an Obsidian `📅 YYYY-MM-DD` due date) or an explicit promise to a named person ranks by how soon it's due: overdue → today/tomorrow → this week → later. Reputation-affecting promises to named people rank above un-promised work of the same urgency.
 2. **Open PR / in-review work = a commitment.** In this workspace dates are almost always absent, so this is usually the *real* top signal. A task with an **open pull request**, or sitting in **`In Review` / `In QA`**, is work already done and awaiting landing — treat it as a standing commitment and rank it at the top alongside (1). Prefer getting these over the line before starting anything new.
-3. **Linear priority.** Among items not separated by (1)–(2), `Urgent` > `High` > `Normal` > `Low` > none. A `High` ticket outranks a `Normal`/`Low` one even if the latter is on the To-do doc.
+3. **Linear priority.** Among items not separated by (1)–(2), `Urgent` > `High` > `Normal` > `Low` > none. A `High` ticket outranks a `Normal`/`Low` one even if the latter is in the Obsidian vault.
 4. **Finish-line bias.** Tie-breaker among equal-priority items: `In Review` / `In QA` > `In Progress` > `Todo`.
-5. **Conscious focus.** Final nudge: items present on the latest To-do section edge ahead of otherwise-equal items not on it.
+5. **Conscious focus.** Final nudge: items present in the Obsidian vault edge ahead of otherwise-equal items not in it.
 
 ### 4c. Bucket into tiers
 
-- **🔴 Now** — overdue or due within ~2 days; `Urgent`; an actively-expected promise to someone; **or a committed item per 4b(2): an open PR / `In Review` / `In QA`, *especially* when it's also on the To-do doc.** The "land it / do it today" set.
-- **🟡 Next** — `High` priority not yet committed; in-progress work without a PR; or items on the latest To-do section that are still early-stage. Due this week.
+- **🔴 Now** — overdue or due within ~2 days; `Urgent`; an actively-expected promise to someone; **or a committed item per 4b(2): an open PR / `In Review` / `In QA`, *especially* when it's also in the Obsidian vault.** The "land it / do it today" set.
+- **🟡 Next** — `High` priority not yet committed; in-progress work without a PR; or items in the Obsidian vault that are still early-stage. Due this week.
 - **🟢 Later** — the rest of the active backlog: `Normal` / `Low` `Todo` tickets not in current focus, and un-scoped ideas.
 
 **Keep 🟢 Later grouped, not exhaustive.** The active backlog can run to dozens of tickets; enumerating every `Low` `Todo` buries the signal. In the Later tier, collapse the long tail into a handful of summary lines — group multi-ticket epics into one line (e.g. "*`participants` decoupling epic* — 9 Low tickets SR-2529→2541"), cluster related work, and gather loose ideas under one "*Ideas to scope*" line. Each grouped line still gets one continuous number. Always enumerate 🔴 Now and 🟡 Next fully; only Later is condensed. Close with a one-line tally of total active tickets by status so nothing is hidden.
@@ -169,10 +168,10 @@ Template:
 
 **🔴 NOW**
 1. [SR-2621](linear-url) **Enable spelling corrector for `/transcripts`**
-   In Review · To-do + Linear · PR open
+   In Review · Obsidian + Linear · PR open
    → On the finish line; land it.
 2. **Draft Q3 capacity plan** `(no ticket)`
-   To-do doc · conscious focus
+   Obsidian · conscious focus
    → refine into a ticket?
 
 ——————————————————————————
@@ -189,7 +188,7 @@ Template:
 
 Line rules:
 - Line 1 of each item: the number, then — if a ticket exists — `[IDENTIFIER](url)` followed by the `**bold title**`; if no ticket, the `**bold title**` followed by `` `(no ticket)` ``.
-- Line 2 (meta): `status · source(s) · deadline` — only the parts that apply. Sources read like `Linear(High)`, `Slack`, `To-do doc`, combined with `+` when a task came from several.
+- Line 2 (meta): `status · source(s) · deadline` — only the parts that apply. Sources read like `Linear(High)`, `Slack`, `Obsidian`, combined with `+` when a task came from several.
 - Line 3 (optional `→` rationale): include only when it adds something — the commitment/PR/finish-line reason it's ranked where it is, or `→ refine into a ticket?` for ticket-less items.
 - Omit any tier that has no items (don't print an empty `🔴 NOW`).
 - Use the canonical Linear `url` from the MCP; never hand-build it.
@@ -210,10 +209,10 @@ Line rules:
 
 After delivering, list the item numbers that are `(no ticket)` and offer to refine any of them into a proper Linear ticket using the **`linear-ticket`** skill.
 
-When the user picks one (by number), invoke the `linear-ticket` skill, seeding it with that task's title, whatever context was gathered for it (the originating Slack thread, deadline, To-do note), and a sensible default status (`Todo`) and priority inferred from the tier it landed in. Don't create tickets unprompted — wait for the user to choose which ones are worth tracking.
+When the user picks one (by number), invoke the `linear-ticket` skill, seeding it with that task's title, whatever context was gathered for it (the originating Slack thread, deadline, Obsidian note), and a sensible default status (`Todo`) and priority inferred from the tier it landed in. Don't create tickets unprompted — wait for the user to choose which ones are worth tracking.
 
 ---
 
 ## Step 8 — Follow up
 
-Report any issues encountered (e.g. the To-do canvas couldn't be read, a Slack search overflowed, ambiguous merges you had to guess on). Note any tasks you were unsure how to rank or whether to include, so the user can correct the list.
+Report any issues encountered (e.g. the Obsidian vault couldn't be read, a Slack search overflowed, ambiguous merges you had to guess on). Note any tasks you were unsure how to rank or whether to include, so the user can correct the list.

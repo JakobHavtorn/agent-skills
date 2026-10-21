@@ -12,7 +12,7 @@ If the user provided a timespan in their message (e.g. "since Monday", "last 2 d
 
 ## Overview
 
-Generate a standup-style summary of the user's recent work by pulling Linear issue activity and relevant Slack messages. Combine them into a concise report grouped by theme or project.
+Generate a standup-style summary of the user's recent work by pulling Linear issue activity, relevant Slack messages, and the user's Obsidian task dashboard. Combine them into a concise report grouped by theme or project.
 
 ---
 
@@ -26,9 +26,9 @@ If no timespan was provided, default to **the last 3 workdays ending now, includ
 
 ---
 
-## Step 2 — Gather activity (run both parts in parallel)
+## Step 2 — Gather activity (run all parts in parallel)
 
-Issue **Part A** and **Part B** in the same tool-call batch to run in parallel so Linear and Slack data arrive together. The two parts have no dependency on each other.
+Issue **Part A**, **Part B**, and **Part C** in the same tool-call batch to run in parallel so Linear, Slack, and Obsidian data arrive together. The three parts have no dependency on each other.
 
 Resolve the current user at runtime:
 - **Linear**: `get_user` with `query: "me"` returns the authenticated user (ID, name, email). Do **not** pass the `telemetry` parameter — it causes validation errors.
@@ -65,6 +65,28 @@ Resolve `<skill-dir>` from this skill's installed location (the directory contai
 
 The script strips bot noise by default, keeps only the fields needed for a standup (time, channel, author, text), and prints one compact line per message so the whole window fits in context. Add `--include-bots` only if bot messages are relevant; use `--raw` to fall back to the full unparsed `results` blob.
 
+### Part C — Obsidian vault tasks
+
+The user's Obsidian vault is their personal task management system using the Tasks plugin. Tasks are captured as `- [ ]` checkboxes across notes (daily notes, project notes, etc.) with Tasks-plugin emoji metadata: `📅 YYYY-MM-DD` (due date), `⏫`/`🔼`/`🔽` (priority), `🔁` (recurrence). This surfaces what the user has conscious focus on and any tasks completed or still in progress within the time window.
+
+**Vault location:** `/Users/jdh/Library/Mobile Documents/iCloud~md~obsidian/Documents/Zettelkasten`
+
+Run the extractor script that ships with this skill:
+
+```bash
+python3 <skill-dir>/scripts/extract_obsidian_tasks.py "/Users/jdh/Library/Mobile Documents/iCloud~md~obsidian/Documents/Zettelkasten" --include-completed
+```
+
+Resolve `<skill-dir>` from this skill's installed location (the directory containing this `SKILL.md`).
+
+It walks the vault, skips `.obsidian`/`.trash`/`templates` directories and the `Task dashboard.md` query view, parses all checkbox lines with their metadata, and prints a compact listing grouped by note. Pass `--include-completed` so recently completed tasks (`- [x]`) also appear — they feed the "Done / Completed" section of the summary.
+
+From the output, capture:
+- **Open tasks** (`- [ ]`) — these go into "In Progress" or "Blocked / Needs attention" depending on context
+- **Completed tasks** (`- [x]`) — these go into "Done / Completed"
+- Any due dates and priorities for ranking
+- The note file each task lives in (for source attribution)
+
 ---
 
 ## Step 3 — Synthesize the summary (standard markdown)
@@ -82,7 +104,7 @@ The summary is sent to Slack via `slack_send_message`, which renders **standard 
 
 > This Slack workspace's `slack_send_message` takes standard markdown, **not** legacy Slack `mrkdwn`. Do **not** use `*single-asterisk*` for bold or `<url|text>` links — those are the older `mrkdwn` dialect and render wrong in this tool (`*x*` shows as italic). Verified by live sends.
 
-Combine the Linear and Slack signals into a standup-style summary using this template:
+Combine the Linear, Slack, and Obsidian signals into a standup-style summary using this template:
 
 ```
 **Standup Summary — <date range>**
@@ -111,7 +133,8 @@ Rules:
 - Keep each bullet to one line.
 - Group related items together rather than listing every minor comment.
 - Prefer Linear issue titles over paraphrasing — they are already concise.
-- If a Slack thread corresponds to a Linear issue, merge them into one bullet.
+- If a Slack thread or Obsidian task corresponds to a Linear issue, merge them into one bullet.
+- Obsidian tasks without a Linear ticket go in as plain text — they represent conscious focus items the user is tracking outside Linear.
 - Do not include items that are clearly outside the user's direct involvement.
 - Produce the Executive summary last, after all other sections are drafted — it should reflect the full picture. Write it as flowing prose that a busy reader could skim in 10 seconds to understand the week at a high level; skip ticket IDs and per-item detail since those live in the sections above.
 

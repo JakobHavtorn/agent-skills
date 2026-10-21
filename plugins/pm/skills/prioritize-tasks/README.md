@@ -1,10 +1,10 @@
 # prioritize-tasks
 
-Builds a single prioritized task list by combining active Linear tickets, tasks committed to in Slack, and a Slack To-do doc. Output is grouped into Now/Next/Later tiers and delivered in the terminal and as a Slack DM.
+Builds a single prioritized task list by combining active Linear tickets, tasks committed to in Slack, and the user's Obsidian task dashboard. Output is grouped into Now/Next/Later tiers and delivered in the terminal and as a Slack DM.
 
 ## What it does
 
-Pulls from three sources — Linear (active assigned issues), Slack (messages where the user committed to do something), and a Slack To-do document — then deduplicates, ranks, and groups them into Now/Next/Later tiers. Sends the result as a Slack DM to the user. Items without a Linear ticket can be turned into issues via the `linear-ticket` skill.
+Pulls from three sources — Linear (active assigned issues), Slack (messages where the user committed to do something), and the Obsidian vault (tasks managed with the Tasks plugin) — then deduplicates, ranks, and groups them into Now/Next/Later tiers. Sends the result as a Slack DM to the user. Items without a Linear ticket can be turned into issues via the `linear-ticket` skill.
 
 ## Triggers
 
@@ -16,7 +16,8 @@ Pulls from three sources — Linear (active assigned issues), Slack (messages wh
 
 - Linear MCP server configured
 - Slack MCP server configured
-- `parse_slack_overflow.py` helper script (bundled)
+- Obsidian vault with Tasks plugin (vault path configured in the skill)
+- `parse_slack_overflow.py` and `extract_obsidian_tasks.py` helper scripts (bundled)
 
 ## Platform
 
