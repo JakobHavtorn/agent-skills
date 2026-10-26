@@ -1,12 +1,24 @@
 ---
 name: incident-trace
 description: >-
-  Trace a reported production incident end-to-end through backend services using Grafana/Synapse Loki logs. This skill should be used when the user reports a missing, empty, or wrong output for a specific session ("no transcript", "zero words", "dropped messages", "missing events", "silent recording"), when they ask to look into a Slack thread or permalink about an incident, when they hand over an interaction/session/recording/user id with a time window and ask to debug or look into it, when they ask which service is responsible for a failure or whether a component ever received or processed something, and when they need a session timeline with evidence, reproduction queries, and remaining unknowns.
+  Trace a backend pipeline failure end-to-end through Grafana/Synapse Loki
+  logs, from a session/interaction/recording/transcript id plus a time window
+  to a stage-by-stage verdict with per-hop evidence. Use when any failure with
+  such ids needs the backend truth: a CI E2E failure whose logs, annotations,
+  or PR comments contain session/transcript ids; an alert payload; a
+  user-reported incident ("no transcript", "zero words", "dropped messages",
+  "missing events", "silent recording"); a Slack thread or permalink to look
+  into; or ids handed over directly with a time window. Also use when asked
+  which service is responsible for a failure, whether a component ever
+  received or processed something, or for a session timeline with evidence,
+  reproduction queries, and remaining unknowns.
 ---
 
 # Incident tracing from Loki logs
 
-Trace a user-reported failure forward through the service stack, using only log evidence, until the first stage whose expected behavior is missing. The deliverable is a verdict with per-stage evidence, explicitly separating what was verified from what was inferred, plus reproduction queries and the minimal set of artifacts that would settle whatever remains unknown.
+Trace a reported failure forward through the service stack, using only log evidence, until the first stage whose expected behavior is missing. The deliverable is a verdict with per-stage evidence, explicitly separating what was verified from what is inferred, plus reproduction queries and the minimal set of artifacts that would settle whatever remains unknown.
+
+Entry points for ids: a user report, a Slack thread or permalink, a monitoring alert, a CI/E2E job log, or the PR's E2E-results comment. However the ids arrive, the method is the same — pin the cluster and tenant from an id-bearing line's labels (Step 2), then trace each hop by its own receipts (Step 4).
 
 Mental model: every pipeline hop is a **claim** with an evidence class — VERIFIED (explicit log or count evidence), INFERRED (deduced, no direct line), UNKNOWN (undecidable with current access). Tag every claim in the report. An investigation is done when each stage claim has a class, not when a story sounds plausible.
 
@@ -33,7 +45,7 @@ Note compute-access boundaries now, for the report: kubeconfig cluster coverage 
 
 ## Step 2: Discover streams, never assume them
 
-1. List the `service_name` values under the tenant's namespace label (`k8s_namespace_name` or equivalent). Never carry over a service list or topic names from another session — listing is cheap and caches your assumptions against drift and renames.
+1. Place the incident on the right labels before the first sweep: a platform/location string from the run context (e.g. `staging-eu`, `prd-par01`) is a *cluster* value (`k8s_cluster_name`); the tenant (e.g. `base`) is the *namespace* value. Do not guess the tenant namespace from the org or app name — a plausible-but-wrong tenant still matches some real, busy namespace. When an id-bearing line is already in hand (a CI log, a monitoring alert, a previous session), pin namespace/cluster/service from its labels; then list `service_name` values scoped to the incident's cluster. Never carry over a service list or topic names from another session — listing is cheap and caches your assumptions against drift and renames.
 2. Confirm which Loki datasource uid serves this tenant's cluster.
 3. A missing expected service in the list is already a finding (deployment absent — a real cause of "nothing happened").
 
@@ -68,7 +80,7 @@ For each hop, locate the lines (or record counts) that serve as receipt or compl
 
 Deliverable: the stage table (stage / expected receipt / observed: count, total, first-last times / verdict class). Read source for any marker you cannot find, and confirm it fires per-occurrence (not once per session).
 
-When a hop's upstream stream looks healthy but its input processed empty or not at all, the next target is the hop's internal decision logic: did the input carry something the transform would ignore (silence, wrong format/channel, wrong route)? That distinguishes "upstream data problem" from "this stage failed to act".
+When a hop's upstream stream looks healthy but its input processed empty or not at all, the next target is the hop's internal decision logic: did the input carry something the transform would ignore (silence, wrong format/channel, wrong route)? That distinguishes "upstream data problem" from "this stage failed to act". The same gate applies when processing ran but slowly: a per-session property outside a component's supported set (e.g. an unsupported language) can route the session onto a fallback path whose per-message latency dominates — compare the failed session's per-message latency against passing sessions before attributing the delay to a service version or deployment.
 
 ## Step 5: The negative-evidence gate
 
