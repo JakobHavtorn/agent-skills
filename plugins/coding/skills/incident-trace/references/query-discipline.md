@@ -11,7 +11,9 @@ sum by (service_name) (count_over_time({k8s_namespace_name="<ns>"} [1h]))
 
 - Run this once per investigation; treat the result as the service inventory for the stage map (Step 2 of SKILL.md).
 - Pick time windows relative to the incident; short, recent hours give a quick inventory; widen only if a service is expected but absent.
-- The tenant namespace label may differ per cluster; confirm it from any id-bearing line's labels, not from memory.
+- Label roles: a location string from the run context (`staging-eu`, `prd-par01`) is a *cluster* value; the tenant (e.g. `base`) is the namespace value. Confirm both from any id-bearing line's labels, not from memory — a plausible-but-wrong tenant still matches some real, busy namespace and the id sweep then burns a multi-million-line scan for zero hits.
+- Bound stage sweeps with the cluster label — the same service and tenant names recur across clusters — so the bounded shape is: `{k8s_cluster_name="<cluster>", service_name="<svc>"} |= "<id>"`.
+- Label vocabularies differ per datasource generation: some Loki setups expose the tenant as `k8s_namespace_name`, others carry `environment` + `k8s_cluster_name` (+ `service_namespace`) and no tenant-namespace label at all. Run `list_loki_label_names` once per investigation and build the selector from labels this instance actually has — a well-formed-but-invented label selector returns exactly the same empty result as "no logs for this id", so zero hits under an unverified selector is NOT evidence of absence.
 
 ## Bounded identifier sweep
 
@@ -39,6 +41,12 @@ sum(count_over_time({k8s_namespace_name="<ns>", service_name="<svc>"} |= "<id>" 
 - Expected count math: derive from the format itself (first-chunk size + n × cadence == total duration; receipt lines include start/stop markers that carry empty payloads — count them in or exclude them consistently).
 - Quantity parity: compare accumulated totals between adjacent services (received-seconds at the consumer vs stored-seconds at the storage service). Equal to measurement precision means no content was lost between them; unequal means something was dropped/duplicated — that difference is your lead.
 - Use per-stage counts rather than eyeballing timelines: counts turn "it looked like it all arrived" into VERIFIED.
+
+## Metric-query envelopes (reading count/range results)
+
+- The label set of each series sits under `labels` in the MCP log-query tool's JSON (`values` = the point list), while raw Grafana HTTP responses put it under `metric` — inspect the first series' keys before writing any parser, because a parser reading the wrong key silently yields no per-service numbers. A series whose grouping label was consumed by an outer aggregation legitimately carries empty `{}` labels.
+- Each point in `values` is the count for ONE step interval, not a rate or a window total: the total is the sum of the values, or use a single bucket the width of the window when only the total matters.
+- Oversized results spill to a file and the response carries only a preview — do not re-request the same query to see the rest; read the spillover file and aggregate from disk.
 
 ## Negative-evidence recipe
 
