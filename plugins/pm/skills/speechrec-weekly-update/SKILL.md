@@ -27,7 +27,7 @@ The weekly call is on Tuesday afternoons. If today is not Tuesday, the meeting d
 
 ## Step 2 — Fetch context
 
-Run the following steps to gather context for the status update. Batch the independent initial fetches (2a pre-read search, 2a internal-channel read, 2b Notion cycles, 2c tickets, 2c projects, 2d canvas) as parallel tool calls in a single turn; then batch the follow-ups that depend on them (pre-read thread + public-channel feedback threads, substantive internal threads, per-project status updates, ticket URL lookups) in a second parallel turn. Fetching sequentially roughly triples the wall-clock time — two parallel turns is the proven pattern.
+Run the following steps to gather context for the status update. Delegate each step (2a-d) to its own parallel subagent. 
 
 ### 2a. Previous status message and message history (Slack)
 
@@ -65,7 +65,7 @@ The cycle name in the **status & goals** section header (step 3) is always the *
 
 Echo back to the user: both cycles' names + dates, which cycle was chosen as forward-looking (and why, in one line), and the goals for both cycles.
 
-### 2c. Fetch selected Linear projects and tickets:
+### 2c. Fetch selected Linear proje cts and tickets:
 
 **Used for:** primary source of truth for the **status portion** of the consolidated status & goals section — project `get_status_updates` give the authoritative current state, and recent tickets surface concrete progress, blockers, and candidates for **Priority topics**.
 
@@ -83,7 +83,7 @@ It groups issues into Recently Completed (last 7 days; override with `--days N`)
 
 Note any items representing meaningful progress, blockers, or newly completed work for the status update.
 
-**Part 2 - Projects:** Call MCP `list_projects` once for the Speech Recognition team with flat top-level parameters (same shape as `list_issues`): `team: "Speech Recognition"`, `limit: 50`, `updatedAt: "-P14D"`, and **no state filter**. One call returns in-development, paused, and recently completed projects together — tell them apart by the returned `status` and `completedAt` fields. Do not use `state: "in_progress"`: in this workspace that filter returns an empty result even while many projects are in development, and an empty in-progress list invites the false conclusion that nothing is active. For each project returned, call MCP `get_status_updates` with `type: "project"` (required), `project: "P-SR-XXXX"`, `limit: 2` to retrieve the two most recent project updates and read them. Use these updates (not just the project name) as the source of truth for current project status (if it is recent). If a project has no status updates or they are stale (>14 days old), fall back to inferring status from the issue activity fetched in Part 1 — look for issues in that project among recently completed, in-progress, and in-review items. Note: `tool_call` accepts only one tool invocation per call for MCP tools — issue multiple `tool_call` calls in parallel within the same assistant turn.
+**Part 2 - Projects:** Call MCP `list_projects` for the Speech Recognition team with `state: "in_progress"`, plus a second call with no state filter but `updatedAt: "-P14D"` to catch projects recently moved to paused, blocked, or completed. Use flat top-level parameters (same shape as `list_issues`): `team: "Speech Recognition"`, `state: "in_progress"`, `limit: 50`. Deduplicate. For each project returned, call MCP `get_status_updates` with `type: "project"` (required), `project: "P-SR-XXXX"`, `limit: 2` to retrieve the two most recent project updates and read them. Use these updates (not just the project name) as the source of truth for current project status (if it is recent). If a project has no status updates or they are stale (>14 days old), fall back to inferring status from the issue activity fetched in Part 1 — look for issues in that project among recently completed, in-progress, and in-review items. Note: `tool_call` accepts only one tool invocation per call for MCP tools — issue multiple `tool_call` calls in parallel within the same assistant turn.
 
 ### 2d. Fetch standup notes (Slack Canvas)
 
@@ -166,9 +166,8 @@ Message formatting:
 Once the message is composed, send it to the user as a Slack DM.
 
 1. The Slack MCP tool descriptions already expose the authenticated user's Slack ID (e.g. `slack_search_public_and_private` and `slack_send_message` state it as "Current logged in user's user_id is …"). Use that ID directly — no profile lookup is needed.
-2. `slack_send_message` rejects any single message over 5000 characters (`msg_too_long`), and a complete pre-read with 15+ linked items always exceeds that — expect a ~12–15k char message. Compose the full message first, then split it into chunks of <5000 chars (typically: preamble + status items 1–7, items 8–12, remaining items + section divider, then topics + notes), keeping list numbering continuous across chunks. Verify each chunk's length programmatically (e.g. `len()` in Python) BEFORE calling Slack — a `msg_too_long` rejection wastes a round-trip and sends nothing.
-3. Send chunk 1 to the user's Slack ID (Slack treats a user ID as a DM channel) without `thread_ts`, note the returned `message_ts`, then send the remaining chunks with `thread_ts` set to that timestamp — as `channel_id`, the user ID or the DM channel ID returned with the first message both work. End the main chunk with `*(continued in thread)*` so readers know to expand the thread.
-4. After sending, echo the returned message link back to the user in the conversation.
+2. Send the message with `slack_send_message`, using that Slack user ID as the `channel_id`.
+3. After sending, echo the returned message link back to the user in the conversation.
 
 ## Step 5 — Follow up
 
