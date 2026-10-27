@@ -27,7 +27,7 @@ The weekly call is on Tuesday afternoons. If today is not Tuesday, the meeting d
 
 ## Step 2 — Fetch context
 
-Run the following steps to gather context for the status update. Delegate each step (2a-d) to its own parallel subagent. 
+Run the following steps to gather context for the status update. Delegate each step (2a-d) to its own parallel subagent.
 
 ### 2a. Previous status message and message history (Slack)
 
@@ -166,7 +166,7 @@ Message formatting:
 Once the message is composed, send it to the user as a Slack DM.
 
 1. The Slack MCP tool descriptions already expose the authenticated user's Slack ID (e.g. `slack_search_public_and_private` and `slack_send_message` state it as "Current logged in user's user_id is …"). Use that ID directly — no profile lookup is needed.
-2. Send the message with `slack_send_message`, using that Slack user ID as the `channel_id`.
+2. Send the message with `slack_send_message`, using that Slack user ID as the `channel_id` (Slack treats a user ID as a DM channel). A complete pre-read exceeds the 5000-char per-message limit — split it into chunks per `references/slack.md`, which also documents how to convert a paste-ready single-message version if the user prefers to post it themselves.
 3. After sending, echo the returned message link back to the user in the conversation.
 
 ## Step 5 — Follow up
@@ -175,4 +175,4 @@ Report any issues encountered during the process of executing this skill (e.g. m
 
 ## Reference Files
 
-- `references/slack.md` — Slack channel IDs, canvas IDs, and user-ID-to-name mappings for the Speech Recognition team
+- `references/slack.md` — Slack channel IDs, canvas IDs, user-ID-to-name mappings, and how to send the weekly message (5000-char limit, threaded chunks, paste-ready fallback)
