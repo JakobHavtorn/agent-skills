@@ -29,6 +29,10 @@ If the worktree's branch has been merged, delete it as well:
 
 Before reporting work complete, run the project's test suite or linter on changed files. If no suite exists, smoke-test the changed path directly. Never claim "done" without exercising the change.
 
+## Tests
+
+Before writing tests, study how the project structures them — file layout, fixtures, helpers, and builders. Then look for reuse: extending an existing file, class, or even a single test is often cleaner than adding a new standalone test file. Depending on the change, reusing existing tests keeps long-run maintenance far more manageable. When a behavior is only pinneable with new structure, keep the new file minimal and follow the established conventions.
+
 ## General writing style
 
 Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless words. State the conclusion first, then the evidence.
