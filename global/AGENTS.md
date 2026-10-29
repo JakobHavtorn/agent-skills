@@ -2,68 +2,75 @@
 
 High-level instructions for all coding agents. Installed by `agent-skills` via `skillctl link`.
 
-## Git worktree policy
-
-Before making any file edits, create a git worktree for your changes. The branch name must include a short descriptive slug for the work, and a project-management or issue-tracking ticket reference if one is available:
-
-```bash
-git worktree add "../$(basename "$(pwd)")-work-$(git rev-parse --abbrev-ref HEAD)" \
-  -b "agent/$(date +%Y%m%d-%H%M%S)-<descriptive-slug>"
-```
-
-Include a ticket reference in the slug when available, e.g. `agent/20261003-205039-fix-worktree-policy-SR-1234`. When no ticket exists, omit it.
-
-Work in the worktree, not the main checkout. Commit there, push from there, open the PR from there.
-
-Never edit files in the main checkout directly. The only exception is read-only investigation — `read`, `grep`, `glob`, `bash` for inspection — which stays in the original directory, or when explicitly instructed by the user to do so.
-
-Remove the worktree once the work is finished — PR merged, effort abandoned, or no longer needed. From the main checkout:
-
-```bash
-git worktree remove "../$(basename "$(pwd)")-work-$(git rev-parse --abbrev-ref HEAD)"
-```
-
-If the worktree's branch has been merged, delete it as well:
-
-## Code verification
-
-Before reporting work complete, run the project's test suite or linter on changed files. If no suite exists, smoke-test the changed path directly. Never claim "done" without exercising the change.
-
-## Tests
-
-Before writing tests, study how the project structures them — file layout, fixtures, helpers, and builders. Then look for reuse: extending an existing file, class, or even a single test is often cleaner than adding a new standalone test file. Depending on the change, reusing existing tests keeps long-run maintenance far more manageable. When a behavior is only pinneable with new structure, keep the new file minimal and follow the established conventions.
-
 ## General writing style
 
 Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless words. State the conclusion first, then the evidence.
 
-- Write in active voice. The agent does the verb.
-- Prefer the positive form. Say what is true, not what isn't.
+- Use simple language. Use established terms; never invent jargon.
+- Use active voice: the subject performs the action.
+- Use the positive form: state what is true.
 - Use parallel structure for coordinate clauses.
-- Place the emphatic word last in the sentence.
-- Fragments are fine when clearer than a full sentence.
-- Cut ceremony, hedging, and recaps. The reader is technical.
+- Place the emphatic word at the end of the sentence.
+- Use fragments when they are clearer than full sentences.
+- Cut ceremony, hedging, and recaps; write for a technical reader.
 
 ## Diagrams
 
-Prefer [Mermaid](https://mermaid.js/) for diagrams and flowcharts where a visual structure genuinely aids understanding; skip it for trivial or purely linear content. Use the `mermaid` skill when available for up-to-date syntax across all diagram types.
+Use [Mermaid](https://mermaid.js/) for diagrams and flowcharts when visual structure aids understanding; skip it for trivial or linear content. Use the `mermaid` skill when available for current syntax across diagram types.
+
+## Git worktree policy
+
+Make all edits in a git worktree, not the main checkout. Read-only investigation (`read`, `grep`, `glob`, inspection with `bash`) can stay in the main checkout. Edit the main checkout only when the user explicitly says to.
+
+Create the worktree before the first edit. Name the branch with a short descriptive slug, plus a ticket reference when one is available, e.g. `fix-worktree-policy-SR-1234`:
+
+```bash
+slug="<descriptive-slug>"
+root="$(git rev-parse --show-toplevel)"
+git worktree add "$root/../$(basename "$root")-$slug" \
+  -b "agent/$(date +%Y%m%d-%H%M%S)-$slug"
+```
+
+Work, commit, push, and open the PR from the worktree.
+
+Remove the worktree when the work is finished: PR merged, effort abandoned, or no longer needed. From the main checkout, find the path with `git worktree list`, then:
+
+```bash
+git worktree remove <path>
+```
+
+If the branch has been merged, delete it:
+
+```bash
+git branch -d <branch>
+```
+
+`-d` refuses branches that were squash- or rebase-merged. Use `-D` once you have confirmed the PR is merged.
+
+## Code verification
+
+Before reporting work complete, run the tests covering the changed code and the linter on changed files. If no test suite exists, smoke-test the changed path directly. Never claim "done" without exercising the change.
+
+## Tests
+
+Before writing tests, study how the project structures them: file layout, fixtures, helpers, and builders. Then look for reuse. Extending an existing file, class, or test is often cleaner than adding a new file. When testing a behavior requires new structure, keep the new file minimal and follow the established conventions.
 
 ## Code comments
 
-Prefer self-documenting code. Clear names reduce the need for comments. When you do comment:
+Prefer self-documenting code; clear names reduce the need for comments. When you do comment:
 
-- Document API surfaces — functions, classes, modules — in the project's standard format (docstrings, Go doc comments, etc.). State purpose, inputs, outputs, side effects.
-- Use inline comments for decisions, constraints, business rules, workarounds, and external dependencies. Explain why, not what. Don't restate the code.
-- Keep comments concise and current. Update or delete when the code changes. Stale comments mislead.
-- Skip trivial or self-explanatory code. Don't comment the obvious.
+- Document API surfaces (functions, classes, modules) in the project's standard format: docstrings, Go doc comments, etc. State purpose, inputs, outputs, and side effects.
+- Use inline comments for decisions, constraints, business rules, workarounds, and external dependencies. Explain why, not what.
+- Keep comments concise and current. Update or delete them when the code changes; stale comments mislead.
+- Skip trivial or self-explanatory code.
 
 ## Config repositories
 
-Two repos manage shell, agent, and harness configuration.
+Two repos manage shell, agent, and harness configuration. Both use PRs to `main`.
 
-- **agent-skills** (`github.com/JakobHavtorn/agent-skills`) — skills, plugins, and this file. `skillctl link --agent <harness> --force` symlinks skill directories and `global/AGENTS.md` into each harness config dir (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.omp`). Symlinks mean a single `git pull` propagates to every harness instantly.
-- **dotfiles** (`github.com/JakobHavtorn/dotfiles`) — chezmoi-managed harness and shell config: fish, git, opencode base settings, omp config, brew bundle, SSH. Managed separately from agent-skills. Apply changes with `chezmoi diff && chezmoi apply`.
+- **agent-skills** (`github.com/JakobHavtorn/agent-skills`): skills, plugins, and this file. `skillctl link --agent <harness> --force` symlinks skill directories and `global/AGENTS.md` into each harness config dir (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.omp`).
+- **dotfiles** (`github.com/JakobHavtorn/dotfiles`): chezmoi-managed harness and shell config: fish, git, opencode base settings, omp config, brew bundle, SSH.
 
-After pulling agent-skills, symlinks update immediately — nothing to re-run. After pulling dotfiles, run `chezmoi diff && chezmoi apply` to materialize templated configs and run scripts. Both repos use PRs to `main`.
+After pulling agent-skills, existing skills and this file update through the symlinks. After adding a new skill, re-run `skillctl link`. After pulling dotfiles, run `chezmoi diff && chezmoi apply` to materialize templated configs and run scripts.
 
-After making material changes to config files or agent skills that you think might be relevant to persist, ask the user whether they want to reflect the changes in **agent-skills** and/or **dotfiles**, whichever is relevant.
+After material changes to config files or skills, ask the user whether to persist them in agent-skills or dotfiles.
