@@ -7,16 +7,23 @@ High-level instructions for all coding agents. Installed by `agent-skills` via `
 Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless words. State the conclusion first, then the evidence.
 
 - Use simple language. Use established terms; never invent jargon.
-- Use active voice: the subject performs the action.
+- Prefer active voice: the subject performs the action.
 - Use the positive form: state what is true.
 - Use parallel structure for coordinate clauses.
-- Place the emphatic word at the end of the sentence.
 - Use fragments when they are clearer than full sentences.
 - Cut ceremony, hedging, and recaps; write for a technical reader.
 
 ## Diagrams
 
 Use [Mermaid](https://mermaid.js/) for diagrams and flowcharts when visual structure aids understanding; skip it for trivial or linear content. Use the `mermaid` skill when available for current syntax across diagram types.
+
+## Code comments
+
+Prefer self-documenting code; clear names reduce the need for comments. When you do comment:
+
+- Prefer docstrings over inline comments. Document functions, methods, and classes in the project's standard format. State purpose, inputs, outputs, and side effects where the signature and types don't make them obvious.
+- Reserve inline comments for line-specific context. Explain why, not what/
+- Keep comments concise and current. Update or delete them when the code changes; stale comments mislead.
 
 ## Git worktree policy
 
@@ -30,6 +37,8 @@ root="$(git rev-parse --show-toplevel)"
 git worktree add "$root/../$(basename "$root")-$slug" \
   -b "agent/$(date +%Y%m%d-%H%M%S)-$slug"
 ```
+
+A new worktree contains only tracked files. Before running tests, set it up: install dependencies with the project's tool (e.g. `uv sync`, `npm ci`) and copy any gitignored local config such as `.env` from the main checkout.
 
 Work, commit, push, and open the PR from the worktree.
 
@@ -47,22 +56,13 @@ git branch -d <branch>
 
 `-d` refuses branches that were squash- or rebase-merged. Use `-D` once you have confirmed the PR is merged.
 
-## Code verification
-
-Before reporting work complete, run the tests covering the changed code and the linter on changed files. If no test suite exists, smoke-test the changed path directly. Never claim "done" without exercising the change.
-
 ## Tests
 
 Before writing tests, study how the project structures them: file layout, fixtures, helpers, and builders. Then look for reuse. Extending an existing file, class, or test is often cleaner than adding a new file. When testing a behavior requires new structure, keep the new file minimal and follow the established conventions.
 
-## Code comments
+## Code verification
 
-Prefer self-documenting code; clear names reduce the need for comments. When you do comment:
-
-- Document API surfaces (functions, classes, modules) in the project's standard format: docstrings, Go doc comments, etc. State purpose, inputs, outputs, and side effects.
-- Use inline comments for decisions, constraints, business rules, workarounds, and external dependencies. Explain why, not what.
-- Keep comments concise and current. Update or delete them when the code changes; stale comments mislead.
-- Skip trivial or self-explanatory code.
+Before reporting work complete, run the tests covering the changed code and the linter on changed files. If no test suite exists, smoke-test the changed path directly. Never claim "done" without exercising the change.
 
 ## Config repositories
 
