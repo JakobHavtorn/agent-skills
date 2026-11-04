@@ -47,7 +47,7 @@ Concise, imperative. Derive from the user's request.
 
 ### Body
 
-Use the following template and Markdown syntax. 
+Use the following template and Markdown syntax.
 
 ```
 ## What does this solve (and why)?
