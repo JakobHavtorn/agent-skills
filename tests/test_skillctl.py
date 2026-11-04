@@ -184,6 +184,29 @@ def test_prompt_includes_instruction():
     assert "none" in prompt
 
 
+def test_extract_omp_text_turn_end():
+    """omp --mode json emits assistant text in turn_end.message.content."""
+    ndjson = (
+        '{"type":"turn_end","message":{"role":"assistant","content":'
+        '[{"type":"text","text":"api-designer"}]}}\n'
+        '{"type":"agent_end","messages":[{"role":"assistant","content":'
+        '[{"type":"text","text":"api-designer"}]}]}\n'
+        '{"type":"advisor_yielded"}\n'
+    )
+    assert skillctl._extract_omp_text(ndjson) == "api-designer"
+
+
+def test_extract_omp_text_message_end():
+    """Older omp builds emit text directly in message_end.content."""
+    ndjson = '{"type":"message_end","content":"api-designer"}\n'
+    assert skillctl._extract_omp_text(ndjson) == "api-designer"
+
+
+def test_extract_omp_text_empty():
+    """Non-matching events and malformed lines yield empty text."""
+    assert skillctl._extract_omp_text("not json\n{}\n") == ""
+
+
 # ---------------------------------------------------------------------------
 # Runner — allow ``python3 tests/test_skillctl.py``
 # ---------------------------------------------------------------------------
