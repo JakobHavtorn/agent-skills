@@ -624,9 +624,10 @@ def _extract_opencode_text(json_output: str) -> str:
 def _extract_omp_text(json_output: str) -> str:
     """Extract assistant text from omp --mode json output (NDJSON).
 
-    OMP is a Pi fork and emits the same NDJSON event schema.  Completed
-    messages arrive in ``message_end`` events whose ``content`` field
-    holds the full text.
+    OMP is a Pi fork. Older builds emitted ``message_end`` events whose
+    ``content`` field holds the full text; current builds emit ``turn_end``
+    and ``agent_end`` events with the text in ``message.content`` (string or
+    part list). Handle both shapes.
     """
     text_parts = []
     for line in json_output.strip().splitlines():
@@ -638,14 +639,18 @@ def _extract_omp_text(json_output: str) -> str:
             continue
         if event.get("type") == "message_end":
             content = event.get("content")
-            if isinstance(content, str) and content:
-                text_parts.append(content)
-            elif isinstance(content, list):
-                for part in content:
-                    if isinstance(part, dict) and part.get("text"):
-                        text_parts.append(part["text"])
-                    elif isinstance(part, str):
-                        text_parts.append(part)
+        elif event.get("type") in ("turn_end", "agent_end"):
+            content = (event.get("message") or {}).get("content")
+        else:
+            continue
+        if isinstance(content, str) and content:
+            text_parts.append(content)
+        elif isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and part.get("text"):
+                    text_parts.append(part["text"])
+                elif isinstance(part, str):
+                    text_parts.append(part)
     return "\n".join(text_parts)
 
 
