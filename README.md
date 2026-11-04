@@ -105,6 +105,7 @@ Software engineering skills — Linear tickets, pull requests, code review.
 
 | Skill | Description |
 |---|---|
+| [api-designer](plugins/coding/skills/api-designer) | Design REST/GraphQL APIs with OpenAPI 3.1 specs — resource modeling, versioning, pagination, RFC 7807 errors (vendored from Jeffallan/claude-skills) |
 | [code-review](plugins/coding/skills/code-review) | Two-axis diff review — standards and spec, in parallel sub-agents |
 | [codebase-design](plugins/coding/skills/codebase-design) | Shared vocabulary for deep-module design |
 | [find-skills](plugins/coding/skills/find-skills) | Discover and install skills from the open agent skills ecosystem |
