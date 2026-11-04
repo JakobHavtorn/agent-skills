@@ -65,8 +65,12 @@ def parse_task_line(line: str) -> dict | None:
     # Clean text — strip all emoji metadata for display
     text = raw
     for pattern in [
-        DUE_DATE_RE, START_DATE_RE, SCHEDULED_RE,
-        DONE_DATE_RE, CREATED_DATE_RE, RECURRENCE_RE,
+        DUE_DATE_RE,
+        START_DATE_RE,
+        SCHEDULED_RE,
+        DONE_DATE_RE,
+        CREATED_DATE_RE,
+        RECURRENCE_RE,
     ]:
         text = pattern.sub("", text)
     for emoji in PRIORITY_EMOJI:
@@ -170,8 +174,7 @@ def main() -> int:
     open_count = sum(1 for t in tasks if not t["is_done"])
     done_count = total - open_count
     print(
-        f"(Total: {total} task(s) — {open_count} open, {done_count} done — "
-        f"across {len(by_file)} note(s))",
+        f"(Total: {total} task(s) — {open_count} open, {done_count} done — across {len(by_file)} note(s))",
         file=sys.stderr,
     )
     return 0
