@@ -9,7 +9,6 @@ belong to the harnesses, so we strip them for spec validation and do not
 validate their values on the harnesses' behalf.
 """
 
-
 import pathlib
 import re
 import subprocess
