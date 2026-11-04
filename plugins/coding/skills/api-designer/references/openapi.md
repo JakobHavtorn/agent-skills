@@ -613,7 +613,7 @@ example: "2024-01-15"
 # UUID
 type: string
 format: uuid
-example: "550e8400-e29b-41d4-a716-446655440000"
+example: "c3ea1a60-1c1e-4d3f-b1d3-0e2e7a9b4c5d"
 
 # URI
 type: string
