@@ -9,3 +9,5 @@ __pycache__/
 tests/*/results.json
 .ruff_cache/
 .pytest_cache/
+.venv/
+uv.lock
