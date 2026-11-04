@@ -196,9 +196,9 @@ def test_extract_omp_text_turn_end():
     assert skillctl._extract_omp_text(ndjson) == "api-designer"
 
 
-def test_extract_omp_text_message_end():
-    """Older omp builds emit text directly in message_end.content."""
-    ndjson = '{"type":"message_end","content":"api-designer"}\n'
+def test_extract_omp_text_string_content():
+    """turn_end.message.content may be a bare string."""
+    ndjson = '{"type":"turn_end","message":{"role":"assistant","content":"api-designer"}}\n'
     assert skillctl._extract_omp_text(ndjson) == "api-designer"
 
 
