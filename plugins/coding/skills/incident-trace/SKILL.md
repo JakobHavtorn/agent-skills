@@ -3,9 +3,10 @@ name: incident-trace
 description: >-
   Trace a backend pipeline failure end-to-end through Grafana/Synapse Loki
   logs, from a session/interaction/recording/transcript id plus a time window
-  to a stage-by-stage verdict with per-hop evidence. Use when any failure with
-  such ids needs the backend truth: a CI E2E failure whose logs, annotations,
-  or PR comments contain session/transcript ids; an alert payload; a
+  to a stage-by-stage verdict with per-hop evidence. This skill should be
+  used when any failure with such ids needs the backend truth: a CI E2E
+  failure whose logs, annotations, or PR comments contain session/transcript
+  ids; an alert payload; a
   user-reported incident ("no transcript", "zero words", "dropped messages",
   "missing events", "silent recording"); a Slack thread or permalink to look
   into; or ids handed over directly with a time window. Also use when asked
