@@ -29,14 +29,21 @@ Prefer self-documenting code; clear names reduce the need for comments. When you
 
 Make all edits in a git worktree, not the main checkout. Read-only investigation (`read`, `grep`, `glob`, inspection with `bash`) can stay in the main checkout. Edit the main checkout only when the user explicitly says to.
 
-Create the worktree before the first edit. Name the branch with a short descriptive slug, plus a ticket reference when one is available, e.g. `fix-worktree-policy-SR-1234`:
+Create the worktree before the first edit. Place it in a hidden `.worktrees/` directory inside the primary clone, `<repo>/.worktrees/<slug>`, named with a short descriptive slug, plus a ticket reference when one is available, e.g. `fix-worktree-policy-SR-1234`. Anchor to the primary clone (the common git dir's parent), not the current checkout, so the recipe works even when you are already inside a linked worktree:
 
 ```bash
 slug="<descriptive-slug>"
-root="$(git rev-parse --show-toplevel)"
-git worktree add "$root/../$(basename "$root")-$slug" \
+root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+git worktree add "$root/.worktrees/$slug" \
   -b "agent/$(date +%Y%m%d-%H%M%S)-$slug"
 ```
+
+The hidden-dir placement keeps the repository's parent directory clean (no `repo-slug` copies in the listing) and makes cleanup concise: `cd <repo>` then `git worktree list` / `git worktree remove .worktrees/<slug>`. Most tooling (search, glob, file watchers) skips dot directories, so in-repo placement does not pollute them.
+
+Two hard rules:
+
+- Never point an agent harness's worktree setting (e.g. OMP's `worktree.base` / `OMP_WORKTREE_DIR`) at `.worktrees/`. Harness worktree commands manage their own directory (OMP scans only its own `OMP_WORKTREE_DIR`, default `~/.omp/wt`) and a `clear --all` deletes live linked checkouts it finds there.
+- In-repo placement relies on the global excludes file (`~/.config/git/ignore`, managed by dotfiles) containing `.worktrees/` — otherwise `git add -A` stages the worktree as an embedded-repo gitlink. On machines without it, register it per repo: `echo '.worktrees/' >> .git/info/exclude`. Never run `git clean -x` variants in the main checkout: ignored directories are exactly what `-x` deletes.
 
 A new worktree contains only tracked files. Before running tests, set it up: install dependencies with the project's tool (e.g. `uv sync`, `npm ci`) and copy any gitignored local config such as `.env` from the main checkout.
 
