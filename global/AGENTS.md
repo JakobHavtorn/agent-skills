@@ -40,9 +40,8 @@ git worktree add "$root/.worktrees/$slug" \
 
 The hidden-dir placement keeps the repository's parent directory clean (no `repo-slug` copies in the listing) and makes cleanup concise: `cd <repo>` then `git worktree list` / `git worktree remove .worktrees/<slug>`. Most tooling (search, glob, file watchers) skips dot directories, so in-repo placement does not pollute them.
 
-Two hard rules:
+One hard rule:
 
-- Never point an agent harness's worktree setting (e.g. OMP's `worktree.base` / `OMP_WORKTREE_DIR`) at `.worktrees/`. Harness worktree commands manage their own directory (OMP scans only its own `OMP_WORKTREE_DIR`, default `~/.omp/wt`) and a `clear --all` deletes live linked checkouts it finds there.
 - In-repo placement relies on the global excludes file (`~/.config/git/ignore`, managed by dotfiles) containing `.worktrees/` — otherwise `git add -A` stages the worktree as an embedded-repo gitlink. On machines without it, register it per repo: `echo '.worktrees/' >> .git/info/exclude`. Never run `git clean -x` variants in the main checkout: ignored directories are exactly what `-x` deletes.
 
 A new worktree contains only tracked files. Before running tests, set it up: install dependencies with the project's tool (e.g. `uv sync`, `npm ci`) and copy any gitignored local config such as `.env` from the main checkout.
