@@ -17,6 +17,10 @@ Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless w
 
 Use [Mermaid](https://mermaid.js/) for diagrams and flowcharts when visual structure aids understanding; skip it for trivial or linear content. Use the `mermaid` skill when available for current syntax across diagram types.
 
+## Code architecture
+
+Build code cleanly and modularly, with proper separation of concerns. Never bolt a feature on just because it was requested. If you cannot find a natural way to build it, and you would recommend a refactor first, stop before you start and say so.
+
 ## Code comments
 
 Prefer self-documenting code; clear names reduce the need for comments. When you do comment:
