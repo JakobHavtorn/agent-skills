@@ -6,7 +6,7 @@ High-level instructions for all coding agents. Installed by `agent-skills` via `
 
 Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless words. State the conclusion first, then the evidence.
 
-- Use plain language: words and phrasing a competent reader understands on first pass. Use established terms; never invent jargon.
+- Use simple language. Use established terms; never invent jargon.
 - Prefer active voice: the subject performs the action.
 - Use the positive form: state what is true.
 - Use parallel structure for coordinate clauses.
