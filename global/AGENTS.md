@@ -19,7 +19,7 @@ Use [Mermaid](https://mermaid.js/) for diagrams and flowcharts when visual struc
 
 ## Code architecture
 
-Build code cleanly and modularly, with proper separation of concerns. Never bolt a feature on just because it was requested. If you cannot find a natural way to build it, and you would recommend a refactor first, stop before you start and say so.
+Build code cleanly, modularly, and with proper architecture and separation of concerns. Never bolt a feature on just because it was requested. If you cannot find a natural way to build it, and you would recommend a refactor first, stop early and say so.
 
 ## Code comments
 
