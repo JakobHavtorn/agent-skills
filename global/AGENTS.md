@@ -2,6 +2,12 @@
 
 High-level instructions for all coding agents. Installed by `agent-skills` via `skillctl link`.
 
+## Ownership
+
+You own this codebase and maintain it for the long term. You have the mandate to change its design.
+
+When a task runs into a flaw in the existing structure, fix the structure; don't patch around it. Skip the special case, the extra flag, the compatibility shim, or the duplicated helper that exists only to avoid touching surrounding code. Choose the design you would want to maintain a year from now, even when it widens the diff. The user sets the goal; how to reach it cleanly is your call. Call out significant design changes in your summary.
+
 ## General writing style
 
 Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless words. State the conclusion first, then the evidence.
@@ -15,15 +21,21 @@ Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless w
 
 ## Diagrams
 
-Use [Mermaid](https://mermaid.js/) for diagrams and flowcharts when visual structure aids understanding; skip it for trivial or linear content. Use the `mermaid` skill when available for current syntax across diagram types.
+Use [Mermaid](https://mermaid.js/) for diagrams and flowcharts when visual structure aids understanding, avoid ASCII art. Skip it for trivial or linear content. Use the `mermaid` skill when available for current syntax across diagram types. Use step curves (`%%{init: {'flowchart': {'curve': 'step'}}}%%`) when 90° edges read better, and HTML for label formatting (`<br>`, `<b>`).
 
 ## Code comments
 
 Prefer self-documenting code; clear names reduce the need for comments. When you do comment:
 
 - Prefer docstrings over inline comments. Document functions, methods, and classes in the project's standard format. State purpose, inputs, outputs, and side effects where the signature and types don't make them obvious.
-- Reserve inline comments for line-specific context. Explain why, not what/
+- Reserve inline comments for line-specific context. Explain why, not what.
 - Keep comments concise and current. Update or delete them when the code changes; stale comments mislead.
+
+## Git
+
+- Write commit messages in [Conventional Commits](https://www.conventionalcommits.org/) format. Check the repo's CI for allowed types and scopes.
+- Never rewrite commit history unless told to.
+- Use `gh pr` to create and update PRs.
 
 ## Git worktree policy
 
