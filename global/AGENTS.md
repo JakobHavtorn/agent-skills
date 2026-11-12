@@ -38,6 +38,7 @@ Prefer self-documenting code; clear names reduce the need for comments. When you
 ## Git
 
 - Write commit messages in [Conventional Commits](https://www.conventionalcommits.org/) format. Check the repo's CI for allowed types and scopes.
+- Use only `fix` and `feat` by default, with `!` for breaking changes. Any other type, such as `refactor` or `chore`, requires an explicit command from the user.
 - Never rewrite commit history unless told to.
 - Use `gh pr` to create and update PRs.
 
