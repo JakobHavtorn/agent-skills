@@ -54,6 +54,7 @@ make pre-commit # runs all hooks on all files
 | OpenCode | `~/.config/opencode/skills/<name>/` | `.opencode/skills/` |
 | Cursor | `~/.cursor/skills/<name>/` | `.cursor/skills/` |
 | Oh My Pi | `~/.omp/agent/skills/<name>/` | `.omp/skills/` |
+| Pi | `~/.pi/agent/skills/<name>/` | `.pi/skills/` |
 
 ### Commands
 
@@ -82,6 +83,7 @@ skillctl help                          # show detailed help with examples
 | OpenCode | `~/.config/opencode/AGENTS.md` |
 | Cursor | `~/.cursor/AGENTS.md` |
 | Oh My Pi | `~/.omp/agent/AGENTS.md` |
+| Pi | `~/.pi/agent/AGENTS.md` |
 
 ## Agents
 
@@ -94,6 +96,7 @@ The `agents/` directory holds standalone agent definitions that are not tied to 
 | OpenCode | `~/.config/opencode/agents/` |
 | Cursor | `~/.cursor/agents/` |
 | Oh My Pi | `~/.omp/agent/agents/` |
+| Pi | `~/.pi/agent/agents/` |
 
 | Agent | Description |
 |---|---|

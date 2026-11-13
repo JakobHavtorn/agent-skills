@@ -80,6 +80,10 @@ HARNESS_PATHS: dict[str, HarnessPaths] = {
         user=ScopePaths(Path.home() / ".omp" / "agent" / "skills", Path.home() / ".omp" / "agent"),
         project=ScopePaths(Path.cwd() / ".omp" / "skills"),
     ),
+    "pi": HarnessPaths(
+        user=ScopePaths(Path.home() / ".pi" / "agent" / "skills", Path.home() / ".pi" / "agent"),
+        project=ScopePaths(Path.cwd() / ".pi" / "skills"),
+    ),
 }
 
 # Shared context file — linked as AGENTS.md into each harness's top-level config dir.
@@ -1002,7 +1006,7 @@ def main():
     # link
     p_link = sub.add_parser("link", help="Symlink a plugin's skills into a harness directory")
     p_link.add_argument("--plugin", help="Plugin name (coding, pm). Omit to link all plugins.")
-    p_link.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor, omp)")
+    p_link.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor, omp, pi)")
     p_link.add_argument("--scope", choices=["user", "project"], default="user", help="User or project scope")
     p_link.add_argument("--copy", action="store_true", help="Copy instead of symlink (auto on Windows)")
     p_link.add_argument("--force", action="store_true", help="Overwrite existing targets (symlinks or copies)")
@@ -1021,7 +1025,7 @@ def main():
 
     # prune
     p_prune = sub.add_parser("prune", help="Remove dangling links to deleted skills (dry run unless --apply)")
-    p_prune.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor, omp)")
+    p_prune.add_argument("--agent", required=True, help="Harness name (claude, codex, opencode, cursor, omp, pi)")
     p_prune.add_argument("--scope", choices=["user", "project"], default="user", help="User or project scope")
     p_prune.add_argument("--apply", action="store_true", help="Remove stale links (default: dry run)")
     p_prune.add_argument(
