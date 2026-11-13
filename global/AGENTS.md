@@ -12,7 +12,7 @@ When a task runs into a flaw in the existing structure, fix the structure; don't
 
 Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless words. State the conclusion first, then the evidence.
 
-- Use simple language. Use established terms; never invent jargon.
+- Use established terms; never invent jargon.
 - Prefer active voice: the subject performs the action.
 - Use the positive form: state what is true.
 - Use parallel structure for coordinate clauses.
