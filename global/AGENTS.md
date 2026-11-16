@@ -10,10 +10,12 @@ When a task runs into a flaw in the existing structure, fix the structure; don't
 
 ## General writing style
 
-Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless words. State the conclusion first, then the evidence.
+Write in [Simplified Technical English](https://en.wikipedia.org/wiki/Simplified_Technical_English): one word, one meaning; simple verb forms; short sentences with one topic. In the spirit of Strunk and White's *The Elements of Style*, omit needless words. State the conclusion first, then the evidence.
 
 - Use established terms; never invent jargon.
+- Use one term for one concept; do not rotate synonyms.
 - Prefer active voice: the subject performs the action.
+- Use the present tense; write instructions as imperatives.
 - Use the positive form: state what is true.
 - Use parallel structure for coordinate clauses.
 - Use fragments when they are clearer than full sentences.
