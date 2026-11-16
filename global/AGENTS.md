@@ -10,11 +10,13 @@ When a task runs into a flaw in the existing structure, fix the structure; don't
 
 ## General writing style
 
-Follow the spirit of Strunk and White's *The Elements of Style*. Omit needless words. State the conclusion first, then the evidence.
+Write in [Simplified Technical English](https://en.wikipedia.org/wiki/Simplified_Technical_English) (ASD-STE100). State the conclusion first, then the evidence. Omit needless words. When drafting or editing documents, use the `technical-writing` skill.
 
-- Use established terms; never invent jargon.
-- Prefer active voice: the subject performs the action.
+- Use short sentences: at most 20 words for instructions, 25 for descriptions.
+- Use one word for one meaning; use the same term for the same concept throughout. Use established terms; never invent jargon.
+- Use simple verb forms: simple present, simple past, or future tense. Avoid the passive voice; the subject performs the action.
 - Use the positive form: state what is true.
+- Write one instruction per sentence, in the imperative.
 - Use parallel structure for coordinate clauses.
 - Use fragments when they are clearer than full sentences.
 - Cut ceremony, hedging, and recaps; write for a technical reader.
