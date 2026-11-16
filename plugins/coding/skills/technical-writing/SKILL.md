@@ -1,6 +1,6 @@
 ---
 name: technical-writing
-description: Use when an agent is asked to draft, rewrite, edit, review, polish, copyedit, simplify, humanize, or create written prose, including creative writing, essays, posts, scripts, speeches, emails, documentation, product copy, and other style-sensitive text. Apply George Orwell's six rules and ASD-STE100 Simplified Technical English as a plain-English discipline while preserving the user's intended meaning, audience, tone, and explicit constraints.
+description: Write, edit, and review prose with George Orwell's six rules and ASD-STE100 Simplified Technical English as a plain-English discipline, preserving the user's meaning, audience, tone, and explicit constraints. This skill should be used when the user asks to draft, rewrite, edit, review, polish, copyedit, simplify, or humanize written prose, including documentation, emails, essays, posts, scripts, speeches, product copy, and creative writing.
 ---
 
 # Technical Writing
