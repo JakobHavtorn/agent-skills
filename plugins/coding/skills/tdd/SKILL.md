@@ -40,3 +40,7 @@ When the shape of that interface is itself in question (how deep the module is, 
 
 - `references/tests.md` — good and bad test examples
 - `references/mocking.md` — mocking guidelines
+
+---
+
+[Vendored from mattpocock/skills](https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/tdd) at commit `5863806` (MIT).
