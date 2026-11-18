@@ -1,6 +1,9 @@
 ---
 name: codebase-design
 description: Shared vocabulary for designing deep modules. This skill should be used when the user wants to design or improve a module's interface, find deepening opportunities, decide where a seam goes, make code more testable or AI-navigable, or when another skill needs the deep-module vocabulary.
+license: MIT
+metadata:
+  vendored-from: https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/codebase-design
 ---
 
 # Codebase Design
@@ -112,7 +115,3 @@ Good interfaces make testing natural:
 
 - `references/deepening.md` — deepening a cluster given its dependencies: dependency categories, seam discipline, and replace-don't-layer testing.
 - `references/design-it-twice.md` — exploring alternative interfaces: spin up parallel sub-agents to design the interface several radically different ways, then compare on depth, locality, and seam placement.
-
----
-
-[Vendored from mattpocock/skills](https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/codebase-design) at commit `5863806` (MIT).
