@@ -83,3 +83,7 @@ Any further notes about the feature.
 ## Step 5: Save the spec
 
 Write the spec as a markdown document at the location from step 1. Mention the path to the user; it is the argument `to-tickets` takes to decompose the spec into tickets.
+
+---
+
+[Vendored from mattpocock/skills](https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/to-spec) at commit `5863806` (MIT).

@@ -109,12 +109,12 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | Skill | Description |
 |---|---|
 | [api-designer](plugins/coding/skills/api-designer) | Design REST/GraphQL APIs with OpenAPI 3.1 specs — resource modeling, versioning, pagination, RFC 7807 errors (vendored from Jeffallan/claude-skills) |
-| [code-review](plugins/coding/skills/code-review) | Two-axis diff review — standards and spec, in parallel sub-agents |
-| [codebase-design](plugins/coding/skills/codebase-design) | Shared vocabulary for deep-module design |
+| [code-review](plugins/coding/skills/code-review) | Two-axis diff review — standards and spec, in parallel sub-agents (vendored from mattpocock/skills) |
+| [codebase-design](plugins/coding/skills/codebase-design) | Shared vocabulary for deep-module design (vendored from mattpocock/skills) |
 | [find-skills](plugins/coding/skills/find-skills) | Discover and install skills from the open agent skills ecosystem |
 | [frontend-design](plugins/coding/skills/frontend-design) | Distinctive, intentional visual design for new or reshaped UI |
-| [grill-me](plugins/coding/skills/grill-me) | Relentless interview to sharpen a plan or design (user-invoked) |
-| [grilling](plugins/coding/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds |
+| [grill-me](plugins/coding/skills/grill-me) | Relentless interview to sharpen a plan or design (user-invoked, vendored from mattpocock/skills) |
+| [grilling](plugins/coding/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds (vendored from mattpocock/skills) |
 | [incident-trace](plugins/coding/skills/incident-trace) | Trace incidents through backend services from Loki logs — receipts, negative evidence, verdicts |
 | [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
 | [mermaid](plugins/coding/skills/mermaid) | Generate Mermaid diagrams — 32 types via lookup table linking to official docs |
@@ -122,10 +122,10 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [resolve-merge-conflicts](plugins/coding/skills/resolve-merge-conflicts) | Resolve merge/rebase conflicts hunk by hunk, traced to each side's intent |
 | [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
 | [skill-creator](plugins/coding/skills/skill-creator) | Create, evaluate, and iterate on agent skills |
-| [tdd](plugins/coding/skills/tdd) | Test-driven development — red-green-refactor with tests worth keeping |
+| [tdd](plugins/coding/skills/tdd) | Test-driven development — red-green-refactor with tests worth keeping (vendored from mattpocock/skills) |
 | [technical-writing](plugins/coding/skills/technical-writing) | Draft and edit prose with Orwell's rules and ASD-STE100 Simplified Technical English |
-| [to-spec](plugins/coding/skills/to-spec) | Turn the current conversation into a spec as a markdown document |
-| [to-tickets](plugins/coding/skills/to-tickets) | Decompose a plan into tracer-bullet tickets with blocking edges, published to Linear |
+| [to-spec](plugins/coding/skills/to-spec) | Turn the current conversation into a spec as a markdown document (vendored from mattpocock/skills) |
+| [to-tickets](plugins/coding/skills/to-tickets) | Decompose a plan into tracer-bullet tickets with blocking edges, published to Linear (vendored from mattpocock/skills) |
 
 ### `pm`
 

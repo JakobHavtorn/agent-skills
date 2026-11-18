@@ -64,3 +64,7 @@ Publish the approved tickets in dependency order (blockers first) so each ticket
 Record blocking edges as Linear blocking relations so unblocked tickets are queryable.
 
 Avoid specific file paths or code snippets in the published tickets: they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
+
+---
+
+[Vendored from mattpocock/skills](https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/to-tickets) at commit `5863806` (MIT).
