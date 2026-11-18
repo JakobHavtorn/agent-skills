@@ -132,19 +132,32 @@ git rev-parse --abbrev-ref HEAD | grep -oiE '[A-Z]+-[0-9]+$' | tr '[:lower:]' '[
 
 ## Step 6: Draft the PR description
 
-Use the template from `references/pr-template.md` verbatim. The core structure:
+Call the Skill tool with "pr" for the body's shape: a **Summary** that is the smallest visual making the change clear (diff, call tree, file tree, or Mermaid — not prose), **Evidence** showing before/after that the change works, and a **Merge Danger** call (one-way or two-way door, plus blast radius).
+
+Add the Linear section on top of that shape — the full structure:
 
 ```markdown
 ## Summary
 
-- <2-5 bullets describing what changed and why>
+<smallest visual that makes the change clear — from the pr skill>
+
+## Evidence
+
+- **Before:** <screenshot/output/failing test run>
+  **After:** <screenshot/output/passing test run>
+
+## Merge Danger
+
+**Door:** <one-way or two-way>
+
+**Blast Radius:** <one-word description>
 
 ## Linear
 
 Closes <TICKET-ID>
 ```
 
-Read `references/pr-template.md` for the full template with examples, multiple-ticket handling, and summary guidelines. Read `references/linear-linking.md` for closing vs non-closing words, URL formats, and PR title conventions.
+Read `references/pr-template.md` for how the sections combine, with an example and multiple-ticket handling. Read `references/linear-linking.md` for closing vs non-closing words, URL formats, and PR title conventions.
 
 **Gate:** If the ticket ID from Step 5 is unresolved (user couldn't provide one) AND no Linear section can be written, confirm with the user that they want to proceed without a Linear link before continuing. Do not silently omit the section.
 
