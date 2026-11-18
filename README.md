@@ -111,14 +111,22 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [api-designer](plugins/coding/skills/api-designer) | Design REST/GraphQL APIs with OpenAPI 3.1 specs — resource modeling, versioning, pagination, RFC 7807 errors (vendored from Jeffallan/claude-skills) |
 | [code-review](plugins/coding/skills/code-review) | Two-axis diff review — standards and spec, in parallel sub-agents (vendored from mattpocock/skills) |
 | [codebase-design](plugins/coding/skills/codebase-design) | Shared vocabulary for deep-module design (vendored from mattpocock/skills) |
+| [diagnosing-bugs](plugins/coding/skills/diagnosing-bugs) | Disciplined diagnosis loop for hard bugs and regressions — red-capable repro, minimise, hypothesise, instrument, fix (vendored from mattpocock/skills) |
+| [domain-modeling](plugins/coding/skills/domain-modeling) | Build and sharpen a project's domain model — GLOSSARY.md and ADRs inline (vendored from mattpocock/skills) |
 | [find-skills](plugins/coding/skills/find-skills) | Discover and install skills from the open agent skills ecosystem |
 | [frontend-design](plugins/coding/skills/frontend-design) | Distinctive, intentional visual design for new or reshaped UI |
 | [grill-me](plugins/coding/skills/grill-me) | Relentless interview to sharpen a plan or design (user-invoked, vendored from mattpocock/skills) |
+| [grill-with-docs](plugins/coding/skills/grill-with-docs) | Grilling session that also builds the project's domain docs — glossary and ADRs (user-invoked, vendored from mattpocock/skills) |
 | [grilling](plugins/coding/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds (vendored from mattpocock/skills) |
+| [handoff](plugins/coding/skills/handoff) | Compact the session into a handoff document for the next agent (vendored from mattpocock/skills) |
+| [implement](plugins/coding/skills/implement) | Build the work described by a spec or tickets, driving tdd at pre-agreed seams and closing with code-review (user-invoked, vendored from mattpocock/skills) |
+| [improve-codebase-architecture](plugins/coding/skills/improve-codebase-architecture) | Survey a codebase for deepening opportunities, present an HTML report, then grill the pick (user-invoked, vendored from mattpocock/skills) |
 | [incident-trace](plugins/coding/skills/incident-trace) | Trace incidents through backend services from Loki logs — receipts, negative evidence, verdicts |
 | [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
 | [mermaid](plugins/coding/skills/mermaid) | Generate Mermaid diagrams — 32 types via lookup table linking to official docs |
 | [open-pr](plugins/coding/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, Linear-linked description |
+| [prototype](plugins/coding/skills/prototype) | Throwaway prototype to answer a design question — shareable logic demo or switchable UI variants (vendored from mattpocock/skills) |
+| [research](plugins/coding/skills/research) | Investigate a question against primary sources via a background agent, captured as a cited markdown doc (vendored from mattpocock/skills) |
 | [resolve-merge-conflicts](plugins/coding/skills/resolve-merge-conflicts) | Resolve merge/rebase conflicts hunk by hunk, traced to each side's intent |
 | [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
 | [skill-creator](plugins/coding/skills/skill-creator) | Create, evaluate, and iterate on agent skills |
