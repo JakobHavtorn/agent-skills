@@ -5,3 +5,4 @@ Trace reported production incidents end-to-end through backend services from Gra
 - `SKILL.md` — the 6-step method.
 - `references/query-discipline.md` — concrete LogQL recipes and the flake/load rules for the query wrapper.
 - `references/case-example.md` — one real incident traced step by step.
+- The `synapse` skill owns the general Grafana/Loki/Mimir query mechanics; this skill calls it for the querying layer.

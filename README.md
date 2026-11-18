@@ -130,6 +130,7 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [resolve-merge-conflicts](plugins/coding/skills/resolve-merge-conflicts) | Resolve merge/rebase conflicts hunk by hunk, traced to each side's intent |
 | [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
 | [skill-creator](plugins/coding/skills/skill-creator) | Create, evaluate, and iterate on agent skills |
+| [synapse](plugins/coding/skills/synapse) | Query the Grafana stack via the Synapse MCP server — Mimir metrics, Loki logs, Pyroscope profiles, dashboards, alerting |
 | [tdd](plugins/coding/skills/tdd) | Test-driven development — red-green-refactor with tests worth keeping (vendored from mattpocock/skills) |
 | [technical-writing](plugins/coding/skills/technical-writing) | Draft and edit prose with Orwell's rules and ASD-STE100 Simplified Technical English |
 | [to-spec](plugins/coding/skills/to-spec) | Turn the current conversation into a spec as a markdown document (vendored from mattpocock/skills) |

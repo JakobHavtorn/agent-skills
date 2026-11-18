@@ -2,6 +2,8 @@
 
 Concrete recipes for the checks in SKILL.md steps 3-5. All examples assume a Grafana-backed Loki accessed through an MCP log-query tool that takes a LogQL expression, a datasource uid, and an explicit time window.
 
+General Synapse query mechanics — datasource discovery, label verification, tool-flake handling, load discipline — live in the `synapse` skill's references; this file keeps the incident-specific recipes built on them.
+
 ## Stream discovery
 
 ```logql

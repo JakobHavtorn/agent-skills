@@ -1,0 +1,16 @@
+{
+  "should_trigger": [
+    "What is the current p95 latency of the transcription service?",
+    "Error rates spiked around 2am — check the metrics and tell me which service",
+    "Find a dashboard for the staging cluster",
+    "Why did the HighErrorRate alert fire last night?",
+    "What labels does the loki datasource have for tenant namespaces?",
+    "Run a LogQL query for service X over the last 30 minutes"
+  ],
+  "should_not_trigger": [
+    "Open a PR with the current changes",
+    "Create a Linear ticket for the streaming bug",
+    "Write a weekly project report for stakeholders",
+    "Set up a Grafana instance on the new cluster"
+  ]
+}
