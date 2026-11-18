@@ -1,6 +1,9 @@
 ---
 name: prototype
 description: Build a throwaway prototype to answer a design question. This skill should be used when the user wants to sanity-check whether a state model or logic feels right, prototype an idea, or explore what a UI should look like.
+license: MIT
+metadata:
+  vendored-from: https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/prototype
 ---
 
 # Prototype
@@ -29,7 +32,3 @@ The two branches produce very different artifacts, so getting this wrong wastes 
 
 - `references/logic.md` — shareable HTML logic demo: pure module, free-play buttons, guided walkthroughs
 - `references/ui.md` — switchable UI variants on one route with a floating variant bar
-
----
-
-[Vendored from mattpocock/skills](https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/prototype) at commit `5863806` (MIT).
