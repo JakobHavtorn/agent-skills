@@ -2,6 +2,9 @@
 name: improve-codebase-architecture
 description: Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick. This skill should be used when the user asks for an architecture review, a survey of refactoring or deepening opportunities, or wants to improve the codebase's design.
 disable-model-invocation: true
+license: MIT
+metadata:
+  vendored-from: https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/improve-codebase-architecture
 ---
 
 # Improve Codebase Architecture
@@ -73,7 +76,3 @@ Side effects happen inline as decisions crystallize; call the Skill tool with "d
 ## Reference Files
 
 - `references/html-report.md` — HTML report scaffold, diagram patterns, and styling guidance
-
----
-
-[Vendored from mattpocock/skills](https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/improve-codebase-architecture) at commit `5863806` (MIT).

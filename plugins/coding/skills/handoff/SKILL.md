@@ -2,6 +2,9 @@
 name: handoff
 description: Compact the current conversation into a handoff document for another agent to pick up. This skill should be used when the user explicitly asks for a handoff, e.g. "write a handoff doc", "hand this off to a fresh session", "compact this conversation for the next agent".
 disable-model-invocation: true
+license: MIT
+metadata:
+  vendored-from: https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/productivity/handoff
 ---
 
 Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS (`$TMPDIR`, else `/tmp`; `%TEMP%` on Windows) - not the current workspace.
@@ -13,7 +16,3 @@ Do not duplicate content already captured in other artifacts (specs, plans, ADRs
 Redact any sensitive information, such as API keys, passwords, or personally identifiable information.
 
 If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.
-
----
-
-[Vendored from mattpocock/skills](https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/productivity/handoff) at commit `5863806` (MIT).

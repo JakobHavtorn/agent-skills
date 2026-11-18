@@ -1,6 +1,9 @@
 ---
 name: domain-modeling
 description: "Build and sharpen a project's domain model: challenge terms against the glossary, stress-test with edge-case scenarios, and update GLOSSARY.md and ADRs inline. This skill should be used when discussing codebase terminology, writing or editing a GLOSSARY.md, or recording or editing an ADR."
+license: MIT
+metadata:
+  vendored-from: https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/domain-modeling
 ---
 
 # Domain Modeling
@@ -77,7 +80,3 @@ If any of the three is missing, skip the ADR. Use the format in `references/adr-
 
 - `references/glossary-format.md` — GLOSSARY.md structure, rules, and single- vs multi-context layouts
 - `references/adr-format.md` — ADR template, numbering, and when to record a decision
-
----
-
-[Vendored from mattpocock/skills](https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/domain-modeling) at commit `5863806` (MIT).
