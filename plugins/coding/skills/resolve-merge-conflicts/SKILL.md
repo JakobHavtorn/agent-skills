@@ -1,5 +1,5 @@
 ---
-name: resolving-merge-conflicts
+name: resolve-merge-conflicts
 description: "Work through an in-progress git merge or rebase conflict hunk by hunk, resolving by intent traced to each side's primary source, then finish the operation (never `--abort`). This skill should be used when the user needs to resolve merge or rebase conflicts, or asks for help with a conflicted working tree."
 ---
 

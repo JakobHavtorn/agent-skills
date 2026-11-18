@@ -119,7 +119,7 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
 | [mermaid](plugins/coding/skills/mermaid) | Generate Mermaid diagrams — 32 types via lookup table linking to official docs |
 | [open-pr](plugins/coding/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, Linear-linked description |
-| [resolving-merge-conflicts](plugins/coding/skills/resolving-merge-conflicts) | Resolve merge/rebase conflicts hunk by hunk, traced to each side's intent |
+| [resolve-merge-conflicts](plugins/coding/skills/resolve-merge-conflicts) | Resolve merge/rebase conflicts hunk by hunk, traced to each side's intent |
 | [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
 | [skill-creator](plugins/coding/skills/skill-creator) | Create, evaluate, and iterate on agent skills |
 | [tdd](plugins/coding/skills/tdd) | Test-driven development — red-green-refactor with tests worth keeping |
