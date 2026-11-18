@@ -148,6 +148,31 @@ Project management and team productivity skills.
 | [speechrec-weekly-update](plugins/pm/skills/speechrec-weekly-update) | Pre-read status update for the weekly Speech Recognition sync call |
 | [speechrec-sprint-goals](plugins/pm/skills/speechrec-sprint-goals) | Draft SR team sprint goals from Notion, Linear, and Slack |
 
+### `grafana`
+
+Observability skills for the Grafana stack — vendored from [grafana/skills](https://github.com/grafana/skills) at commit `8fb72a52` (Apache-2.0). The `synapse` skill covers live querying via MCP; these carry the per-product knowledge.
+
+| Skill | Description |
+|---|---|
+| [alerting-irm](plugins/grafana/skills/alerting-irm) | Grafana alerting, incident response management, and SLOs — multi-window burn-rate alerts, on-call schedules, integrations (vendored from grafana/skills) |
+| [alloy](plugins/grafana/skills/alloy) | Grafana Alloy telemetry pipelines — one OpenTelemetry-compatible binary collecting metrics, logs, traces, and profiles (vendored from grafana/skills) |
+| [app-observability](plugins/grafana/skills/app-observability) | Grafana Cloud Application Observability — RED metrics, service maps, frontend RUM, AI/LLM monitoring (vendored from grafana/skills) |
+| [beyla](plugins/grafana/skills/beyla) | Auto-instrument HTTP/gRPC/DB traffic with Grafana Beyla eBPF — no code changes, no SDK (vendored from grafana/skills) |
+| [dashboarding](plugins/grafana/skills/dashboarding) | Build and ship Grafana dashboards as JSON — panels, variables, transformations, links (vendored from grafana/skills) |
+| [grafana-oss](plugins/grafana/skills/grafana-oss) | Configure self-hosted Grafana OSS — provisioning, data sources, plugins, health checks (vendored from grafana/skills) |
+| [loki](plugins/grafana/skills/loki) | Grafana Loki log aggregation — LogQL queries, pipelines, and architecture (vendored from grafana/skills) |
+| [loki-label-analyzer](plugins/grafana/skills/loki-label-analyzer) | Evaluate and improve a Loki label strategy — cardinality, query patterns, label hygiene (vendored from grafana/skills) |
+| [mimir](plugins/grafana/skills/mimir) | Stand up Grafana Mimir — horizontally scalable, multi-tenant, long-term Prometheus and OTLP metrics storage (vendored from grafana/skills) |
+| [opentelemetry](plugins/grafana/skills/opentelemetry) | Instrument any app with OpenTelemetry — metrics, logs, traces to Grafana Cloud or a self-hosted stack (vendored from grafana/skills) |
+| [performance-rca](plugins/grafana/skills/performance-rca) | Root-cause CPU, memory, and contention problems with Pyroscope profiles via gcx (vendored from grafana/skills) |
+| [profilecli-insights](plugins/grafana/skills/profilecli-insights) | Query live Pyroscope profiles with profilecli, analyze with pprof, correlate with source code (vendored from grafana/skills) |
+| [prometheus](plugins/grafana/skills/prometheus) | Prometheus and Grafana Cloud Metrics — PromQL, alerting, recording rules, integration patterns (vendored from grafana/skills) |
+| [prometheus-cardinality-troubleshooter](plugins/grafana/skills/prometheus-cardinality-troubleshooter) | Diagnose active Prometheus cardinality problems — slow queries, OOMs, series churn, high bills (vendored from grafana/skills) |
+| [prometheus-label-strategy](plugins/grafana/skills/prometheus-label-strategy) | Evaluate and improve a Prometheus label strategy on Grafana Cloud (vendored from grafana/skills) |
+| [promql](plugins/grafana/skills/promql) | Write, validate, and optimize PromQL for Prometheus / Mimir / Grafana Cloud Metrics (vendored from grafana/skills) |
+| [pyroscope](plugins/grafana/skills/pyroscope) | Continuous profiling with Grafana Pyroscope — flame graphs and diff views (vendored from grafana/skills) |
+| [tempo](plugins/grafana/skills/tempo) | Grafana Tempo distributed tracing — TraceQL, service graphs, correlations (vendored from grafana/skills) |
+
 ## Vendored skills
 
 Some skills are vendored from upstream repositories. Provenance lives in each skill's SKILL.md frontmatter, so it travels with the drop-in copy:
