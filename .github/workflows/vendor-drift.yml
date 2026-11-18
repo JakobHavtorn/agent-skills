@@ -1,0 +1,38 @@
+name: Vendor drift
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check vendored skills for upstream drift
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          python3 bin/vendor-status --strict --format markdown | tee drift-report.md
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            title="Vendored skills: upstream drift detected"
+            number=$(gh issue list --state open --search "in:title $title" --json number --jq '.[0].number // ""')
+            if [ -n "$number" ]; then
+              gh issue comment "$number" --body-file drift-report.md
+            else
+              gh issue create --title "$title" --body-file drift-report.md
+            fi
+          fi
+          exit "$status"

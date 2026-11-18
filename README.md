@@ -147,6 +147,29 @@ Project management and team productivity skills.
 | [speechrec-weekly-update](plugins/pm/skills/speechrec-weekly-update) | Pre-read status update for the weekly Speech Recognition sync call |
 | [speechrec-sprint-goals](plugins/pm/skills/speechrec-sprint-goals) | Draft SR team sprint goals from Notion, Linear, and Slack |
 
+## Vendored skills
+
+Some skills are vendored from upstream repositories. Provenance lives in each skill's SKILL.md frontmatter, so it travels with the drop-in copy:
+
+```yaml
+license: MIT
+metadata:
+  vendored-from: https://github.com/mattpocock/skills/tree/<pinned-commit>/skills/engineering/tdd
+```
+
+The `vendored-from` URL pins the exact upstream commit. It records origin, not byte identity — local adaptations are intentional.
+
+Check every vendored skill for upstream drift:
+
+```bash
+python3 bin/vendor-status              # human-readable table
+python3 bin/vendor-status --strict     # also fail on unparsable provenance
+```
+
+The check runs weekly (`.github/workflows/vendor-drift.yml`) and opens or updates a tracking issue when a skill's upstream files changed.
+
+To update a vendored skill: copy the upstream files at the newer commit, re-apply the local adaptations, update the `vendored-from` pin, and open a PR.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
