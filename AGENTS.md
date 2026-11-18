@@ -58,6 +58,7 @@ Run `python3 bin/skillctl list` to see the current layout. Before opening a PR, 
 3. Skill names are globally unique.
 4. Skills follow the design spec and criteria of the `skill-creator` skill.
 5. No personal data patterns (see above).
+6. Vendored skills pin their upstream source in SKILL.md frontmatter (`metadata.vendored-from`); `python3 bin/vendor-status` reports upstream drift.
 
 CI runs all of these automatically in `.github/workflows/validate.yml`.
 

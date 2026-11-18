@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""Report drift between vendored skills and their upstream pins.
+
+Scans every SKILL.md under plugins/ for a metadata.vendored-from field: a
+GitHub tree URL pinned to a commit, e.g.
+
+    license: MIT
+    metadata:
+      vendored-from: https://github.com/mattpocock/skills/tree/<sha>/skills/engineering/tdd
+
+For each vendored skill, asks the GitHub API whether the upstream default
+branch has commits past the pin that change files under the skill's upstream
+path, and reports the result. Skills without the field are homegrown and
+skipped.
+
+Usage:
+    python3 bin/vendor-status [--strict] [--format human|markdown] [--root PATH]
+
+Exit codes:
+    0 - no vendored skill has upstream changes
+    1 - at least one skill's upstream files changed since its pin, or (with
+        --strict) a vendored-from URL could not be parsed
+
+The GitHub API allows 60 unauthenticated requests per hour; the script makes
+two requests per unique upstream repo plus one compare per drifted repo.
+Set GITHUB_TOKEN to raise the limit.
+"""
+
+import argparse
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+API_ROOT = "https://api.github.com"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+PIN_URL_RE = re.compile(r"^https://github\.com/([\w.-]+)/([\w.-]+)/tree/([0-9a-f]{7,40})/(.+?)/?$")
+VENDORED_RE = re.compile(r"^\s+vendored-from:\s*(\S+)\s*$", re.MULTILINE)
+
+
+class PinError(Exception):
+    """A vendored-from URL could not be parsed."""
+
+
+def api_get(path: str, token: str | None) -> dict:
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "vendor-status"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(API_ROOT + path, headers=headers)
+    try:
+        with urllib.request.urlopen(request) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as error:
+        if error.code in (403, 429):
+            sys.exit("GitHub API rate limit hit: set GITHUB_TOKEN and retry.")
+        raise
+
+
+def frontmatter(text: str) -> str:
+    """The raw frontmatter block between the opening and closing --- lines."""
+    if not text.startswith("---"):
+        return ""
+    parts = text.split("---", 2)
+    return parts[1] if len(parts) == 3 else ""
+
+
+def scan_vendored(root: Path) -> list[tuple[Path, str]]:
+    """Every SKILL.md carrying a vendored-from pin: (skill dir, URL)."""
+    found = []
+    for skill_md in sorted(root.glob("plugins/*/skills/*/SKILL.md")):
+        match = VENDORED_RE.search(frontmatter(skill_md.read_text(encoding="utf-8")))
+        if match:
+            found.append((skill_md.parent, match.group(1)))
+    return found
+
+
+def parse_pin(url: str) -> dict:
+    """Split a pinned tree URL into repo, commit, and upstream path."""
+    match = PIN_URL_RE.match(url)
+    if not match:
+        raise PinError(f"unparsable vendored-from URL (expected a pinned github.com tree URL): {url}")
+    owner, repo, commit, path = match.groups()
+    return {"repo": f"{owner}/{repo}", "commit": commit, "path": path}
+
+
+def upstream_head(repo: str, token: str | None) -> dict:
+    """Default branch and its head commit for a repo."""
+    info = api_get(f"/repos/{repo}", token)
+    branch = info["default_branch"]
+    head = api_get(f"/repos/{repo}/commits/{branch}", token)["sha"]
+    return {"branch": branch, "head": head}
+
+
+def upstream_changes(pin: dict, head: str, token: str | None) -> tuple[list[str], bool]:
+    """Files changed upstream since the pin, and whether the compare was truncated."""
+    compare = api_get(f"/repos/{pin['repo']}/compare/{pin['commit']}...{head}", token)
+    files = [entry["filename"] for entry in compare.get("files", [])]
+    return files, bool(compare.get("truncated"))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Report drift between vendored skills and their upstream pins.")
+    parser.add_argument("--strict", action="store_true", help="fail on unparsable provenance instead of warning")
+    parser.add_argument("--format", choices=("human", "markdown"), default="human")
+    parser.add_argument("--root", type=Path, default=REPO_ROOT, help="repo root to scan (default: this repo)")
+    args = parser.parse_args()
+
+    vendored = scan_vendored(args.root)
+    if not vendored:
+        print("No vendored skills found.")
+        return 0
+
+    token = os.environ.get("GITHUB_TOKEN") or None
+    heads: dict[str, dict] = {}
+    compares: dict[tuple[str, str], tuple[list[str], bool]] = {}
+    rows: list[dict] = []
+    drift = 0
+
+    for skill_dir, url in vendored:
+        name = f"{skill_dir.parent.parent.name}/{skill_dir.name}"
+        try:
+            pin = parse_pin(url)
+        except PinError as error:
+            rows.append({"skill": name, "status": str(error), "is_drift": args.strict})
+            if args.strict:
+                drift += 1
+            continue
+
+        if pin["repo"] not in heads:
+            try:
+                heads[pin["repo"]] = upstream_head(pin["repo"], token)
+            except urllib.error.HTTPError as error:
+                heads[pin["repo"]] = {"error": f"upstream unreachable (HTTP {error.code})"}
+        state = heads[pin["repo"]]
+        if "error" in state:
+            rows.append({"skill": name, "status": state["error"], "is_drift": False})
+            continue
+
+        pinned, head = pin["commit"], state["head"]
+        if pinned == head:
+            rows.append({"skill": name, "status": f"current at {pinned[:7]}", "is_drift": False})
+            continue
+
+        key = (pin["repo"], pinned)
+        if key not in compares:
+            try:
+                compares[key] = upstream_changes(pin, head, token)
+            except urllib.error.HTTPError:
+                compares[key] = ([], True)
+        files, truncated = compares[key]
+        touched = [path for path in files if path.startswith(pin["path"] + "/")]
+        if truncated and touched:
+            status = f"drift: {len(touched)}+ upstream file(s) changed under {pin['path']} (compare truncated)"
+        elif truncated:
+            status = f"drift: upstream compare truncated; verify {pin['path']} manually"
+        elif touched:
+            status = f"drift: {len(touched)} upstream file(s) changed under {pin['path']} since {pinned[:7]}"
+        else:
+            status = f"upstream moved, no changes under the skill (pinned {pinned[:7]}, head {head[:7]})"
+        is_drift = bool(touched) or truncated
+        rows.append({"skill": name, "status": status, "is_drift": is_drift})
+        if is_drift:
+            drift += 1
+
+    if args.format == "markdown":
+        print("| Skill | Status |")
+        print("|---|---|")
+        for row in rows:
+            print(f"| {row['skill']} | {row['status']} |")
+    else:
+        width = max(len(row["skill"]) for row in rows)
+        for row in rows:
+            print(f"{row['skill'].ljust(width)}  {row['status']}")
+
+    if drift:
+        print(f"\n{drift} vendored skill(s) have upstream drift.")
+        return 1
+    print(f"\nAll {len(rows)} vendored skill(s) current.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
