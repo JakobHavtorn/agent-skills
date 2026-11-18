@@ -23,9 +23,9 @@ Future changes and improvements tracked in-repo. No external standard governs th
 
 ## New skills
 
-- [ ] **Performance review assistant** — Draft a performance review from transcribed voice notes (via Corti STT) and a submitted self-review. Cross-reference self-assessed goals against Linear ticket activity and Slack updates for evidence of what was actually delivered.
 - [ ] **Yahoo Finance data puller** — Fetch historical prices, fundamentals, and portfolio metrics from Yahoo Finance for personal finance tracking. Resolve tickers at runtime from `$SKILLS_DATA_DIR` (no personal data in repo).
 
 ## Considerations
 
 - [ ] **External skill sources vs. pinned vendoring** — Could agent-skills own `npx skills add`-style sourcing of third-party skills, so the dotfiles repo no longer carries installation calls? Upstream-maintained skills (e.g. grafana/skills) could then flow in without our controlling updates — acceptable for Grafana, not for the Pocock skills, which stay pin-controlled via `metadata.vendored-from`. Open question: is this a clean addition (a skillctl subcommand or sources manifest that materializes upstream skills at link time) or a dirty one (a second update paradigm that fights the vendored-from pins, `vendor-status`, and CI validation)?
+- [ ] **Observability skill routing overlap** — The synapse, incident-trace, and grafana skills overlap on triggers: "why is this query slow" matches promql, prometheus-cardinality-troubleshooter, and synapse; "find slow requests" matches tempo, promql, and synapse; "which service is responsible for a failure" matches incident-trace and synapse. Rethink whether synapse is needed at all, whether incident-trace keeps its broad triggers, and whether the grafana skills should be gated or trimmed (their descriptions dominate the context budget). Candidate shape: synapse reduced to the Synapse MCP tool interface (task-to-tool map, discovery discipline, response quirks) with language questions routed to promql/loki; incident-trace narrowed to incident entry points. Deciding factor: what the model actually invokes when several skills match one prompt.
