@@ -21,6 +21,8 @@ Trace a reported failure forward through the service stack, using only log evide
 
 Entry points for ids: a user report, a Slack thread or permalink, a monitoring alert, a CI/E2E job log, or the PR's E2E-results comment. However the ids arrive, the method is the same — pin the cluster and tenant from an id-bearing line's labels (Step 2), then trace each hop by its own receipts (Step 4).
 
+Query mechanics — datasource discovery, label verification, window and load discipline — live in the `synapse` skill; call it rather than reimplementing. This skill owns the incident method: what counts as receipt evidence and how claims are gated.
+
 Mental model: every pipeline hop is a **claim** with an evidence class — VERIFIED (explicit log or count evidence), INFERRED (deduced, no direct line), UNKNOWN (undecidable with current access). Tag every claim in the report. An investigation is done when each stage claim has a class, not when a story sounds plausible.
 
 Core discipline:
@@ -40,7 +42,7 @@ Collect what is already known before querying:
 | Tenant / namespace label | Look up in recent session history or memory before asking; ask only if undecidable |
 | Reported anomaly | One sentence: "expected X, got Y at/around T" |
 
-Detect log access: check whether the synapse MCP server exposes a Loki query tool and a label/list tool in this session's tool catalog (OpenCode code mode: `search("query_loki")`, `search("loki")`). If synapse is absent or the tenant's cluster has no datasource listed, stop and tell the user what is missing — do not improvise a substitute log source for modelling the flow before the workflow's first queries.
+Detect log access: call the Skill tool with "synapse" — it owns the query mechanics (datasource discovery, label verification, bounded LogQL sweeps, and the flake and load rules). If synapse is absent or the tenant's cluster has no Loki datasource listed, stop and tell the user what is missing — do not improvise a substitute log source for modelling the flow before the workflow's first queries.
 
 Note compute-access boundaries now, for the report: kubeconfig cluster coverage vs the incident's tenants, whether service repos are checked out locally (needed for Step 5), and standing rules such as never posting findings externally without explicit user approval.
 
