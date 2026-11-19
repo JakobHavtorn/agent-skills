@@ -220,6 +220,8 @@ apply_provenance = skillctl.apply_provenance
 classify_vendored_skill = skillctl.classify_vendored_skill
 validate_materialized_skill = skillctl.validate_materialized_skill
 insert_readme_row = skillctl.insert_readme_row
+files_under = skillctl.files_under
+pin_skip_detail = skillctl.pin_skip_detail
 
 PIN_OLD = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 PIN_NEW = "0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0"
@@ -454,6 +456,22 @@ def test_validate_flags_digit_runs_outside_pins():
     _write_skill(skill, body="timestamp 123456789012\n", provenance=True)
     problems = validate_materialized_skill(skill)
     assert any("digit run" in problem for problem in problems)
+
+
+def test_files_under_filters_by_path():
+    """Only compare-API files under the skill's upstream path count as drift."""
+    files = ["skills/demo/SKILL.md", "skills/other/SKILL.md", "README.md"]
+    assert files_under(files, "skills/demo") == ["skills/demo/SKILL.md"]
+
+
+def test_pin_skip_detail_states():
+    """Pin annotation distinguishes drift, truncated compares, and quiet moves."""
+    pin = {"commit": PIN_OLD, "path": "skills/demo"}
+    assert pin_skip_detail(pin, [], False) == "upstream moved, no changes under the skill"
+    assert "compare truncated" in pin_skip_detail(pin, [], True)
+    detail = pin_skip_detail(pin, ["skills/demo/SKILL.md"], False)
+    assert detail.startswith(f"DRIFT: 1 upstream file(s) changed since {PIN_OLD[:7]}")
+    assert "3+" in pin_skip_detail(pin, ["a", "b", "c"], True)
 
 
 def test_insert_readme_row_alphabetical():
