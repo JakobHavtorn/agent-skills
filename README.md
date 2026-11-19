@@ -104,6 +104,16 @@ The `agents/` directory holds standalone agent definitions that are not tied to 
 |---|---|
 | [title.md](agents/title.md) | Hidden title generator — produces short session titles from conversation content |
 
+## User-invoked commands (OpenCode)
+
+OpenCode lists skills under `@` but has no `/` entry for them. For skills whose frontmatter sets `disable-model-invocation: true` (user-invoked only), `skillctl link --agent opencode` also writes a thin command wrapper into the harness `commands/` directory, so the skill is reachable as `/skill-name`. The wrapper loads the skill by ID; the model still cannot invoke the skill on its own. Other harnesses have native slash access to skills and get no wrappers.
+
+| Harness | Commands path (user scope) |
+|---|---|
+| OpenCode | `~/.config/opencode/commands/` (project: `.opencode/commands/`) |
+
+Generated wrappers carry a `managed by skillctl` marker inside their frontmatter. `link` regenerates them when the skill changes, `unlink` and `prune` remove them when the skill is gone, and command files without the marker — hand-written or installed by other tools — are never touched.
+
 ## Plugins
 ### `coding`
 Software engineering skills — Linear tickets, pull requests, code review.
