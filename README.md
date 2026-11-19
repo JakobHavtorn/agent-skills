@@ -109,33 +109,17 @@ Software engineering skills — Linear tickets, pull requests, code review.
 | Skill | Description |
 |---|---|
 | [api-designer](plugins/coding/skills/api-designer) | Design REST/GraphQL APIs with OpenAPI 3.1 specs — resource modeling, versioning, pagination, RFC 7807 errors (vendored from Jeffallan/claude-skills) |
-| [code-review](plugins/coding/skills/code-review) | Two-axis diff review — standards and spec, in parallel sub-agents (vendored from mattpocock/skills) |
-| [codebase-design](plugins/coding/skills/codebase-design) | Shared vocabulary for deep-module design (vendored from mattpocock/skills) |
-| [diagnosing-bugs](plugins/coding/skills/diagnosing-bugs) | Disciplined diagnosis loop for hard bugs and regressions — red-capable repro, minimise, hypothesise, instrument, fix (vendored from mattpocock/skills) |
-| [domain-modeling](plugins/coding/skills/domain-modeling) | Build and sharpen a project's domain model — GLOSSARY.md and ADRs inline (vendored from mattpocock/skills) |
 | [find-skills](plugins/coding/skills/find-skills) | Discover and install skills from the open agent skills ecosystem |
 | [frontend-design](plugins/coding/skills/frontend-design) | Distinctive, intentional visual design for new or reshaped UI |
-| [grill-me](plugins/coding/skills/grill-me) | Relentless interview to sharpen a plan or design (user-invoked, vendored from mattpocock/skills) |
-| [grill-with-docs](plugins/coding/skills/grill-with-docs) | Grilling session that also builds the project's domain docs — glossary and ADRs (user-invoked, vendored from mattpocock/skills) |
-| [grilling](plugins/coding/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds (vendored from mattpocock/skills) |
-| [handoff](plugins/coding/skills/handoff) | Compact the session into a handoff document for the next agent (vendored from mattpocock/skills) |
-| [implement](plugins/coding/skills/implement) | Build the work described by a spec or tickets, driving tdd at pre-agreed seams and closing with code-review (user-invoked, vendored from mattpocock/skills) |
-| [improve-codebase-architecture](plugins/coding/skills/improve-codebase-architecture) | Survey a codebase for deepening opportunities, present an HTML report, then grill the pick (user-invoked, vendored from mattpocock/skills) |
 | [incident-trace](plugins/coding/skills/incident-trace) | Trace incidents through backend services from Loki logs — receipts, negative evidence, verdicts |
 | [linear-ticket](plugins/coding/skills/linear-ticket) | Create a Linear issue with proper template, fields, and metadata |
 | [mermaid](plugins/coding/skills/mermaid) | Generate Mermaid diagrams — 32 types via lookup table linking to official docs |
 | [open-pr](plugins/coding/skills/open-pr) | Create or update a PR — lints, tests, commits, pushes, Linear-linked description |
-| [pr](plugins/coding/skills/pr) | The shape a PR body — summary as the smallest visual, before/after evidence, merge-danger call (vendored from mattpocock/skills) |
-| [prototype](plugins/coding/skills/prototype) | Throwaway prototype to answer a design question — shareable logic demo or switchable UI variants (vendored from mattpocock/skills) |
-| [research](plugins/coding/skills/research) | Investigate a question against primary sources via a background agent, captured as a cited markdown doc (vendored from mattpocock/skills) |
 | [resolve-merge-conflicts](plugins/coding/skills/resolve-merge-conflicts) | Resolve merge/rebase conflicts hunk by hunk, traced to each side's intent |
 | [review-pr-comments](plugins/coding/skills/review-pr-comments) | Address PR review comments fetched via `gh api` |
 | [skill-creator](plugins/coding/skills/skill-creator) | Create, evaluate, and iterate on agent skills |
 | [synapse](plugins/coding/skills/synapse) | Query the Grafana stack via the Synapse MCP server — Mimir metrics, Loki logs, Pyroscope profiles, dashboards, alerting |
-| [tdd](plugins/coding/skills/tdd) | Test-driven development — red-green-refactor with tests worth keeping (vendored from mattpocock/skills) |
 | [technical-writing](plugins/coding/skills/technical-writing) | Draft and edit prose with Orwell's rules and ASD-STE100 Simplified Technical English |
-| [to-spec](plugins/coding/skills/to-spec) | Turn the current conversation into a spec as a markdown document (vendored from mattpocock/skills) |
-| [to-tickets](plugins/coding/skills/to-tickets) | Decompose a plan into tracer-bullet tickets with blocking edges, published to Linear (vendored from mattpocock/skills) |
 
 ### `pm`
 
@@ -147,6 +131,29 @@ Project management and team productivity skills.
 | [standup-summary](plugins/pm/skills/standup-summary) | Standup recap from Linear activity and Slack messages |
 | [speechrec-weekly-update](plugins/pm/skills/speechrec-weekly-update) | Pre-read status update for the weekly Speech Recognition sync call |
 | [speechrec-sprint-goals](plugins/pm/skills/speechrec-sprint-goals) | Draft SR team sprint goals from Notion, Linear, and Slack |
+
+### `pocock`
+
+Engineering and planning workflow skills — vendored from [mattpocock/skills](https://github.com/mattpocock/skills) at commit `5863806d` (MIT). Pin-controlled: updates land only by deliberate re-vendoring, not automatically.
+
+| Skill | Description |
+|---|---|
+| [code-review](plugins/pocock/skills/code-review) | Two-axis diff review — standards and spec, in parallel sub-agents (vendored from mattpocock/skills) |
+| [codebase-design](plugins/pocock/skills/codebase-design) | Shared vocabulary for deep-module design (vendored from mattpocock/skills) |
+| [diagnosing-bugs](plugins/pocock/skills/diagnosing-bugs) | Disciplined diagnosis loop for hard bugs and regressions — red-capable repro, minimise, hypothesise, instrument, fix (vendored from mattpocock/skills) |
+| [domain-modeling](plugins/pocock/skills/domain-modeling) | Build and sharpen a project's domain model — GLOSSARY.md and ADRs inline (vendored from mattpocock/skills) |
+| [grill-me](plugins/pocock/skills/grill-me) | Relentless interview to sharpen a plan or design (user-invoked, vendored from mattpocock/skills) |
+| [grill-with-docs](plugins/pocock/skills/grill-with-docs) | Grilling session that also builds the project's domain docs — glossary and ADRs (user-invoked, vendored from mattpocock/skills) |
+| [grilling](plugins/pocock/skills/grilling) | Stress-test a plan or decision via a design-tree interview in rounds (vendored from mattpocock/skills) |
+| [handoff](plugins/pocock/skills/handoff) | Compact the session into a handoff document for the next agent (vendored from mattpocock/skills) |
+| [implement](plugins/pocock/skills/implement) | Build the work described by a spec or tickets, driving tdd at pre-agreed seams and closing with code-review (user-invoked, vendored from mattpocock/skills) |
+| [improve-codebase-architecture](plugins/pocock/skills/improve-codebase-architecture) | Survey a codebase for deepening opportunities, present an HTML report, then grill the pick (user-invoked, vendored from mattpocock/skills) |
+| [pr](plugins/pocock/skills/pr) | The shape a PR body — summary as the smallest visual, before/after evidence, merge-danger call (vendored from mattpocock/skills) |
+| [prototype](plugins/pocock/skills/prototype) | Throwaway prototype to answer a design question — shareable logic demo or switchable UI variants (vendored from mattpocock/skills) |
+| [research](plugins/pocock/skills/research) | Investigate a question against primary sources via a background agent, captured as a cited markdown doc (vendored from mattpocock/skills) |
+| [tdd](plugins/pocock/skills/tdd) | Test-driven development — red-green-refactor with tests worth keeping (vendored from mattpocock/skills) |
+| [to-spec](plugins/pocock/skills/to-spec) | Turn the current conversation into a spec as a markdown document (vendored from mattpocock/skills) |
+| [to-tickets](plugins/pocock/skills/to-tickets) | Decompose a plan into tracer-bullet tickets with blocking edges, published to Linear (vendored from mattpocock/skills) |
 
 ### `grafana`
 
