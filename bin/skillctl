@@ -984,7 +984,8 @@ def cmd_test(args):
 # New upstream skills covered by an include glob are vendored automatically;
 # explicit include lists keep curation human. Materialized skills pass a local
 # battery mirroring validate.yml (hygiene, line limits, references) before any
-# write. CI runs the full battery on the resulting PR.
+# write. CI runs the full battery on the resulting PR. Pin-policy sources are
+# never updated, but their skip lines carry each skill's drift state.
 
 SYNC_API_ROOT = "https://api.github.com"
 # Keep these two regexes in sync with bin/vendor-status.
@@ -1097,6 +1098,30 @@ def upstream_head_commit(repo: str, token: str | None) -> str:
     """Head commit of an upstream repo's default branch."""
     branch = _github_get(f"/repos/{repo}", token)["default_branch"]
     return _github_get(f"/repos/{repo}/commits/{branch}", token)["sha"]
+
+
+def upstream_changed_files(repo: str, base: str, head: str, token: str | None) -> tuple[list[str], bool]:
+    """Files changed upstream between two commits, and whether the compare was truncated.
+
+    Mirrors upstream_changes in bin/vendor-status (same compare API).
+    """
+    compare = _github_get(f"/repos/{repo}/compare/{base}...{head}", token)
+    return [entry["filename"] for entry in compare.get("files", [])], bool(compare.get("truncated"))
+
+
+def files_under(files: list[str], path: str) -> list[str]:
+    """Compare-API files that live under an upstream skill path."""
+    return [name for name in files if name.startswith(path + "/")]
+
+
+def pin_skip_detail(pin: dict, touched: list[str], truncated: bool) -> str:
+    """Drift annotation for a pin-controlled skill's sync skip line."""
+    if not touched and not truncated:
+        return "upstream moved, no changes under the skill"
+    if truncated and not touched:
+        return "upstream compare truncated; verify manually"
+    count = f"{len(touched)}+" if truncated else str(len(touched))
+    return f"DRIFT: {count} upstream file(s) changed since {pin['commit'][:7]} — re-vendor manually when you choose"
 
 
 def fetch_upstream_tree(repo: str, ref: str, token: str | None, dest: Path) -> Path:
@@ -1385,8 +1410,20 @@ def _sync_source(source: SourceConfig, token: str | None, dry_run: bool):
         pins.append((skill_dir, pin))
 
     if source.policy == "pin":
-        for skill_dir, _pin in pins:
-            print(f"  SKIP {skill_dir.name}: pin-controlled — re-vendor manually when you choose")
+        head = upstream_head_commit(source.repo, token)
+        compares: dict[str, tuple[list[str], bool]] = {}
+        for skill_dir, pin in pins:
+            if pin["commit"] == head:
+                print(f"  SKIP {skill_dir.name}: pin-controlled — current at {head[:7]}")
+                continue
+            if pin["commit"] not in compares:
+                compares[pin["commit"]] = upstream_changed_files(source.repo, pin["commit"], head, token)
+            files, truncated = compares[pin["commit"]]
+            touched = files_under(files, pin["path"])
+            detail = pin_skip_detail(pin, touched, truncated)
+            if touched or truncated:
+                detail = f"{C_RED}{detail}{C_RESET}"
+            print(f"  SKIP {skill_dir.name}: pin-controlled — {detail}")
         return applied, failed, [], None
 
     head = upstream_head_commit(source.repo, token)

@@ -211,7 +211,7 @@ Vendored plugins declare their upstream in `plugin.json` with a policy per sourc
 ```
 
 - **`track`** — `skillctl sync` pulls these skills toward the upstream default branch head and opens a sync PR. The `grafana` plugin uses this.
-- **`pin`** — updates land only by deliberate manual re-vendoring. `skillctl sync` never touches them; `vendor-status` reports their drift with a manual hint. The `pocock` plugin uses this.
+- **`pin`** — updates land only by deliberate manual re-vendoring. `skillctl sync` never touches them, but its skip lines show each skill's drift state (current / drifted / upstream moved elsewhere); `vendor-status` reports the same drift with a manual hint. The `pocock` plugin uses this.
 
 `include` lists the upstream skill directories the source manages. An explicit list is a curation decision: new upstream skills appear only when you add their path. Glob patterns (`skills/grafana-core/*`) opt in to everything they match.
 
