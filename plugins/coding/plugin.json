@@ -1,4 +1,12 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "coding"
+  "name": "coding",
+  "sources": [
+    {
+      "repo": "Jeffallan/claude-skills",
+      "policy": "pin",
+      "include": ["skills/api-designer"],
+      "license": "MIT"
+    }
+  ]
 }
