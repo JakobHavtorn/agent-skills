@@ -65,6 +65,8 @@ skillctl link --agent <a>              # symlink every plugin into a harness
 skillctl unlink --plugin <p> --agent <a>  # remove a plugin's links
 skillctl prune --agent <a>             # dry-run: report stale links and orphans
 skillctl prune --agent <a> --apply     # remove links whose source skill was deleted
+skillctl sync                          # update tracked vendored skills from upstream
+skillctl sync --dry-run                # report drift and planned updates, no writes
 skillctl test                          # run trigger detection tests for all skills
 skillctl test --skill <name> --verbose # test a single skill with per-case output
 skillctl doctor                        # report links, orphans, broken symlinks
@@ -192,16 +194,67 @@ metadata:
 
 The `vendored-from` URL pins the exact upstream commit. It records origin, not byte identity — local adaptations are intentional.
 
+Vendored plugins declare their upstream in `plugin.json` with a policy per source:
+
+```json
+{
+  "name": "grafana",
+  "sources": [
+    {
+      "repo": "grafana/skills",
+      "policy": "track",
+      "include": ["skills/grafana-core/promql", "skills/grafana-lgtm/tempo"],
+      "license": "Apache-2.0"
+    }
+  ]
+}
+```
+
+- **`track`** — `skillctl sync` pulls these skills toward the upstream default branch head and opens a sync PR. The `grafana` plugin uses this.
+- **`pin`** — updates land only by deliberate manual re-vendoring. `skillctl sync` never touches them; `vendor-status` reports their drift with a manual hint. The `pocock` plugin uses this.
+
+`include` lists the upstream skill directories the source manages. An explicit list is a curation decision: new upstream skills appear only when you add their path. Glob patterns (`skills/grafana-core/*`) opt in to everything they match.
+
+Per skill, sync compares the local tree against upstream at the skill's pin — provenance fields aside — and acts on what it finds:
+
+- **clean** (byte-identical to the pin) → updated to the new head, pin bumped, validated, included in the sync PR
+- **adapted** (hand-edited locally) → skipped and reported; re-vendor manually
+- **deleted upstream** → skipped and reported
+
+The decision flow for one track source:
+
+```mermaid
+%%{init: {'flowchart': {'curve': 'step'}}}%%
+flowchart TD
+    A["Resolve upstream default branch head"] --> B{"Skill's pin == head?"}
+    B -- yes --> C["current — nothing to do"]
+    B -- no --> D["Fetch upstream trees<br/>at the pin and at head"]
+    D --> E{"Upstream path still exists?"}
+    E -- no --> F["deleted — report only"]
+    E -- yes --> G{"Local tree matches upstream at the pin?<br/><i>provenance fields stripped</i>"}
+    G -- no --> H["adapted — skip,<br/>re-vendor manually"]
+    G -- yes --> I["Stage upstream@head +<br/>inject license and new pin"]
+    I --> J{"Local battery passes?<br/><i>hygiene, line limits, references</i>"}
+    J -- no --> K["invalid — skip and report"]
+    J -- yes --> L["updated — pin bumped to head"]
+```
+
+```bash
+python3 bin/skillctl sync --dry-run    # report drift and planned updates
+python3 bin/skillctl sync              # apply clean updates to the working tree
+python3 bin/skillctl sync --pr         # apply, then commit, push, and open a PR
+```
+
 Check every vendored skill for upstream drift:
 
 ```bash
-python3 bin/vendor-status              # human-readable table
+python3 bin/vendor-status              # human-readable table with per-source hints
 python3 bin/vendor-status --strict     # also fail on unparsable provenance
 ```
 
-The check runs weekly (`.github/workflows/vendor-drift.yml`) and opens or updates a tracking issue when a skill's upstream files changed.
+The weekly workflow (`.github/workflows/vendor-drift.yml`) runs both: `vendor-status` files or updates the drift issue, and `skillctl sync --pr` opens a `sync/upstream` PR whenever tracked sources have clean updates. Sync PRs opened by the workflow use `GITHUB_TOKEN` and therefore do not re-trigger `validate.yml` — `skillctl sync` runs the same deterministic battery (data hygiene, line limits, reference integrity) locally before opening the PR. Syncing from your own checkout runs the full CI on the PR as usual.
 
-To update a vendored skill: copy the upstream files at the newer commit, re-apply the local adaptations, update the `vendored-from` pin, and open a PR.
+To update a **pin-controlled** vendored skill by hand: copy the upstream files at the newer commit, re-apply the local adaptations, update the `vendored-from` pin, and open a PR.
 
 ## License
 

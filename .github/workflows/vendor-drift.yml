@@ -6,8 +6,9 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
+  contents: write
   issues: write
+  pull-requests: write
 
 jobs:
   check:
@@ -19,20 +20,37 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check vendored skills for upstream drift
+      - name: Check vendored skills for upstream drift, sync tracked sources
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set +e
-          python3 bin/vendor-status --strict --format markdown | tee drift-report.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          python3 bin/vendor-status --strict --format markdown > drift-report.md
           status=${PIPESTATUS[0]}
+
           if [ "$status" -ne 0 ]; then
+            # Drift detected: sync track-policy sources. skillctl opens a
+            # sync/upstream PR when clean updates pass its local battery.
+            # PRs opened with the workflow GITHUB_TOKEN do not re-trigger
+            # validate.yml (GitHub event rules), so the local battery mirrors
+            # its deterministic checks before the PR is created.
+            python3 bin/skillctl sync --pr > sync-report.md 2>&1
+            {
+              cat drift-report.md
+              printf '\n## Sync attempt\n\n```\n'
+              cat sync-report.md
+              printf '```\n'
+            } > issue-body.md
             title="Vendored skills: upstream drift detected"
             number=$(gh issue list --state open --search "in:title $title" --json number --jq '.[0].number // ""')
             if [ -n "$number" ]; then
-              gh issue comment "$number" --body-file drift-report.md
+              gh issue comment "$number" --body-file issue-body.md
             else
-              gh issue create --title "$title" --body-file drift-report.md
+              gh issue create --title "$title" --body-file issue-body.md
             fi
           fi
           exit "$status"

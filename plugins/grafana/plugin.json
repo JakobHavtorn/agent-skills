@@ -1,4 +1,31 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "grafana"
+  "name": "grafana",
+  "sources": [
+    {
+      "repo": "grafana/skills",
+      "policy": "track",
+      "include": [
+        "skills/grafana-cloud/app-observability",
+        "skills/grafana-cloud/loki-label-analyzer",
+        "skills/grafana-cloud/prometheus-cardinality-troubleshooter",
+        "skills/grafana-cloud/prometheus-label-strategy",
+        "skills/grafana-core/alerting-irm",
+        "skills/grafana-core/alloy",
+        "skills/grafana-core/beyla",
+        "skills/grafana-core/dashboarding",
+        "skills/grafana-core/grafana-oss",
+        "skills/grafana-core/opentelemetry",
+        "skills/grafana-core/promql",
+        "skills/grafana-lgtm/loki",
+        "skills/grafana-lgtm/mimir",
+        "skills/grafana-lgtm/performance-rca",
+        "skills/grafana-lgtm/profilecli-insights",
+        "skills/grafana-lgtm/prometheus",
+        "skills/grafana-lgtm/pyroscope",
+        "skills/grafana-lgtm/tempo"
+      ],
+      "license": "Apache-2.0"
+    }
+  ]
 }

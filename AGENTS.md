@@ -12,7 +12,7 @@ This repo conforms to two upstream standards:
 ## Layout
 
 ```
-plugins/<plugin>/plugin.json          # manifest ($schema + name, both required)
+plugins/<plugin>/plugin.json          # manifest ($schema + name required; vendored plugins add sources: repo, policy, include)
 plugins/<plugin>/skills/<skill>/      # immediate children only — SKILL.md discovered at this depth
 plugins/<plugin>/skills/<skill>/SKILL.md
 plugins/<plugin>/skills/<skill>/scripts/   # executable helpers
@@ -58,7 +58,7 @@ Run `python3 bin/skillctl list` to see the current layout. Before opening a PR, 
 3. Skill names are globally unique.
 4. Skills follow the design spec and criteria of the `skill-creator` skill.
 5. No personal data patterns (see above).
-6. Vendored skills pin their upstream source in SKILL.md frontmatter (`metadata.vendored-from`); `python3 bin/vendor-status` reports upstream drift.
+6. Vendored skills pin their upstream source in SKILL.md frontmatter (`metadata.vendored-from`); `python3 bin/vendor-status` reports upstream drift. Vendored plugins declare their upstream in `plugin.json` `sources` (`policy: pin|track`); `skillctl sync` updates track-policy sources and opens sync PRs.
 
 CI runs all of these automatically in `.github/workflows/validate.yml`.
 
