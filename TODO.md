@@ -14,6 +14,7 @@ Future changes and improvements tracked in-repo. No external standard governs th
 - [x] Add `skillctl prune` — dry run by default; `--apply` removes dangling links whose
   target was deleted from this repo; `--apply --orphans` also removes stale copies
 - [ ] Standardize harness-spill JSON envelope unwrapping across plugin scripts (each handles `[{type, text}]` differently)
+- [ ] **Investigate a CLI framework for `skillctl`** — `click` or `typer` instead of argparse: better subcommand groups, help text, and typed options. Trade-off to weigh: `skillctl` currently has zero dependencies — `python3 bin/skillctl` runs from a fresh clone with stdlib only (yaml is a lazy import on the test path), and CI plus the weekly sync workflow rely on that.
 
 ## CI
 
