@@ -14,7 +14,7 @@ Future changes and improvements tracked in-repo. No external standard governs th
 - [x] Add `skillctl prune` — dry run by default; `--apply` removes dangling links whose
   target was deleted from this repo; `--apply --orphans` also removes stale copies
 - [ ] Standardize harness-spill JSON envelope unwrapping across plugin scripts (each handles `[{type, text}]` differently)
-- [ ] **Investigate a CLI framework for `skillctl`** — `click` or `typer` instead of argparse: better subcommand groups, help text, and typed options. Trade-off to weigh: `skillctl` currently has zero dependencies — `python3 bin/skillctl` runs from a fresh clone with stdlib only (yaml is a lazy import on the test path), and CI plus the weekly sync workflow rely on that.
+- [ ] **Investigate Python dependencies for `skillctl`** — `click` or `typer` instead of argparse: better subcommand groups, help text, and typed options. `yaml` instead of the growing hand-rolled frontmatter parsing: `get_frontmatter_field` (column-0 key scan), validate-skill's extension stripping, and sync's provenance normalization are all regex string surgery, and a yaml round-trip would reformat frontmatter (key order, quoting) where the surgery preserves upstream formatting — weigh that too. Trade-off to weigh: `skillctl` currently has zero dependencies — `python3 bin/skillctl` runs from a fresh clone with stdlib only (yaml is a lazy import on the test path), and CI plus the weekly sync workflow rely on that.
 
 ## CI
 
