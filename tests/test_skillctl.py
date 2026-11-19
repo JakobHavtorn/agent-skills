@@ -486,6 +486,218 @@ def test_insert_readme_row_alphabetical():
 
 
 # ---------------------------------------------------------------------------
+# opencode /command wrappers for user-invoked skills
+# ---------------------------------------------------------------------------
+
+get_frontmatter_field = skillctl.get_frontmatter_field
+is_user_invoked = skillctl.is_user_invoked
+render_command_wrapper = skillctl.render_command_wrapper
+is_managed_command = skillctl.is_managed_command
+link_user_invoked_commands = skillctl.link_user_invoked_commands
+unlink_command_wrappers = skillctl.unlink_command_wrappers
+COMMAND_MARKER = skillctl.COMMAND_MARKER
+
+
+def _write_skill_dir(root, name, user_invoked=False):
+    """Minimal skill dir with an optional user-invoked flag."""
+    skill_dir = root / name
+    skill_dir.mkdir(parents=True)
+    flag = "disable-model-invocation: true\n" if user_invoked else ""
+    (skill_dir / "SKILL.md").write_text(f"---\nname: {name}\ndescription: Skill {name}\n{flag}---\n\nBody.\n")
+    return skill_dir
+
+
+def _linked_target(root, skill_dirs):
+    """Fake harness skills dir with every skill linked by name."""
+    skills_target = root / "skills"
+    skills_target.mkdir()
+    for skill_dir in skill_dirs:
+        (skills_target / skill_dir.name).symlink_to(skill_dir)
+    return skills_target
+
+
+def test_frontmatter_field_reads_top_level_scalars():
+    """Top-level keys parse; missing keys return None."""
+    root = Path(tempfile.mkdtemp())
+    skill = _write_skill_dir(root, "demo", user_invoked=True)
+    assert get_frontmatter_field(skill, "name") == "demo"
+    assert get_frontmatter_field(skill, "description") == "Skill demo"
+    assert get_frontmatter_field(skill, "disable-model-invocation") == "true"
+    assert get_frontmatter_field(skill, "missing") is None
+
+
+def test_frontmatter_field_ignores_indented_keys():
+    """Keys nested under metadata: never read as top-level."""
+    root = Path(tempfile.mkdtemp())
+    skill = root / "nested"
+    skill.mkdir()
+    (skill / "SKILL.md").write_text(
+        "---\nname: nested\ndescription: d\nmetadata:\n  disable-model-invocation: true\n---\n\nBody.\n"
+    )
+    assert get_frontmatter_field(skill, "disable-model-invocation") is None
+    assert is_user_invoked(skill) is False
+
+
+def test_frontmatter_field_strips_quotes():
+    """Quoted scalar values lose their surrounding quotes."""
+    root = Path(tempfile.mkdtemp())
+    skill = root / "quoted"
+    skill.mkdir()
+    (skill / "SKILL.md").write_text('---\nname: q\ndescription: "Quoted: description"\n---\n\nBody.\n')
+    assert get_frontmatter_field(skill, "description") == "Quoted: description"
+
+
+def test_is_user_invoked_without_flag():
+    """A skill without the flag is machine-invocable."""
+    root = Path(tempfile.mkdtemp())
+    skill = _write_skill_dir(root, "plain")
+    assert is_user_invoked(skill) is False
+
+
+def test_render_command_wrapper_shape():
+    """Wrapper carries frontmatter, marker, load line, and $ARGUMENTS."""
+    content = render_command_wrapper("grill-me", "Sharpen a plan: interview")
+    assert content.startswith("---\n")
+    assert 'description: "Sharpen a plan: interview"' in content
+    assert COMMAND_MARKER in content
+    assert "Load the `grill-me` skill and follow its instructions." in content
+    assert content.rstrip().endswith("$ARGUMENTS")
+
+
+def test_render_command_wrapper_without_description():
+    """No description means no description line in the wrapper."""
+    content = render_command_wrapper("x", None)
+    assert "description:" not in content
+    assert "Load the `x` skill" in content
+
+
+def test_is_managed_command_detects_marker():
+    """Only files containing the marker count as skillctl-generated."""
+    root = Path(tempfile.mkdtemp())
+    managed = root / "managed.md"
+    managed.write_text(f"---\n{COMMAND_MARKER}\n---\n\nLoad.\n")
+    external = root / "external.md"
+    external.write_text("---\ndescription: hand-written\n---\n\nDo things.\n")
+    assert is_managed_command(managed) is True
+    assert is_managed_command(external) is False
+    assert is_managed_command(root / "missing.md") is False
+
+
+def test_link_commands_wraps_only_user_invoked_skills():
+    """One wrapper per user-invoked linked skill; nothing for the rest."""
+    root = Path(tempfile.mkdtemp())
+    asked_for = _write_skill_dir(root, "asked-for", user_invoked=True)
+    auto = _write_skill_dir(root, "auto")
+    skills_target = _linked_target(root, [asked_for, auto])
+    commands_dir = root / "commands"
+
+    written, removed = link_user_invoked_commands({"demo": [asked_for, auto]}, skills_target, commands_dir)
+
+    assert (written, removed) == (1, 0)
+    wrapper = commands_dir / "asked-for.md"
+    assert is_managed_command(wrapper)
+    assert "Load the `asked-for` skill" in wrapper.read_text()
+    assert not (commands_dir / "auto.md").exists()
+
+
+def test_link_commands_skips_unlinked_skill():
+    """No wrapper when the skill is not linked in the skills dir."""
+    root = Path(tempfile.mkdtemp())
+    asked_for = _write_skill_dir(root, "asked-for", user_invoked=True)
+    skills_target = root / "skills"
+    skills_target.mkdir()
+
+    written, removed = link_user_invoked_commands({"demo": [asked_for]}, skills_target, root / "commands")
+
+    assert (written, removed) == (0, 0)
+    assert not (root / "commands" / "asked-for.md").exists()
+
+
+def test_link_commands_idempotent():
+    """A second run writes nothing and leaves content unchanged."""
+    root = Path(tempfile.mkdtemp())
+    asked_for = _write_skill_dir(root, "asked-for", user_invoked=True)
+    skills_target = _linked_target(root, [asked_for])
+    commands_dir = root / "commands"
+    link_user_invoked_commands({"demo": [asked_for]}, skills_target, commands_dir)
+    before = (commands_dir / "asked-for.md").read_text()
+
+    written, removed = link_user_invoked_commands({"demo": [asked_for]}, skills_target, commands_dir)
+
+    assert (written, removed) == (0, 0)
+    assert (commands_dir / "asked-for.md").read_text() == before
+
+
+def test_link_commands_updates_changed_description():
+    """A changed SKILL.md description regenerates the wrapper."""
+    root = Path(tempfile.mkdtemp())
+    asked_for = _write_skill_dir(root, "asked-for", user_invoked=True)
+    skills_target = _linked_target(root, [asked_for])
+    commands_dir = root / "commands"
+    link_user_invoked_commands({"demo": [asked_for]}, skills_target, commands_dir)
+
+    skill_md = asked_for / "SKILL.md"
+    skill_md.write_text(skill_md.read_text().replace("Skill asked-for", "A better description"))
+    written, removed = link_user_invoked_commands({"demo": [asked_for]}, skills_target, commands_dir)
+
+    assert (written, removed) == (1, 0)
+    assert "A better description" in (commands_dir / "asked-for.md").read_text()
+
+
+def test_link_commands_skips_handwritten_wrapper():
+    """A hand-written file at the target name is left untouched."""
+    root = Path(tempfile.mkdtemp())
+    asked_for = _write_skill_dir(root, "asked-for", user_invoked=True)
+    skills_target = _linked_target(root, [asked_for])
+    commands_dir = root / "commands"
+    commands_dir.mkdir()
+    handwritten = commands_dir / "asked-for.md"
+    handwritten.write_text("---\ndescription: mine\n---\n\nMy custom command.\n")
+
+    written, removed = link_user_invoked_commands({"demo": [asked_for]}, skills_target, commands_dir)
+
+    assert (written, removed) == (0, 0)
+    assert handwritten.read_text() == "---\ndescription: mine\n---\n\nMy custom command.\n"
+
+
+def test_link_commands_removes_orphans_keeps_external():
+    """Managed wrappers for gone skills are removed; foreign files stay."""
+    root = Path(tempfile.mkdtemp())
+    auto = _write_skill_dir(root, "auto")
+    skills_target = _linked_target(root, [auto])
+    commands_dir = root / "commands"
+    commands_dir.mkdir()
+    orphan = commands_dir / "renamed-away.md"
+    orphan.write_text(render_command_wrapper("renamed-away", "Gone skill"))
+    external = commands_dir / "keep-me.md"
+    external.write_text("---\ndescription: plannotator\n---\n\nNot ours.\n")
+
+    written, removed = link_user_invoked_commands({"demo": [auto]}, skills_target, commands_dir)
+
+    assert (written, removed) == (0, 1)
+    assert not orphan.exists()
+    assert external.read_text() == "---\ndescription: plannotator\n---\n\nNot ours.\n"
+
+
+def test_unlink_commands_removes_only_managed():
+    """Unlink removes skillctl wrappers, never hand-written files."""
+    root = Path(tempfile.mkdtemp())
+    asked_for = _write_skill_dir(root, "asked-for", user_invoked=True)
+    commands_dir = root / "commands"
+    commands_dir.mkdir()
+    managed = commands_dir / "asked-for.md"
+    managed.write_text(render_command_wrapper("asked-for", "Skill asked-for"))
+    handwritten = commands_dir / "handmade.md"
+    handwritten.write_text("---\ndescription: mine\n---\n\nMy custom command.\n")
+
+    removed = unlink_command_wrappers({"demo": [asked_for]}, commands_dir)
+
+    assert removed == 1
+    assert not managed.exists()
+    assert handwritten.exists()
+
+
+# ---------------------------------------------------------------------------
 # Runner — allow ``python3 tests/test_skillctl.py``
 # ---------------------------------------------------------------------------
 
