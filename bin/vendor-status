@@ -86,6 +86,20 @@ def parse_pin(url: str) -> dict:
     return {"repo": f"{owner}/{repo}", "commit": commit, "path": path}
 
 
+def load_source_policies(root: Path) -> dict[tuple[str, str], str]:
+    """{(plugin, repo): policy} from plugins/*/plugin.json sources lists."""
+    policies = {}
+    for manifest in sorted(root.glob("plugins/*/plugin.json")):
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        for entry in data.get("sources", []):
+            if isinstance(entry, dict) and {"repo", "policy"} <= entry.keys():
+                policies[(manifest.parent.name, entry["repo"])] = entry["policy"]
+    return policies
+
+
 def upstream_head(repo: str, token: str | None) -> dict:
     """Default branch and its head commit for a repo."""
     info = api_get(f"/repos/{repo}", token)
@@ -114,13 +128,15 @@ def main() -> int:
         return 0
 
     token = os.environ.get("GITHUB_TOKEN") or None
+    policies = load_source_policies(args.root)
     heads: dict[str, dict] = {}
     compares: dict[tuple[str, str], tuple[list[str], bool]] = {}
     rows: list[dict] = []
     drift = 0
 
     for skill_dir, url in vendored:
-        name = f"{skill_dir.parent.parent.name}/{skill_dir.name}"
+        plugin = skill_dir.parent.parent.name
+        name = f"{plugin}/{skill_dir.name}"
         try:
             pin = parse_pin(url)
         except PinError as error:
@@ -161,6 +177,11 @@ def main() -> int:
         else:
             status = f"upstream moved, no changes under the skill (pinned {pinned[:7]}, head {head[:7]})"
         is_drift = bool(touched) or truncated
+        if is_drift:
+            if policies.get((plugin, pin["repo"])) == "track":
+                status += f" — run `skillctl sync --plugin {plugin}` to update"
+            else:
+                status += " — re-vendor manually"
         rows.append({"skill": name, "status": status, "is_drift": is_drift})
         if is_drift:
             drift += 1

@@ -15,6 +15,9 @@ Usage:
   skillctl test
   skillctl test --skill open-pr
   skillctl test --runner claude --model claude-sonnet-4-20250514
+  skillctl sync --dry-run
+  skillctl sync --plugin grafana
+  skillctl sync --pr
 """
 
 import argparse
@@ -25,9 +28,14 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
+import tempfile
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from fnmatch import fnmatch
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -948,6 +956,583 @@ def cmd_test(args):
         raise SkillctlError(f"{total_fail} test case(s) failed")
 
 
+# ---------------------------------------------------------------------------
+# skillctl sync — update vendored skills from tracked upstream sources
+# ---------------------------------------------------------------------------
+
+# Sources are declared in plugins/<plugin>/plugin.json:
+#
+#     "sources": [
+#       {
+#         "repo": "grafana/skills",
+#         "policy": "track",              # "track" = sync updates; "pin" = manual only
+#         "include": ["skills/grafana-core/promql", "..."],
+#         "license": "Apache-2.0"
+#       }
+#     ]
+#
+# Every vendored skill pins its upstream state in metadata.vendored-from
+# (same convention as bin/vendor-status). sync resolves the upstream default
+# branch head and, per skill, compares the local tree against upstream at the
+# pin — ignoring the provenance frontmatter this repo injects:
+#
+#   current  pin == head, nothing to do
+#   clean    local tree matches upstream at the pin -> updated to head
+#   adapted  local tree has hand edits -> skipped, re-vendor manually
+#   deleted  upstream path is gone -> skipped, reported
+#
+# New upstream skills covered by an include glob are vendored automatically;
+# explicit include lists keep curation human. Materialized skills pass a local
+# battery mirroring validate.yml (hygiene, line limits, references) before any
+# write. CI runs the full battery on the resulting PR.
+
+SYNC_API_ROOT = "https://api.github.com"
+# Keep these two regexes in sync with bin/vendor-status.
+SYNC_PIN_URL_RE = re.compile(r"^https://github\.com/([\w.-]+)/([\w.-]+)/tree/([0-9a-f]{7,40})/(.+?)/?$")
+SYNC_VENDORED_RE = re.compile(r"^\s+vendored-from:\s*(\S+)\s*$", re.MULTILINE)
+SYNC_IBAN_RE = re.compile(rb"[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}")
+SYNC_DIGITS_RE = re.compile(rb"[0-9]{12,}")
+# Keep in sync with the reference-integrity grep in .github/workflows/validate.yml.
+SYNC_REF_RE = re.compile(r"(?:references|scripts|assets)/[A-Za-z0-9_\-]+\.[a-z]+")
+SYNC_MAX_SKILL_LINES = 500
+
+
+@dataclass
+class SourceConfig:
+    """One upstream source declared in a plugin manifest."""
+
+    plugin: str
+    repo: str
+    policy: str  # "pin" or "track"
+    include: list[str]
+    license: str | None
+
+
+def frontmatter_block(text: str) -> str:
+    """Raw frontmatter between the opening and closing --- lines, or ''."""
+    if not text.startswith("---"):
+        return ""
+    parts = text.split("---", 2)
+    return parts[1] if len(parts) == 3 else ""
+
+
+def parse_pin_url(url: str) -> dict:
+    """Split a pinned tree URL into repo, commit, and upstream path."""
+    match = SYNC_PIN_URL_RE.match(url)
+    if not match:
+        raise SkillctlError(f"unparsable vendored-from URL: {url}")
+    owner, repo, commit, path = match.groups()
+    return {"repo": f"{owner}/{repo}", "commit": commit, "path": path}
+
+
+def skill_pin(skill_dir: Path) -> dict | None:
+    """Parsed vendored-from pin of a skill, or None when homegrown."""
+    skill_md = skill_dir / "SKILL.md"
+    if not skill_md.exists():
+        return None
+    match = SYNC_VENDORED_RE.search(frontmatter_block(skill_md.read_text(encoding="utf-8")))
+    return parse_pin_url(match.group(1)) if match else None
+
+
+def load_sources(root: Path) -> list[SourceConfig]:
+    """Parse sources from every plugins/*/plugin.json under root."""
+    sources: list[SourceConfig] = []
+    for manifest in sorted(root.glob("plugins/*/plugin.json")):
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        for entry in data.get("sources", []):
+            missing = [key for key in ("repo", "policy", "include") if key not in entry]
+            if missing:
+                raise SkillctlError(f"{manifest}: source entry missing {', '.join(missing)}")
+            if entry["policy"] not in ("pin", "track"):
+                raise SkillctlError(f"{manifest}: policy must be 'pin' or 'track', got {entry['policy']!r}")
+            if not isinstance(entry["include"], list) or not entry["include"]:
+                raise SkillctlError(f"{manifest}: include must be a non-empty list")
+            sources.append(
+                SourceConfig(
+                    plugin=manifest.parent.name,
+                    repo=entry["repo"],
+                    policy=entry["policy"],
+                    include=list(entry["include"]),
+                    license=entry.get("license"),
+                )
+            )
+    return sources
+
+
+def covered_by_include(path: str, include: list[str]) -> bool:
+    """True when an upstream skill path is covered by a source's include patterns."""
+    return any(fnmatch(path, pattern) for pattern in include)
+
+
+def pin_url(repo: str, commit: str, path: str) -> str:
+    """The pinned tree URL for an upstream path at a commit."""
+    return f"https://github.com/{repo}/tree/{commit}/{path}"
+
+
+def _github_token() -> str | None:
+    return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+
+
+def _github_get(path: str, token: str | None, stream: bool = False):
+    """GET a GitHub API path; parsed JSON, or the raw response when stream."""
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "skillctl-sync"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(SYNC_API_ROOT + path, headers=headers)
+    try:
+        response = urllib.request.urlopen(request)
+    except urllib.error.HTTPError as error:
+        if error.code in (403, 429):
+            raise SkillctlError("GitHub API rate limit hit: set GITHUB_TOKEN and retry.") from error
+        raise SkillctlError(f"GitHub API error {error.code} for {path}") from error
+    except urllib.error.URLError as error:
+        raise SkillctlError(f"cannot reach GitHub API: {error.reason}") from error
+    if stream:
+        return response
+    with response:
+        return json.load(response)
+
+
+def upstream_head_commit(repo: str, token: str | None) -> str:
+    """Head commit of an upstream repo's default branch."""
+    branch = _github_get(f"/repos/{repo}", token)["default_branch"]
+    return _github_get(f"/repos/{repo}/commits/{branch}", token)["sha"]
+
+
+def fetch_upstream_tree(repo: str, ref: str, token: str | None, dest: Path) -> Path:
+    """Extract an upstream tarball into dest; repo content lands at dest root."""
+    dest.mkdir(parents=True, exist_ok=True)
+    response = _github_get(f"/repos/{repo}/tarball/{ref}", token, stream=True)
+
+    def rebase(member, target):
+        parts = member.name.split("/", 1)
+        if len(parts) != 2 or not parts[1]:
+            return None  # the archive's root entry, or a top-level file
+        member.name = parts[1]
+        return tarfile.data_filter(member, target)
+
+    with response, tarfile.open(fileobj=response, mode="r|gz") as archive:
+        archive.extractall(dest, filter=rebase)
+    return dest
+
+
+def normalize_provenance(text: str) -> str:
+    """Strip the provenance fields this repo injects, for pin-fidelity comparison.
+
+    Removes top-level `license:` lines and indented `vendored-from:` lines,
+    then drops `metadata:` keys those removals left childless.
+    """
+    stripped = []
+    for line in text.splitlines(keepends=True):
+        if line.startswith("license:"):
+            continue
+        if re.match(r"\s+vendored-from:", line):
+            continue
+        stripped.append(line)
+    cleaned = []
+    for index, line in enumerate(stripped):
+        if re.match(r"metadata:\s*$", line):
+            following = stripped[index + 1] if index + 1 < len(stripped) else ""
+            if not following[:1].isspace():
+                continue
+        cleaned.append(line)
+    return "".join(cleaned)
+
+
+def apply_provenance(text: str, url: str, license_name: str | None) -> str:
+    """Ensure license and metadata.vendored-from in a SKILL.md's frontmatter.
+
+    Keeps upstream frontmatter otherwise byte-identical; refreshes an
+    existing vendored-from entry in place.
+    """
+    if not text.startswith("---"):
+        raise SkillctlError("SKILL.md has no frontmatter block")
+    parts = text.split("---", 2)
+    if len(parts) != 3:
+        raise SkillctlError("SKILL.md has no frontmatter block")
+    lines = parts[1].splitlines(keepends=True)
+
+    def find(predicate):
+        return next((i for i, line in enumerate(lines) if predicate(line)), None)
+
+    vendored = find(lambda line: re.match(r"\s*vendored-from:", line))
+    if vendored is not None:
+        indent = re.match(r"\s*", lines[vendored]).group(0)
+        lines[vendored] = f"{indent}vendored-from: {url}\n"
+    else:
+        entry = f"  vendored-from: {url}\n"
+        metadata = find(lambda line: re.match(r"metadata:\s*$", line))
+        if metadata is None:
+            lines.append("metadata:\n")
+            lines.append(entry)
+        else:
+            end = metadata + 1
+            while end < len(lines) and lines[end][:1].isspace():
+                end += 1
+            lines.insert(end, entry)
+
+    if license_name and find(lambda line: re.match(r"license:", line)) is None:
+        license_line = f"license: {license_name}\n"
+        metadata = find(lambda line: re.match(r"metadata:\s*$", line))
+        if metadata is not None:
+            lines.insert(metadata, license_line)
+        else:
+            lines.append(license_line)
+
+    return "---" + "".join(lines) + "---" + parts[2]
+
+
+def _tree_files(root: Path) -> dict[str, bytes]:
+    """Relative POSIX path -> file bytes for everything under root."""
+    return {path.relative_to(root).as_posix(): path.read_bytes() for path in sorted(root.rglob("*")) if path.is_file()}
+
+
+def _pin_fidelity(local: dict[str, bytes], upstream: dict[str, bytes]) -> str | None:
+    """First file where the local tree deviates from upstream, or None.
+
+    Provenance fields injected by this repo are normalized away on both
+    sides before comparison.
+    """
+    for rel, data in upstream.items():
+        ours = local.get(rel)
+        if rel == "SKILL.md":
+            if normalize_provenance((ours or b"").decode("utf-8", "replace")) != normalize_provenance(
+                data.decode("utf-8", "replace")
+            ):
+                return rel
+        elif ours != data:
+            return rel
+    for rel in local:
+        if rel not in upstream:
+            return rel
+    return None
+
+
+def classify_vendored_skill(pin: dict, local_dir: Path, old_root: Path, head_root: Path) -> tuple[str, str]:
+    """Sync disposition for a drifted vendored skill: (state, detail).
+
+    state: "clean" (local tree matches upstream at the pin), "adapted"
+    (hand-edited locally), or "deleted" (upstream path is gone).
+    """
+    if not (head_root / pin["path"] / "SKILL.md").exists():
+        return "deleted", f"upstream path {pin['path']} is gone"
+    if not (old_root / pin["path"] / "SKILL.md").exists():
+        raise SkillctlError(f"upstream path {pin['path']} missing at pin {pin['commit'][:7]}")
+    deviance = _pin_fidelity(_tree_files(local_dir), _tree_files(old_root / pin["path"]))
+    if deviance is None:
+        return "clean", ""
+    return "adapted", f"deviates from upstream at the pin ({deviance})"
+
+
+def validate_materialized_skill(skill_dir: Path) -> list[str]:
+    """Local battery mirroring validate.yml for one skill directory."""
+    problems = []
+    for path in sorted(skill_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(skill_dir).as_posix()
+        if path.suffix in (".csv", ".ofx", ".qif"):
+            problems.append(f"{rel}: data file (csv/ofx/qif)")
+            continue
+        data = path.read_bytes()
+        if SYNC_IBAN_RE.search(data):
+            problems.append(f"{rel}: IBAN-shaped string")
+        if SYNC_DIGITS_RE.search(data):
+            problems.append(f"{rel}: 12+ digit run")
+    skill_md = skill_dir / "SKILL.md"
+    if skill_md.exists():
+        text = skill_md.read_text(encoding="utf-8")
+        line_count = len(text.splitlines())
+        if line_count > SYNC_MAX_SKILL_LINES:
+            problems.append(f"SKILL.md: {line_count} lines (max {SYNC_MAX_SKILL_LINES})")
+        for ref in SYNC_REF_RE.findall(text):
+            if ref.count("/") > 1:
+                problems.append(f"SKILL.md: reference {ref} deeper than one level")
+            elif not (skill_dir / ref).exists():
+                problems.append(f"SKILL.md: broken reference {ref}")
+    return problems
+
+
+def _frontmatter_description(text: str) -> str:
+    """Single-line description from SKILL.md frontmatter, folded blocks joined."""
+    block = frontmatter_block(text)
+    match = re.search(r"(?m)^description:\s*(.*)$", block)
+    if not match:
+        return ""
+    value = match.group(1).strip()
+    if value in (">", "|", ">-", "|-", ">+", "|+"):
+        folded = []
+        for line in block[match.end() :].splitlines():
+            if not line[:1].isspace() or not line.strip():
+                break
+            folded.append(line.strip())
+        value = " ".join(folded)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def insert_readme_row(readme: str, plugin: str, skill_name: str, row: str) -> str:
+    """Insert a skill row into a plugin's README table, alphabetically."""
+    heading = f"### `{plugin}`"
+    lines = readme.splitlines(keepends=True)
+    start = next((i for i, line in enumerate(lines) if line.rstrip("\n") == heading), None)
+    if start is None:
+        raise SkillctlError(f"README has no {heading} section")
+    end = start + 1
+    while end < len(lines) and not lines[end].startswith("| ["):
+        end += 1  # skip the blank line, table header, and separator
+    while end < len(lines) and lines[end].startswith("| ["):
+        other = lines[end][3:].split("]", 1)[0]
+        if skill_name < other:
+            break
+        end += 1
+    lines.insert(end, row if row.endswith("\n") else row + "\n")
+    return "".join(lines)
+
+
+def _run_git(args: list[str]) -> subprocess.CompletedProcess:
+    """Run git, raising SkillctlError with stderr on failure."""
+    proc = subprocess.run(["git", *args], capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise SkillctlError(f"git {' '.join(args)} failed: {proc.stderr.strip()}")
+    return proc
+
+
+def _run_gh(args: list[str]) -> subprocess.CompletedProcess:
+    """Run gh, raising SkillctlError with stderr on failure."""
+    if not shutil.which("gh"):
+        raise SkillctlError("'gh' not found on PATH (required for --pr)")
+    proc = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise SkillctlError(f"gh {' '.join(args)} failed: {proc.stderr.strip()}")
+    return proc
+
+
+def materialize_skill(upstream_dir: Path, dest: Path, url: str, license_name: str | None) -> None:
+    """Copy an upstream skill to dest, provenance injected into SKILL.md."""
+    shutil.copytree(upstream_dir, dest)
+    skill_md = dest / "SKILL.md"
+    skill_md.write_text(apply_provenance(skill_md.read_text(encoding="utf-8"), url, license_name), encoding="utf-8")
+
+
+def _stage_skill(upstream_dir: Path, stage_root: Path, name: str, url: str, license_name: str | None):
+    """Materialize one skill copy and run the local battery on it.
+
+    Returns (stage_dir, problems).
+    """
+    stage = stage_root / "staged" / name
+    materialize_skill(upstream_dir, stage, url, license_name)
+    return stage, validate_materialized_skill(stage)
+
+
+def _add_readme_row(plugin: str, name: str, description: str, repo: str) -> None:
+    """Append a table row for a newly vendored skill to README.md."""
+    readme = REPO_ROOT / "README.md"
+    text = readme.read_text(encoding="utf-8")
+    row = f"| [{name}](plugins/{plugin}/skills/{name}) | {description} (vendored from {repo}) |"
+    readme.write_text(insert_readme_row(text, plugin, name, row), encoding="utf-8")
+
+
+def _publish_sync_pr(changed: list[tuple[str, str, str]], body: str) -> None:
+    """Commit applied changes, push, and open or refresh the sync PR."""
+    if len(changed) == 1:
+        plugin, repo, head = changed[0]
+        title = f"feat: sync {plugin} skills from {repo}@{head}"
+    else:
+        title = "feat: sync vendored skills from upstream"
+    branch = "sync/upstream"
+    _run_git(["checkout", "-B", branch])
+    _run_git(["add", "-A"])
+    _run_git(["commit", "-m", title])
+    _run_git(["push", "--force-with-lease", "-u", "origin", branch])
+    existing = _run_gh(
+        ["pr", "list", "--head", branch, "--state", "open", "--json", "number", "--jq", '.[0].number // ""']
+    )
+    number = existing.stdout.strip()
+    if number:
+        print(f"  Updated PR #{number} (branch {branch} force-pushed)")
+        return
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as handle:
+        handle.write(body)
+        body_path = handle.name
+    try:
+        proc = _run_gh(["pr", "create", "--title", title, "--body-file", body_path, "--base", "main"])
+        print(f"  Opened PR: {proc.stdout.strip()}")
+    finally:
+        Path(body_path).unlink(missing_ok=True)
+
+
+def _sync_source(source: SourceConfig, token: str | None, dry_run: bool):
+    """Sync one source. Returns (applied, failed, markdown, changed-or-None).
+
+    changed is (plugin, repo, head7) when this run updated or added skills.
+    """
+    applied: list[str] = []
+    failed: list[str] = []
+    pins: list[tuple[Path, dict]] = []
+    for skill_dir in get_plugin_skills(source.plugin):
+        pin = skill_pin(skill_dir)
+        if pin is None:
+            continue
+        if pin["repo"] != source.repo:
+            raise SkillctlError(f"{skill_dir.name}: pin repo {pin['repo']} does not match source {source.repo}")
+        if not covered_by_include(pin["path"], source.include):
+            raise SkillctlError(f"{skill_dir.name}: pin path {pin['path']} is not in the source's include list")
+        pins.append((skill_dir, pin))
+
+    if source.policy == "pin":
+        for skill_dir, _pin in pins:
+            print(f"  SKIP {skill_dir.name}: pin-controlled — re-vendor manually when you choose")
+        return applied, failed, [], None
+
+    head = upstream_head_commit(source.repo, token)
+    current = sum(1 for _skill_dir, pin in pins if pin["commit"] == head)
+    print(f"  upstream head: {head[:7]} — {current}/{len(pins)} skill(s) current")
+    with tempfile.TemporaryDirectory(prefix="skillctl-sync-") as tmp:
+        stage_root = Path(tmp)
+        head_root = fetch_upstream_tree(source.repo, head, token, stage_root / "head")
+        old_roots: dict[str, Path] = {}
+        updated, skipped, deleted, added = [], [], [], []
+
+        for skill_dir, pin in pins:
+            if pin["commit"] == head:
+                continue  # nothing drifted; no fetch of the old tree needed
+            old_root = old_roots.get(pin["commit"])
+            if old_root is None:
+                old_root = fetch_upstream_tree(
+                    source.repo, pin["commit"], token, stage_root / f"old-{pin['commit'][:7]}"
+                )
+                old_roots[pin["commit"]] = old_root
+            try:
+                state, detail = classify_vendored_skill(pin, skill_dir, old_root, head_root)
+            except SkillctlError as error:
+                failed.append(f"{skill_dir.name}: {error}")
+                print(f"  ERROR {skill_dir.name}: {error}")
+                continue
+            if state == "deleted":
+                deleted.append(f"{skill_dir.name}: {detail}")
+                print(f"  GONE {skill_dir.name}: {detail}")
+                continue
+            if state == "adapted":
+                skipped.append(f"{skill_dir.name}: {detail}")
+                print(f"  SKIP {skill_dir.name}: {detail} — re-vendor manually")
+                continue
+            stage, problems = _stage_skill(
+                head_root / pin["path"],
+                stage_root,
+                skill_dir.name,
+                pin_url(source.repo, head, pin["path"]),
+                source.license,
+            )
+            if problems:
+                failed.append(f"{skill_dir.name}: " + "; ".join(problems))
+                print(f"  INVALID {skill_dir.name}: local battery failed; left untouched")
+                continue
+            if dry_run:
+                print(f"  WOULD UPDATE {skill_dir.name} {pin['commit'][:7]} -> {head[:7]}")
+                continue
+            shutil.rmtree(skill_dir)
+            shutil.copytree(stage, skill_dir)
+            updated.append(f"{skill_dir.name}: {pin['commit'][:7]} → {head[:7]}")
+            applied.append(f"{source.plugin}/{skill_dir.name} updated to {source.repo}@{head[:7]}")
+            print(f"  UPDATED {skill_dir.name} {pin['commit'][:7]} -> {head[:7]}")
+
+        # New upstream skills covered by include but not vendored yet.
+        vendored_paths = {pin["path"] for _skill_dir, pin in pins}
+        existing_names = {d.name for dirs in get_all_skills().values() for d in dirs}
+        for upstream_md in sorted(head_root.rglob("SKILL.md")):
+            up_path = upstream_md.parent.relative_to(head_root).as_posix()
+            if up_path in vendored_paths or not covered_by_include(up_path, source.include):
+                continue
+            name = upstream_md.parent.name
+            if name in existing_names:
+                failed.append(f"{name}: new upstream skill collides with an existing skill name")
+                print(f"  INVALID {name}: name already exists in this repo")
+                continue
+            stage, problems = _stage_skill(
+                upstream_md.parent, stage_root, name, pin_url(source.repo, head, up_path), source.license
+            )
+            if problems:
+                failed.append(f"{name} (new): " + "; ".join(problems))
+                print(f"  INVALID {name}: local battery failed; not vendored")
+                continue
+            if dry_run:
+                print(f"  WOULD ADD {name} from {up_path}")
+                continue
+            dest = PLUGINS_DIR / source.plugin / "skills" / name
+            shutil.copytree(stage, dest)
+            added.append(name)
+            applied.append(f"{source.plugin}/{name} vendored from {source.repo}@{head[:7]}")
+            _add_readme_row(
+                source.plugin, name, _frontmatter_description(upstream_md.read_text(encoding="utf-8")), source.repo
+            )
+            print(f"  ADDED {name} from {up_path}")
+
+    markdown = []
+    if updated or added or skipped or deleted or failed:
+        markdown = [f"### {source.plugin} — {source.repo}@{head[:7]}", ""]
+        for label, items in (
+            ("Updated", updated),
+            ("Added", added),
+            ("Skipped (adapted — re-vendor manually)", skipped),
+            ("Gone upstream", deleted),
+            ("Failed the local battery", failed),
+        ):
+            if items:
+                markdown.append(f"**{label}**")
+                markdown.extend(f"- {item}" for item in items)
+                markdown.append("")
+    changed = (source.plugin, source.repo, head[:7]) if (updated or added) else None
+    return applied, failed, markdown, changed
+
+
+def cmd_sync(args):
+    """Update vendored skills from their tracked upstream sources."""
+    if args.dry_run and args.pr:
+        raise SkillctlError("--dry-run and --pr contradict each other; pick one")
+    if args.pr and _run_git(["status", "--porcelain"]).stdout.strip():
+        raise SkillctlError("--pr needs a clean working tree; commit or stash first")
+
+    sources = load_sources(REPO_ROOT)
+    if args.plugin:
+        sources = [source for source in sources if source.plugin == args.plugin]
+        if not sources:
+            raise SkillctlError(f"plugin '{args.plugin}' declares no sources")
+
+    token = _github_token()
+    applied: list[str] = []
+    failed: list[str] = []
+    body: list[str] = ["Updates vendored skills from their upstream sources.", ""]
+    changed: list[tuple[str, str, str]] = []
+
+    for source in sources:
+        print(f"=== {source.plugin} <- {source.repo} (policy: {source.policy}) ===")
+        try:
+            source_applied, source_failed, source_markdown, source_changed = _sync_source(source, token, args.dry_run)
+        except SkillctlError as error:
+            print(f"  ERROR {error}", file=sys.stderr)
+            failed.append(f"{source.plugin}: {error}")
+            continue
+        applied.extend(source_applied)
+        failed.extend(source_failed)
+        if source_markdown:
+            body.extend(source_markdown)
+        if source_changed:
+            changed.append(source_changed)
+
+    print()
+    if args.dry_run:
+        print("Dry run: no files were written.")
+    elif not applied:
+        print("Nothing to sync.")
+    elif args.pr:
+        _publish_sync_pr(changed, "\n".join(body))
+    else:
+        print(f"{len(applied)} skill(s) updated in the working tree — commit them, or rerun with --pr to open a PR.")
+
+    if failed:
+        raise SkillctlError(f"{len(failed)} skill(s) not synced:\n  " + "\n  ".join(failed))
+
+
 def cmd_help(args, parser=None):
     """Show detailed help with examples."""
     print(__doc__)
@@ -989,6 +1574,9 @@ def cmd_help(args, parser=None):
     print("  skillctl unlink --agent claude")
     print("  skillctl prune --agent opencode")
     print("  skillctl prune --agent omp --apply --orphans")
+    print("  skillctl sync --dry-run")
+    print("  skillctl sync --plugin grafana")
+    print("  skillctl sync --pr")
     print("  skillctl doctor")
     print("  skillctl test")
     print("  skillctl test --skill open-pr")
@@ -1054,6 +1642,13 @@ def main():
     p_test.add_argument("--verbose", action="store_true", help="Show per-case details, not just failures")
     p_test.add_argument("--jobs", "-j", type=int, default=8, help="Number of parallel LLM calls (default: 8)")
     p_test.set_defaults(func=cmd_test)
+
+    # sync
+    p_sync = sub.add_parser("sync", help="Update vendored skills from tracked upstream sources")
+    p_sync.add_argument("--plugin", help="Only sync this plugin's sources (default: all)")
+    p_sync.add_argument("--dry-run", action="store_true", help="Report planned updates without writing files")
+    p_sync.add_argument("--pr", action="store_true", help="Commit, push, and open a PR when updates apply")
+    p_sync.set_defaults(func=cmd_sync)
 
     # help
     p_help = sub.add_parser("help", help="Show detailed help with examples")

@@ -4,6 +4,7 @@
 Runnable standalone (``python3 tests/test_skillctl.py``) or via pytest.
 """
 
+import json
 import sys
 import tempfile
 import types
@@ -205,6 +206,245 @@ def test_extract_omp_text_string_content():
 def test_extract_omp_text_empty():
     """Non-matching events and malformed lines yield empty text."""
     assert skillctl._extract_omp_text("not json\n{}\n") == ""
+
+
+# ---------------------------------------------------------------------------
+# sync — sources, pins, provenance, classification, validation
+# ---------------------------------------------------------------------------
+
+load_sources = skillctl.load_sources
+covered_by_include = skillctl.covered_by_include
+parse_pin_url = skillctl.parse_pin_url
+normalize_provenance = skillctl.normalize_provenance
+apply_provenance = skillctl.apply_provenance
+classify_vendored_skill = skillctl.classify_vendored_skill
+validate_materialized_skill = skillctl.validate_materialized_skill
+insert_readme_row = skillctl.insert_readme_row
+
+PIN_OLD = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+PIN_NEW = "0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0"
+PIN_OLD_URL = f"https://github.com/example/skills/tree/{PIN_OLD}/skills/demo"
+PIN_NEW_URL = f"https://github.com/example/skills/tree/{PIN_NEW}/skills/demo"
+
+
+def _write_skill(directory, body="Original body.\n", provenance=True, extra_files=None):
+    """Minimal skill dir; provenance=True mirrors a vendored local copy."""
+    directory.mkdir(parents=True, exist_ok=True)
+    if provenance:
+        frontmatter = (
+            "---\nname: demo\ndescription: A demo skill.\n"
+            f"license: MIT\nmetadata:\n  vendored-from: {PIN_OLD_URL}\n---\n\n"
+        )
+    else:
+        frontmatter = "---\nname: demo\ndescription: A demo skill.\n---\n\n"
+    (directory / "SKILL.md").write_text(frontmatter + body)
+    for name, content in (extra_files or {}).items():
+        target = directory / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+
+
+def test_load_sources_parses_manifest():
+    """Sources from plugin.json parse into SourceConfig records."""
+    tmp = Path(tempfile.mkdtemp())
+    plugin = tmp / "plugins" / "demo"
+    (plugin / "skills").mkdir(parents=True)
+    (plugin / "plugin.json").write_text(
+        json.dumps(
+            {
+                "name": "demo",
+                "sources": [{"repo": "acme/skills", "policy": "track", "include": ["skills/*"], "license": "MIT"}],
+            }
+        )
+    )
+    sources = load_sources(tmp)
+    assert len(sources) == 1
+    assert (sources[0].plugin, sources[0].repo, sources[0].policy, sources[0].license) == (
+        "demo",
+        "acme/skills",
+        "track",
+        "MIT",
+    )
+
+
+def test_load_sources_rejects_bad_policy():
+    """Unknown policy raises SkillctlError."""
+    tmp = Path(tempfile.mkdtemp())
+    plugin = tmp / "plugins" / "demo"
+    plugin.mkdir(parents=True)
+    (plugin / "plugin.json").write_text(
+        json.dumps({"name": "demo", "sources": [{"repo": "acme/skills", "policy": "auto", "include": ["skills/*"]}]})
+    )
+    try:
+        load_sources(tmp)
+    except skillctl.SkillctlError:
+        pass
+    else:
+        raise AssertionError("expected SkillctlError for unknown policy")
+
+
+def test_covered_by_include_exact_and_glob():
+    """Exact paths and globs both match; unrelated paths do not."""
+    assert covered_by_include("skills/engineering/tdd", ["skills/engineering/tdd"])
+    assert covered_by_include("skills/grafana-core/promql", ["skills/grafana-core/*"])
+    assert not covered_by_include("skills/engineering/tdd", ["skills/productivity/*"])
+
+
+def test_parse_pin_url():
+    """Pinned tree URLs split into repo, commit, path."""
+    pin = parse_pin_url(PIN_OLD_URL)
+    assert pin == {"repo": "example/skills", "commit": PIN_OLD, "path": "skills/demo"}
+
+
+def test_normalize_provenance_strips_injections():
+    """license + vendored-from + emptied metadata normalize away."""
+    local = f"---\nname: d\nlicense: MIT\nmetadata:\n  vendored-from: {PIN_OLD_URL}\n---\nBody.\n"
+    upstream = "---\nname: d\n---\nBody.\n"
+    assert normalize_provenance(local) == normalize_provenance(upstream)
+
+
+def test_normalize_provenance_keeps_populated_metadata():
+    """A metadata block with other children survives normalization."""
+    text = "---\nname: d\nmetadata:\n  credits:\n    author: A\n---\n"
+    assert normalize_provenance(text) == text
+
+
+def test_apply_provenance_adds_license_and_metadata():
+    """Upstream without license/metadata gets both injected (pocock shape)."""
+    upstream = "---\nname: demo\ndescription: A demo skill.\n---\n\nBody.\n"
+    out = apply_provenance(upstream, PIN_NEW_URL, "MIT")
+    assert "license: MIT" in out
+    assert f"metadata:\n  vendored-from: {PIN_NEW_URL}" in out
+    assert out.startswith("---\nname: demo")
+
+
+def test_apply_provenance_appends_into_existing_metadata():
+    """vendored-from lands inside an existing metadata block (credits shape)."""
+    upstream = "---\nname: d\ndescription: d\nmetadata:\n  credits:\n    author: A\n---\n\nBody.\n"
+    out = apply_provenance(upstream, PIN_NEW_URL, None)
+    assert out.index("  credits:") < out.index(f"  vendored-from: {PIN_NEW_URL}")
+    assert "license" not in out
+
+
+def test_apply_provenance_replaces_existing_pin():
+    """An existing pin URL is refreshed; license and metadata stay single (grafana shape)."""
+    local = (
+        f"---\nname: d\nlicense: Apache-2.0\ndescription: d\nmetadata:\n  vendored-from: {PIN_OLD_URL}\n---\nBody.\n"
+    )
+    out = apply_provenance(local, PIN_NEW_URL, "Apache-2.0")
+    assert PIN_NEW_URL in out and PIN_OLD_URL not in out
+    assert out.count("license:") == 1
+    assert out.count("metadata:") == 1
+
+
+def test_classify_clean_skill():
+    """Local copy equal to upstream at the pin (provenance aside) classifies clean."""
+    root = Path(tempfile.mkdtemp())
+    local = root / "local"
+    _write_skill(local, provenance=True)
+    old_root = root / "old"
+    _write_skill(old_root / "skills" / "demo", provenance=False)
+    head_root = root / "head"
+    _write_skill(head_root / "skills" / "demo", body="New upstream body.\n", provenance=False)
+    state, detail = classify_vendored_skill({"commit": PIN_OLD, "path": "skills/demo"}, local, old_root, head_root)
+    assert state == "clean"
+    assert detail == ""
+
+
+def test_classify_adapted_skill():
+    """A hand-edited body classifies adapted, naming the deviating file."""
+    root = Path(tempfile.mkdtemp())
+    local = root / "local"
+    _write_skill(local, body="Hand-edited body.\n", provenance=True)
+    old_root = root / "old"
+    _write_skill(old_root / "skills" / "demo", provenance=False)
+    head_root = root / "head"
+    _write_skill(head_root / "skills" / "demo", provenance=False)
+    state, detail = classify_vendored_skill({"commit": PIN_OLD, "path": "skills/demo"}, local, old_root, head_root)
+    assert state == "adapted"
+    assert "SKILL.md" in detail
+
+
+def test_classify_local_extra_file_is_adapted():
+    """A file that exists only locally marks the skill adapted."""
+    root = Path(tempfile.mkdtemp())
+    local = root / "local"
+    _write_skill(local, provenance=True, extra_files={"CREDITS.md": "x"})
+    old_root = root / "old"
+    _write_skill(old_root / "skills" / "demo", provenance=False)
+    head_root = root / "head"
+    _write_skill(head_root / "skills" / "demo", provenance=False)
+    state, _detail = classify_vendored_skill({"commit": PIN_OLD, "path": "skills/demo"}, local, old_root, head_root)
+    assert state == "adapted"
+
+
+def test_classify_deleted_upstream():
+    """A pin path gone from the head tree classifies deleted."""
+    root = Path(tempfile.mkdtemp())
+    local = root / "local"
+    _write_skill(local, provenance=True)
+    old_root = root / "old"
+    _write_skill(old_root / "skills" / "demo", provenance=False)
+    head_root = root / "head"
+    head_root.mkdir()
+    state, _detail = classify_vendored_skill({"commit": PIN_OLD, "path": "skills/demo"}, local, old_root, head_root)
+    assert state == "deleted"
+
+
+def test_validate_clean_skill():
+    """A well-formed skill passes the local battery."""
+    root = Path(tempfile.mkdtemp())
+    skill = root / "demo"
+    _write_skill(skill, provenance=True, extra_files={"references/notes.md": "safe text\n"})
+    assert validate_materialized_skill(skill) == []
+
+
+def test_validate_flags_hygiene_problems():
+    """Digit runs, IBAN shapes, and data files are flagged."""
+    root = Path(tempfile.mkdtemp())
+    skill = root / "demo"
+    _write_skill(
+        skill,
+        provenance=True,
+        extra_files={
+            "references/data.md": "id 123456789012\n",
+            "references/iban.md": "acct DK123456789012345\n",
+            "dump.csv": "x",
+        },
+    )
+    problems = validate_materialized_skill(skill)
+    assert any("digit run" in problem for problem in problems)
+    assert any("IBAN-shaped" in problem for problem in problems)
+    assert any("data file" in problem for problem in problems)
+
+
+def test_validate_flags_broken_reference():
+    """A SKILL.md reference to a missing file is flagged."""
+    root = Path(tempfile.mkdtemp())
+    skill = root / "demo"
+    _write_skill(skill, body="See references/missing.md for more.\n", provenance=True)
+    problems = validate_materialized_skill(skill)
+    assert any("broken reference references/missing.md" in problem for problem in problems)
+
+
+def test_validate_flags_long_skill_md():
+    """A SKILL.md past the line limit is flagged."""
+    root = Path(tempfile.mkdtemp())
+    skill = root / "demo"
+    _write_skill(skill, body="line\n" * 600, provenance=True)
+    problems = validate_materialized_skill(skill)
+    assert any("lines (max 500)" in problem for problem in problems)
+
+
+def test_insert_readme_row_alphabetical():
+    """A row lands between its alphabetical neighbours in the plugin table."""
+    readme = (
+        "### `demo`\n\n| Skill | Description |\n|---|---|\n"
+        "| [alpha](plugins/demo/skills/alpha) | A |\n"
+        "| [zeta](plugins/demo/skills/zeta) | Z |\n"
+    )
+    out = insert_readme_row(readme, "demo", "mid", "| [mid](plugins/demo/skills/mid) | M |")
+    assert out.index("alpha") < out.index("mid") < out.index("zeta")
 
 
 # ---------------------------------------------------------------------------
