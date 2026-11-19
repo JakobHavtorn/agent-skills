@@ -12,6 +12,7 @@ metadata:
   scope: design
   output-format: specification
   related-skills: graphql-architect, fastapi-expert, nestjs-expert, spring-boot-engineer, security-reviewer
+  vendored-from: https://github.com/Jeffallan/claude-skills/tree/958e60fb998e008507c978b7943211f337def6a6/skills/api-designer
 ---
 
 # API Designer
