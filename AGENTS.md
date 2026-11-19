@@ -47,7 +47,7 @@ Skill directory names must be unique across the whole repository, not just withi
 
 ## Data rule
 
-Never write personal data — account numbers, balances, transaction exports, employer data, client names — into any file in this repo. Skills that operate on personal data resolve it at runtime from `$SKILLS_DATA_DIR` or equivalent. CI rejects IBAN-shaped strings, long digit runs, and `.csv`/`.ofx`/`.qif` files.
+Never write personal data — account numbers, balances, transaction exports, employer data, client names — into any file in this repo. Skills that operate on personal data resolve it at runtime from `$SKILLS_DATA_DIR` or equivalent. CI rejects IBAN-shaped strings, long digit runs (provenance pins exempt — commit shas can contain digit runs), and `.csv`/`.ofx`/`.qif` files.
 
 ## Validation
 

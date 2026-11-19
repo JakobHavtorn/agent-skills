@@ -1,6 +1,6 @@
 ---
 name: api-designer
-description: This skill should be used when designing REST or GraphQL APIs, creating OpenAPI specifications, or planning API architecture. Invoke for resource modeling, versioning strategies, pagination patterns, error handling standards.
+description: Use when designing REST or GraphQL APIs, creating OpenAPI specifications, or planning API architecture. Invoke for resource modeling, versioning strategies, pagination patterns, error handling standards.
 license: MIT
 metadata:
   author: https://github.com/Jeffallan
@@ -12,7 +12,7 @@ metadata:
   scope: design
   output-format: specification
   related-skills: graphql-architect, fastapi-expert, nestjs-expert, spring-boot-engineer, security-reviewer
-  vendored-from: https://github.com/Jeffallan/claude-skills/tree/958e60fb998e008507c978b7943211f337def6a6/skills/api-designer
+  vendored-from: https://github.com/Jeffallan/claude-skills/tree/67c1961b180dc92cf08983344627109e983e8f51/skills/api-designer
 ---
 
 # API Designer

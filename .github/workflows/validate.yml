@@ -116,8 +116,10 @@ jobs:
             exit 1
           fi
 
-          # Reject long digit runs (12+ consecutive digits)
-          if grep -rnP '[0-9]{12,}' plugins/ 2>/dev/null; then
+          # Reject long digit runs (12+ consecutive digits). Provenance pins are
+          # exempt: a pinned commit sha is not personal data, and shas can contain
+          # digit runs (e.g. 67c1961b180dc92cf08983344627109e983e8f51).
+          if grep -rnP '[0-9]{12,}' plugins/ 2>/dev/null | grep -v 'vendored-from:'; then
             echo "ERROR: Long digit run found in plugins/"
             exit 1
           fi
