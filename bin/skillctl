@@ -1235,6 +1235,11 @@ def validate_materialized_skill(skill_dir: Path) -> list[str]:
             problems.append(f"{rel}: data file (csv/ofx/qif)")
             continue
         data = path.read_bytes()
+        if rel == "SKILL.md":
+            # Provenance pins are exempt from the digit-run check: a pinned commit
+            # sha is not personal data, and shas can contain digit runs. CI's
+            # hygiene grep in validate.yml applies the same exemption.
+            data = re.sub(rb"(?m)^\s*vendored-from:\s*\S+\s*$", b"", data)
         if SYNC_IBAN_RE.search(data):
             problems.append(f"{rel}: IBAN-shaped string")
         if SYNC_DIGITS_RE.search(data):

@@ -436,6 +436,26 @@ def test_validate_flags_long_skill_md():
     assert any("lines (max 500)" in problem for problem in problems)
 
 
+def test_validate_exempts_provenance_pins():
+    """A pin sha containing a 12+ digit run does not fail the battery."""
+    root = Path(tempfile.mkdtemp())
+    skill = root / "demo"
+    long_run_sha = "a" * 28 + "123456789012"  # 40 hex chars ending in a 12-digit run
+    _write_skill(skill, provenance=True)
+    pin = skill / "SKILL.md"
+    pin.write_text(pin.read_text().replace(PIN_OLD, long_run_sha))
+    assert validate_materialized_skill(skill) == []
+
+
+def test_validate_flags_digit_runs_outside_pins():
+    """A digit run in the body still fails the battery."""
+    root = Path(tempfile.mkdtemp())
+    skill = root / "demo"
+    _write_skill(skill, body="timestamp 123456789012\n", provenance=True)
+    problems = validate_materialized_skill(skill)
+    assert any("digit run" in problem for problem in problems)
+
+
 def test_insert_readme_row_alphabetical():
     """A row lands between its alphabetical neighbours in the plugin table."""
     readme = (
